@@ -16,6 +16,19 @@ Version headings match `manifest.json`'s `version`.
   - Las dos desactivadas dejan el equipo del cartucho. Nunca afectan a los
     salvajes en pareja, la Torre de Combate ni P1 vs P2. Los dos juegos
     calculan el mismo equipo sin tirar dados.
+- **Entrenadores más listos en Oro, Plata y Cristal** (combates
+  individuales):
+  - antes elegían su movimiento al azar, porque el motor solo lee la IA de
+    Gen 1;
+  - ahora eligen con la misma lectura del combate que los rivales de los
+    dobles co-op (quién puede debilitar a quién, quién se mueve antes, qué ya
+    está activo);
+  - líderes, Alto Mando, campeón, rival, RED y ejecutivos del Team Rocket lo
+    hacen siempre; los COOLTRAINER casi siempre; el resto, la mitad de las
+    veces, para no castigar al que empieza;
+  - los objetos, cambios y movimientos bloqueados siguen siendo los del
+    cartucho;
+  - se desactiva en MODS → PkMultiplayer → OPTIONS → SMARTER TRAINERS.
 
 ### Corregido
 

@@ -75,7 +75,7 @@ local MODULES = {
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
   "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance",
-  "src.battle.DoublesAI", "src.render.MicroFont", "src.follow.FollowMon",
+  "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
 -- ------------------------------------------- 0. what the last load left
@@ -159,6 +159,7 @@ if mod.options and mod.options.define then
   pcall(mod.options.define, mod.options, {
     { key = "follower", type = "toggle", label = "POKEMON FOLLOWS YOU", default = true },
     { key = "autoReconnect", type = "toggle", label = "AUTO RECONNECT", default = true },
+    { key = "smartTrainers", type = "toggle", label = "SMARTER TRAINERS", default = true },
   })
 end
 -- a switch in the MODS panel, read each time (true when the panel is absent);
@@ -321,6 +322,10 @@ end
 -- ------------------------------------------------- 3. menu and goodbye
 if mod.hooks and mod.hooks.wrap then
   mod.hooks:wrap("ui.start_menu.items", Hooks.startMenuItems)
+  -- Gold / Silver / Crystal trainers pick their move (src/battle/SinglesAI.lua)
+  mod.hooks:wrap("battle.enemy_action", function(next, battle, who)
+    return require("src.battle.SinglesAI").enemyAction(next, battle, who)
+  end)
 end
 Hooks.installQuit()
 

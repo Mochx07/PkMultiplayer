@@ -33,3 +33,4 @@ tests/coop_status_sync.lua
 tests/coop_session.lua
 tests/coop_battle_link.lua
 tests/coop_balance.lua
+tests/singles_ai.lua
