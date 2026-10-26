@@ -2451,6 +2451,7 @@ H.net_connect = function(ow, msg)
   -- with a welcome, and either one completes the handshake
   if msg and msg.resumed == false then
     pcall(function() require("src.coop.CoopLink").onNewSession() end)
+    pcall(function() require("src.coop.CoopBattle").onNewSession() end)
   end
   sendHello(ow, "coop_hello")
 end

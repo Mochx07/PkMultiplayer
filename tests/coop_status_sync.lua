@@ -126,7 +126,7 @@ local function diff(a, b)
   return d
 end
 
-local function play(seed, level)
+local function play(seed, level, tamper)
   local s = seed
   rnd = function(n) s = (s * 48271) % 2147483647 return 1 + (s % n) end
   local hostGame = newGame("HOST", { "FIXMON_A", "FIXMON_B" }, level)
@@ -198,9 +198,22 @@ local function play(seed, level)
     sender = "guest"; CoopBattle.currentBattle = gb
     choose(gb)
     deliver("guest"); deliver("host")
+    -- whatever a copy sends while it plays the turn goes from that copy
+    sender = "host"; CoopBattle.currentBattle = hb
     local ok1, r1 = pcall(drain, hb)
+    sender = "guest"; CoopBattle.currentBattle = gb
     local ok2, r2 = pcall(drain, gb)
+    sender = "host"
     if not ok1 or not ok2 then return turn, { "drain error: " .. tostring(r1) .. " / " .. tostring(r2) } end
+    if tamper and turn == tamper then
+      -- the guest's copy drifts: a foe's HP and a stat stage are off
+      local foe = gb:battlerAt(P.OPPONENT_LEFT)
+      if foe and foe.mon.hp > 1 then
+        foe.mon.hp = foe.mon.hp - 1
+        foe.stages = foe.stages or {}
+        foe.stages.attack = (foe.stages.attack or 0) + 1
+      end
+    end
     deliver("guest")
     -- the guest applies host syncs between turns
     CoopBattle.currentBattle = gb
@@ -213,6 +226,7 @@ end
 
 local N = tonumber(os.getenv("N") or "120")
 local turnsPlayed = 0
+CoopBattle.desyncs = 0
 for i = 1, N do
   local seed = 1000 + i * 7919
   local level = 10 + (i % 4) * 5
@@ -220,4 +234,19 @@ for i = 1, N do
   T.check(bad == nil, ("seed %d lv %d: both copies agree on every battler%s"):format(seed, level,
           bad and (" (turn " .. bad .. ": " .. table.concat(what, "; ") .. ")") or ""))
 end
+-- true lockstep: the host's word never had to put the guest right
+T.check(CoopBattle.desyncs == 0, ("no turn needed correcting (%d did)"):format(CoopBattle.desyncs))
+
+-- ...and when a copy does drift, the turn's signatures catch it and the
+-- host's state puts it right before the next turn
+CoopBattle.desyncs = 0
+local caught = 0
+for i = 1, 6 do
+  local before = CoopBattle.desyncs
+  local bad, what = play(5000 + i * 104729, 20, 2)
+  T.check(bad == nil, ("tampered seed %d: the copies agree again after the correction%s"):format(i,
+          bad and (" (turn " .. bad .. ": " .. table.concat(what, "; ") .. ")") or ""))
+  if CoopBattle.desyncs > before then caught = caught + 1 end
+end
+T.check(caught >= 5, ("a drifted copy is detected (%d of 6 games)"):format(caught))
 T.finish("co-op status lockstep")

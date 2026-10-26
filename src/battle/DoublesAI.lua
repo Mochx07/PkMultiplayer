@@ -139,8 +139,11 @@ local function estimate(battle, user, target, def, spread)
   local d = Damage.base(user.mon.level or 1, power, atk, dfn) + 2
   if hasType(user, def.type) then d = d * 1.5 end
   d = d * e / 10
+  -- Gen 2 keeps the screens on the Pokemon that raised them, later games on the side
   local side = battle.sides and battle.sides[target.isPlayer and 1 or 2]
-  if side and ((special and side.lightScreen) or (not special and side.reflect)) then d = d * 2 / 3 end
+  local screen = special and (target.lightScreen or (side and side.lightScreen))
+                 or (not special and (target.reflect or (side and side.reflect)))
+  if screen then d = d * 2 / 3 end
   if spread then d = d * 3 / 4 end
   d = d * (MULTI_HIT[def.effect] or 1) * 236 / 255 -- the middle of the damage roll
   if def.effect == "FALSE_SWIPE_EFFECT" then d = math.min(d, (target.mon.hp or 1) - 1) end
@@ -285,6 +288,13 @@ local STAT_UP = {
   ATTACK_UP2_EFFECT = "attack", DEFENSE_UP2_EFFECT = "defense", SPEED_UP2_EFFECT = "speed",
   SP_ATK_UP2_EFFECT = "spatk", SP_DEF_UP2_EFFECT = "spdef", EVASION_UP2_EFFECT = "evasion",
 }
+for _, t in ipairs({ STAT_DOWN, STAT_UP }) do
+  local extra = {}
+  for k, v in pairs(t) do
+    if not k:find("2_EFFECT$") then extra[(k:gsub("_EFFECT$", "1_EFFECT"))] = v end
+  end
+  for k, v in pairs(extra) do t[k] = v end
+end
 local SELF_HEAL = { HEAL_EFFECT = true, SYNTHESIS_EFFECT = true, MORNING_SUN_EFFECT = true,
                     MOONLIGHT_EFFECT = true }
 
@@ -355,13 +365,14 @@ local function selfValue(battle, plan, user, ally, def)
     if incoming < hp * 0.4 then return (user.turnsOut or 0) <= 2 and 26 or 10 end
     return (pct > 70 and (user.turnsOut or 0) <= 1) and 8 or 2
   elseif fx == "REFLECT_EFFECT" then
-    if side and side.reflect then return 0 end
+    if user.reflect or (side and side.reflect) then return 0 end
     return 8 + 14 * (plan.physical or 0)
   elseif fx == "LIGHT_SCREEN_EFFECT" then
-    if side and side.lightScreen then return 0 end
+    if user.lightScreen or (side and side.lightScreen) then return 0 end
     return 8 + 14 * (plan.special or 0)
   elseif fx == "PROTECT_EFFECT" or fx == "ENDURE_EFFECT" then
-    if user.protectedLastTurn or (user.protectCount or 0) > 0 then return 0 end
+    -- a second PROTECT in a row is likely to fail (the engine counts protectRun)
+    if user.protectedLastTurn or (user.protectCount or 0) > 0 or (user.protectRun or 0) > 0 then return 0 end
     -- about to be knocked out first: shield, and the partner hits freely
     if doomed then return ally and 55 or 30 end
     if incoming >= hp then return 25 end
@@ -415,9 +426,13 @@ local function optionsFor(battle, plan, user, usable, foes, ally)
         out[#out + 1] = { mv = mv, base = selfValue(battle, plan, user, ally, def), hits = {} }
       elseif kind == Targeting.BOTH or kind == Targeting.FOES_AND_ALLY then
         local o = { mv = mv, base = boom, hits = {} }
+        -- the spread cut needs two targets still standing
+        local standing = 0
+        for _, f in ipairs(foes) do if (f.mon.hp or 0) > 0 then standing = standing + 1 end end
+        if kind == Targeting.FOES_AND_ALLY and ally and (ally.mon.hp or 0) > 0 then standing = standing + 1 end
         for i, f in ipairs(foes) do
           if damaging then
-            o.hits[i] = hit(f, #foes > 1 or ally ~= nil)
+            o.hits[i] = hit(f, standing > 1)
           else
             o.base = o.base + statusValue(battle, user, f, def, foes) * 0.75 * threatMul(plan, f)
           end

@@ -31,3 +31,4 @@ tools/luaunits.py
 tools/pack.py
 tests/coop_status_sync.lua
 tests/coop_session.lua
+tests/coop_battle_link.lua

@@ -36,15 +36,21 @@ CoopBattle.waitingForPartner = false
 CoopBattle.waitTimer = 0
 CoopBattle.fallbackAllowed = false
 
-CoopBattle.LINK_GRACE = 10.0       -- a dropped link gets this long to come back mid-battle
+CoopBattle.LINK_GRACE = 20.0       -- a dropped link gets this long to come back mid-battle
 CoopBattle.RESULT_GRACE = 6.0      -- guest finishes on its own this long after the host did
 CoopBattle.REPLACE_WAIT = 30.0     -- a fallen partner slot waits this long only once the link is gone
 -- true = every fallen slot takes the first healthy Pokemon without asking
 -- (both copies agree by construction); the headless lockstep suite sets it
 CoopBattle.AUTO_REPLACE = false
 
--- actions that arrive before their battle exists (keyed by invite id)
+-- actions that arrive before their battle exists (keyed by invite id); only
+-- the newest few battles are kept
 CoopBattle.early = {}
+CoopBattle.EARLY_MAX = 4
+-- how far ahead of ours a partner's turn can be (they wait for us)
+CoopBattle.TURN_AHEAD_MAX = 2
+-- turns whose copies disagreed and were put right from the host's word
+CoopBattle.desyncs = 0
 
 local POS = { PLAYER_LEFT = 0, OPPONENT_LEFT = 1, PLAYER_RIGHT = 2, OPPONENT_RIGHT = 3 }
 
@@ -64,9 +70,15 @@ local function linked()
   return CM and CM.net and CM.isConnected and CM.isConnected()
 end
 
+-- A reconnecting session keeps what we send and delivers it, once, when the
+-- link resumes (CoopNet): a turn, a pick after a faint or the host's sync
+-- sent into a dropped link is not lost any more, and nobody waits for ever
+-- on a message that died with the old connection.
 local function send(msg)
   local CM = manager()
-  if CM and CM.net and CM.connected then CM.net:send(msg) end
+  local net = CM and CM.net
+  if not net or net.closed then return end
+  if CM.connected or net.sessionActive then net:send(msg) end
 end
 
 -- ---------------------------------------------------------------------
@@ -672,10 +684,32 @@ function CoopBattle.executeTurn(battle)
   reseed(battle, turn)
   CoopLog.battle("TURN", string.format("resolve turn %d (partner %s)", turn,
                  c.partnerLost and "AI" or tostring(wire and wire.kind)))
-  local ok, err = pcall(function() battle:resolveTurn(localAction) end)
+  local ok, err = CoopBattle.withSharedRandom(battle, function() battle:resolveTurn(localAction) end)
   if not ok then
     CoopLog.error("BATTLE", "resolveTurn failed on turn " .. turn .. ": " .. tostring(err))
   end
+end
+
+-- THE ONE DIE OF THE TURN.  Engine code that forgets to pass the battle's
+-- rng rolls love.math.random instead -- a different number on each machine,
+-- and every turn after differs.  While a co-op turn resolves, that call
+-- rolls the shared die too (and the log says where, once).
+CoopBattle.strayRolls = 0
+function CoopBattle.withSharedRandom(battle, fn)
+  local lm = love and love.math
+  local rng = battle and battle.rng
+  if not (lm and lm.random and rng) then return pcall(fn) end
+  local real = lm.random
+  lm.random = function(...)
+    CoopBattle.strayRolls = CoopBattle.strayRolls + 1
+    if CoopBattle.strayRolls == 1 then
+      CoopLog.warn("BATTLE", "an engine roll skipped the shared rng: " .. tostring(debug.traceback("", 2)):sub(1, 300))
+    end
+    return rng(...)
+  end
+  local ok, err = pcall(fn)
+  lm.random = real
+  return ok, err
 end
 
 local function tryExecute(battle)
@@ -738,13 +772,22 @@ function CoopBattle.onPartnerAction(msg)
   if not c or (msg.inviteId and c.inviteId and msg.inviteId ~= c.inviteId) then
     -- our copy of this battle is not up yet (still in the transition)
     if msg.inviteId then
-      CoopBattle.early[msg.inviteId] = CoopBattle.early[msg.inviteId] or {}
+      if not CoopBattle.early[msg.inviteId] then
+        local n = 0
+        for _ in pairs(CoopBattle.early) do n = n + 1 end
+        if n >= CoopBattle.EARLY_MAX then CoopBattle.early = {} end
+        CoopBattle.early[msg.inviteId] = {}
+      end
       CoopBattle.early[msg.inviteId][turn] = { action = msg.action, state = msg.state }
     end
     return
   end
   if turn < c.turn then
     CoopLog.warn("BATTLE", "stale action for turn " .. turn .. " (at " .. c.turn .. ")")
+    return
+  end
+  if turn > c.turn + CoopBattle.TURN_AHEAD_MAX then
+    CoopLog.warn("BATTLE", "action for a turn too far ahead: " .. turn .. " (at " .. c.turn .. ")")
     return
   end
   c.partnerActions[turn] = msg.action or { kind = "spectator" }
@@ -798,6 +841,15 @@ function CoopBattle.onLinkLost(reason)
   else
     CoopBattle.partnerLeft(battle, reason or "left")
   end
+end
+
+-- The link came back as a NEW session (the partner restarted their game):
+-- the battle we were in is not on their side any more.
+function CoopBattle.onNewSession()
+  local battle = CoopBattle.currentBattle
+  local c = battle and battle.coop
+  if not c or c.partnerLost or c.finished then return end
+  CoopBattle.partnerLeft(battle, "new_session")
 end
 
 -- The link came back.  A turn sent just before it dropped died with the old
@@ -916,13 +968,112 @@ end
 -- host-authoritative corrections
 -- ---------------------------------------------------------------------
 
-local function packBattler(b)
+-- EVERY TURN, THE TWO COPIES COMPARE NOTES.  The host's sync carries the
+-- whole state of what the guest copies from it -- the host's Pokemon and
+-- both foes: HP, status, stat stages, PP, the held item, the counters that
+-- outlast a turn (sleep, toxic, confusion, a WRAP, a SUBSTITUTE, screens...)
+-- and the foes' bench -- plus a signature of it.  The guest signs its own
+-- copy the same way; when the two differ, the host's word is taken for all
+-- of it, the turn is counted (CoopBattle.desyncs) and the log says which part
+-- had drifted.  The guest's own Pokemon are never in it: their word on those
+-- travels with every action (packOwnState).
+local SYNC_VOLATILE = {
+  "bideDamage", "bideTurns", "boundTurns", "chargeReady", "charging",
+  "confusedTurns", "disabledSlot", "disabledTurns", "focusEnergy",
+  "invulnerable", "leechSeeded", "lightScreen", "mist", "mustRecharge",
+  "rageMove", "reflect", "sleepTurns", "substituteHP", "thrashMove",
+  "thrashTurns", "toxicCounter", "trapDamage", "trapMove", "trappingTurns",
+  "protectRun", "safeguard", "perishCount", "encoreTurns", "encoreMove",
+  "nightmare", "cursed", "lockedOn", "destinyBond", "foresight",
+}
+CoopBattle.SYNC_VOLATILE = SYNC_VOLATILE
+
+-- "off" three ways (absent, false, 0) hashes as one (see LinkBattle)
+local function off(v) return v == nil or v == false or v == 0 end
+
+local function scalar(v)
+  if type(v) == "table" then return v.id or "?" end
+  return v
+end
+
+local function packBattler(b, full)
   if not b or not b.mon then return nil end
-  return {
+  local out = {
     species = b.mon.species,
     nickname = b.mon.nickname,
     hp = math.max(0, tonumber(b.mon.hp) or 0),
     status = b.mon.status,
+  }
+  if not full then return out end
+  out.item = b.mon.item
+  out.stages = {}
+  for k, v in pairs(b.stages or {}) do
+    if type(v) == "number" and v ~= 0 then out.stages[k] = v end
+  end
+  out.pp = {}
+  for i, mv in ipairs(b.curMoves or b.mon.moves or {}) do
+    out.pp[i] = tonumber(mv.pp) or 0
+  end
+  out.vol = {}
+  for _, key in ipairs(SYNC_VOLATILE) do
+    local v = b[key]
+    if not off(v) and type(v) ~= "function" then out.vol[key] = scalar(v) end
+  end
+  return out
+end
+CoopBattle.packBattler = packBattler
+
+local function sortedPairs(t)
+  local keys = {}
+  for k in pairs(t or {}) do keys[#keys + 1] = k end
+  table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+  local out = {}
+  for _, k in ipairs(keys) do out[#out + 1] = tostring(k) .. "=" .. tostring(t[k]) end
+  return table.concat(out, ",")
+end
+
+-- one line per part, so a mismatch can say what drifted
+local function signParts(packed)
+  -- a fainted Pokemon still in its slot on one copy and already taken off
+  -- on the other is the same field: both sign it as an empty slot
+  if type(packed) ~= "table" or (tonumber(packed.hp) or 0) <= 0 then
+    return { actives = "-", volatile = "-" }
+  end
+  return {
+    actives = string.format("%s:%d:%s:%s:%s:%s", tostring(packed.species), tonumber(packed.hp) or 0,
+                            tostring(packed.status), tostring(packed.item), sortedPairs(packed.stages),
+                            table.concat(packed.pp or {}, ",")),
+    volatile = sortedPairs(packed.vol),
+  }
+end
+
+local function benchOf(party)
+  local out = {}
+  for i, mon in ipairs(party or {}) do
+    if type(mon) == "table" then
+      out[i] = { species = mon.species, hp = math.max(0, tonumber(mon.hp) or 0), status = mon.status }
+    else
+      out[i] = false
+    end
+  end
+  return out
+end
+
+local function benchSig(bench)
+  local out = {}
+  for i, m in ipairs(bench or {}) do
+    out[i] = type(m) == "table" and (tostring(m.species) .. ":" .. tostring(m.hp) .. ":" .. tostring(m.status)) or "-"
+  end
+  return table.concat(out, "|")
+end
+
+-- the signature of a sync's worth of state: { actives, volatile, bench }
+function CoopBattle.signature(host, enemy1, enemy2, bench)
+  local a, b, c = signParts(host), signParts(enemy1), signParts(enemy2)
+  return {
+    actives = a.actives .. "|" .. b.actives .. "|" .. c.actives,
+    volatile = a.volatile .. "|" .. b.volatile .. "|" .. c.volatile,
+    bench = benchSig(bench),
   }
 end
 
@@ -931,15 +1082,21 @@ function CoopBattle.syncBattleHP(battle)
   local c = battle.coop
   if not c or c.partnerLost or not linked() then return end
   local P = BattleStatePos()
+  local host = packBattler(battle:battlerAt(P.PLAYER_LEFT), true)
+  local enemy1 = packBattler(battle:battlerAt(P.OPPONENT_LEFT), true)
+  local enemy2 = packBattler(battle:battlerAt(P.OPPONENT_RIGHT), true)
+  local bench = benchOf(battle.enemyParty)
   send({
     type = "coop_battle_sync",
     inviteId = c.inviteId,
     turn = c.turn - 1,
     -- in the HOST's frame: host = host's own Pokemon
-    host = packBattler(battle:battlerAt(P.PLAYER_LEFT)),
+    host = host,
     guest = packBattler(battle:battlerAt(P.PLAYER_RIGHT)),
-    enemy1 = packBattler(battle:battlerAt(P.OPPONENT_LEFT)),
-    enemy2 = packBattler(battle:battlerAt(P.OPPONENT_RIGHT)),
+    enemy1 = enemy1,
+    enemy2 = enemy2,
+    bench = bench,
+    sig = CoopBattle.signature(host, enemy1, enemy2, bench),
   })
 end
 
@@ -969,6 +1126,30 @@ local function applyOne(battle, b, data, partyList)
     b.status = data.status
     changed = true
   end
+  if data.full then
+    -- the rest of the host's word, when the copies were found to differ
+    if data.item ~= nil or b.mon.item ~= nil then b.mon.item = data.item end
+    b.stages = b.stages or {}
+    for k in pairs(b.stages) do if type(b.stages[k]) == "number" then b.stages[k] = nil end end
+    for k, v in pairs(type(data.stages) == "table" and data.stages or {}) do b.stages[k] = tonumber(v) end
+    for i, mv in ipairs(b.curMoves or b.mon.moves or {}) do
+      local pp = type(data.pp) == "table" and tonumber(data.pp[i])
+      if pp then mv.pp = pp end
+    end
+    local vol = type(data.vol) == "table" and data.vol or {}
+    for _, key in ipairs(SYNC_VOLATILE) do
+      local v = vol[key]
+      if v == nil then
+        if not off(b[key]) and type(b[key]) ~= "table" then b[key] = nil end
+      elseif type(b[key]) == "table" then
+        -- a move instance (THRASH, a WRAP, an ENCORE): keep ours when it is the same move
+        if scalar(b[key]) ~= v then CoopLog.warn("BATTLE", "sync: " .. key .. " names another move") end
+      else
+        b[key] = v
+      end
+    end
+    changed = true
+  end
   if changed and partyList then
     for _, pm in ipairs(partyList) do
       if pm == b.mon or (pm.species == b.mon.species and pm.nickname == b.mon.nickname) then
@@ -980,6 +1161,19 @@ local function applyOne(battle, b, data, partyList)
   return changed
 end
 
+-- the foes on the bench: HP and status, by position
+local function applyBench(battle, bench)
+  if type(bench) ~= "table" then return end
+  for i, m in ipairs(battle.enemyParty or {}) do
+    local w = bench[i]
+    if type(m) == "table" and type(w) == "table" and w.species == m.species then
+      local hp = tonumber(w.hp)
+      if hp and hp > 0 and (tonumber(m.hp) or 0) > 0 then m.hp = hp end
+      m.status = w.status
+    end
+  end
+end
+
 function CoopBattle.applySync(battle, msg)
   local P = BattleStatePos()
   -- guest frame: own Pokemon is LEFT, the host's is RIGHT.  The guest's own
@@ -987,9 +1181,30 @@ function CoopBattle.applySync(battle, msg)
   -- a level-up behind (experience is paid on the owner's machine), and the
   -- guest's word on them travels with every action instead.
   local changed = false
-  changed = applyOne(battle, battle:battlerAt(P.PLAYER_RIGHT), msg.host, battle.ally and battle.ally.party) or changed
-  changed = applyOne(battle, battle:battlerAt(P.OPPONENT_LEFT), msg.enemy1, battle.enemyParty) or changed
-  changed = applyOne(battle, battle:battlerAt(P.OPPONENT_RIGHT), msg.enemy2, battle.enemyParty) or changed
+  local hostB = battle:battlerAt(P.PLAYER_RIGHT)
+  local e1, e2 = battle:battlerAt(P.OPPONENT_LEFT), battle:battlerAt(P.OPPONENT_RIGHT)
+  if type(msg.sig) == "table" then
+    local mine = CoopBattle.signature(packBattler(hostB, true), packBattler(e1, true),
+                                      packBattler(e2, true), benchOf(battle.enemyParty))
+    local drift = {}
+    for _, part in ipairs({ "actives", "volatile", "bench" }) do
+      if mine[part] ~= msg.sig[part] then drift[#drift + 1] = part end
+    end
+    if #drift > 0 then
+      CoopBattle.desyncs = CoopBattle.desyncs + 1
+      CoopLog.warn("BATTLE", string.format("turn %s: the copies differ (%s); taking the host's word",
+                   tostring(msg.turn), table.concat(drift, ", ")))
+      CoopLog.warn("BATTLE", "host  " .. tostring(msg.sig.actives))
+      CoopLog.warn("BATTLE", "guest " .. tostring(mine.actives))
+      for _, k in ipairs({ "host", "enemy1", "enemy2" }) do
+        if type(msg[k]) == "table" then msg[k].full = true end
+      end
+      applyBench(battle, msg.bench)
+    end
+  end
+  changed = applyOne(battle, hostB, msg.host, battle.ally and battle.ally.party) or changed
+  changed = applyOne(battle, e1, msg.enemy1, battle.enemyParty) or changed
+  changed = applyOne(battle, e2, msg.enemy2, battle.enemyParty) or changed
   if changed then
     CoopLog.battle("SYNC_APPLY", "corrected guest copy after turn " .. tostring(msg.turn))
     for _, pos in ipairs({ P.PLAYER_LEFT, P.PLAYER_RIGHT, P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do
@@ -1154,6 +1369,10 @@ function CoopBattle.tick(dt)
     else
       c.linkLostAt = (c.linkLostAt or 0) + dt
       if c.linkLostAt >= CoopBattle.LINK_GRACE then
+        -- the AI takes their Pokemon, and they are told so: the message waits
+        -- in the session, and when the link comes back their copy hands ours
+        -- to the AI as well, instead of waiting for turns we no longer send
+        send({ type = "coop_battle_leave", inviteId = c.inviteId, reason = "timeout" })
         CoopBattle.partnerLeft(battle, "timeout")
       end
     end
@@ -1167,7 +1386,13 @@ function CoopBattle.tick(dt)
   if c.pendingSync and betweenTurns(battle) then
     local msg = c.pendingSync
     c.pendingSync = nil
-    CoopBattle.applySync(battle, msg)
+    -- only the turn just played: a sync that waited while the next turn
+    -- already ran would write an older HP over the newer one
+    if tonumber(msg.turn) == nil or tonumber(msg.turn) == c.turn - 1 then
+      CoopBattle.applySync(battle, msg)
+    else
+      CoopLog.info("BATTLE", string.format("dropped the sync of turn %s (now at %d)", tostring(msg.turn), c.turn))
+    end
   end
 
   if c.hostResult then

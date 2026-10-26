@@ -709,6 +709,7 @@ do
   game.stack:push(guest)
   CoopBattle.currentBattle = guest
   guest.phase = "messages"
+  guest.coop.turn = 2 -- turn 1 has been played
 
   CoopBattle.onPartnerBattleSync({ inviteId = "S1", turn = 1,
     guest = { species = "TOTODILE", hp = 15 }, host = { species = "CYNDAQUIL", hp = 18 },
@@ -719,6 +720,14 @@ do
   CoopBattle.tick(0.016)
   check(guest.battlers[2].mon.hp == 18 and guest.battlers[3].mon.hp == 3,
         "host's Pokemon and the foes corrected between turns")
+
+  -- the next turn already ran here: turn 1's HP must not land over it
+  guest.coop.turn = 3
+  guest.battlers[3].mon.hp = 2
+  CoopBattle.onPartnerBattleSync({ inviteId = "S1", turn = 1,
+    host = { species = "CYNDAQUIL", hp = 18 }, enemy2 = { species = "BELLSPROUT", hp = 3 } })
+  CoopBattle.tick(0.016)
+  check(guest.battlers[3].mon.hp == 2, "a sync for an older turn is dropped")
   check(own.hp == 25, "the guest's OWN Pokemon is never overwritten by the host (it may be a level-up ahead)")
   check(guest.battlers[1].mon.hp == 15, "a faint the guest has not seen is not forced (engine must run it)")
 
