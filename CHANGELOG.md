@@ -3,6 +3,18 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.5.1 (en desarrollo)
+
+### Corregido
+
+- **Nuestros Pokémon miraban hacia el otro lado en los combates dobles co-op**
+  con el mod de vóxeles (DramaticShapes) activado. En sus combates 3D los dos
+  bandos miran a la cámara, así que cambia la foto de espaldas de tu lado por
+  la de frente, y lo seguía haciendo en los dobles co-op, que se juegan en la
+  pantalla clásica. Ahora, mientras dura un doble co-op o un salvaje en
+  pareja, tu Pokémon y el del compañero salen de espaldas, mirando a los
+  rivales.
+
 ## 1.5.0
 
 **Los dos jugadores necesitan esta versión** (protocolo 14): a un compañero

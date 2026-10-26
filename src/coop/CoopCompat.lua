@@ -7,11 +7,27 @@
 -- has four boxes in other places, and staged it drew every name and HP bar
 -- twice ("PIDGEYPIDGEY").  So a co-op double is not staged: it is fought on
 -- the classic battle screen, as with 3D-BTL off.  Singles are untouched.
+--
+-- ...AND ON THE CLASSIC SCREEN OUR POKEMON SHOW THEIR BACKS.  In its 3D
+-- battles both sides face the camera, so DramaticShapes hands the player's
+-- side its FRONT pic (OverworldBattle.wantsFront, asked by the pokemon.sprite
+-- hook for every battler built).  It went on doing that for a co-op double
+-- it does not stage: on the flat screen both players' Pokemon stood facing
+-- away from the foes.  While a co-op double (or a wild battle together) is
+-- up, it is told the battle is not staged, and the back pics come back.
 
 local CoopManager = require("src.coop.CoopManager")
 local CoopLog = require("src.coop.CoopLog")
 
 local CoopCompat = {}
+
+-- a co-op double or wild battle is being built or fought right now
+function CoopCompat.classicScreen()
+  local CB = package.loaded["src.coop.CoopBattle"]
+  local b = CB and CB.currentBattle
+  if type(b) ~= "table" or not (b.coopDouble or b.coopWild) then return false end
+  return not (b.coop and b.coop.finished)
+end
 
 function CoopCompat.wrapDramaticShapes()
   local V = rawget(_G, "__DRAMATIC_SHAPE_V")
@@ -27,8 +43,15 @@ function CoopCompat.wrapDramaticShapes()
     end
     return begin(state, battle, ...)
   end
+  if type(OB.wantsFront) == "function" then
+    local wantsFront = OB.wantsFront
+    OB.wantsFront = function(...)
+      if CoopCompat.classicScreen() then return false end
+      return wantsFront(...)
+    end
+  end
   OB.__pkmCoopWrapped = true
-  CoopLog.info("COMPAT", "DramaticShapes: co-op doubles stay on the classic screen")
+  CoopLog.info("COMPAT", "DramaticShapes: co-op doubles stay on the classic screen, with back pics")
   return true
 end
 

@@ -288,6 +288,28 @@ do
 end
 
 -- ---------------------------------------------------------------------
+-- DRAMATICSHAPES: a co-op double on the flat screen keeps the back pics
+-- ---------------------------------------------------------------------
+
+do
+  local CoopCompat = require("src.coop.CoopCompat")
+  local CoopBattle = require("src.coop.CoopBattle")
+  local OB = { begin = function() return true end, wantsFront = function() return true end }
+  rawset(_G, "__DRAMATIC_SHAPE_V", { require = function() return OB end })
+  CoopCompat.done = nil
+  T.check(CoopCompat.wrapDramaticShapes(), "DramaticShapes is wrapped")
+  local was = CoopBattle.currentBattle
+  CoopBattle.currentBattle = nil
+  T.check(OB.wantsFront() == true, "outside co-op its 3D battles still ask for front pics")
+  CoopBattle.currentBattle = { coopDouble = true, coop = {} }
+  T.check(OB.wantsFront() == false, "a co-op double gets our Pokemon's back pics")
+  CoopBattle.currentBattle = { coopWild = true, coop = { finished = true } }
+  T.check(OB.wantsFront() == true, "...only while it lasts")
+  CoopBattle.currentBattle = was
+  rawset(_G, "__DRAMATIC_SHAPE_V", nil)
+end
+
+-- ---------------------------------------------------------------------
 -- SOUL LINK: first catches bound by area, fainting together
 -- ---------------------------------------------------------------------
 
