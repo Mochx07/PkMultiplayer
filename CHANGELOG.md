@@ -29,6 +29,11 @@ Version headings match `manifest.json`'s `version`.
   - los objetos, cambios y movimientos bloqueados siguen siendo los del
     cartucho;
   - se desactiva en MODS → PkMultiplayer → OPTIONS → SMARTER TRAINERS.
+- **Una pantalla para todo el lado en los dobles co-op:** en Oro, Plata y
+  Cristal, REFLECT y PANTALLA LUZ protegían solo al Pokémon que las usó, y su
+  compañero quedaba al descubierto. Ahora, como en HeartGold/SoulSilver,
+  cubren a los dos Pokémon de su lado (también los de los rivales). La IA lo
+  tiene en cuenta y no la repite si el compañero ya la tiene.
 
 ### Corregido
 

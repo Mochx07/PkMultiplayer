@@ -141,8 +141,10 @@ local function estimate(battle, user, target, def, spread)
   d = d * e / 10
   -- Gen 2 keeps the screens on the Pokemon that raised them, later games on the side
   local side = battle.sides and battle.sides[target.isPlayer and 1 or 2]
-  local screen = special and (target.lightScreen or (side and side.lightScreen))
-                 or (not special and (target.reflect or (side and side.reflect)))
+  -- ...and in a co-op double a partner's screen covers it too (lib/Hooks.lua)
+  local mate = battle.partnerOf and (battle.coopDouble or battle.coopWild) and battle:partnerOf(target)
+  local screen = special and (target.lightScreen or (mate and mate.lightScreen) or (side and side.lightScreen))
+                 or (not special and (target.reflect or (mate and mate.reflect) or (side and side.reflect)))
   if screen then d = d * 2 / 3 end
   if spread then d = d * 3 / 4 end
   d = d * (MULTI_HIT[def.effect] or 1) * 236 / 255 -- the middle of the damage roll
@@ -365,10 +367,10 @@ local function selfValue(battle, plan, user, ally, def)
     if incoming < hp * 0.4 then return (user.turnsOut or 0) <= 2 and 26 or 10 end
     return (pct > 70 and (user.turnsOut or 0) <= 1) and 8 or 2
   elseif fx == "REFLECT_EFFECT" then
-    if user.reflect or (side and side.reflect) then return 0 end
+    if user.reflect or (ally and ally.reflect) or (side and side.reflect) then return 0 end
     return 8 + 14 * (plan.physical or 0)
   elseif fx == "LIGHT_SCREEN_EFFECT" then
-    if user.lightScreen or (side and side.lightScreen) then return 0 end
+    if user.lightScreen or (ally and ally.lightScreen) or (side and side.lightScreen) then return 0 end
     return 8 + 14 * (plan.special or 0)
   elseif fx == "PROTECT_EFFECT" or fx == "ENDURE_EFFECT" then
     -- a second PROTECT in a row is likely to fail (the engine counts protectRun)

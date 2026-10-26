@@ -474,6 +474,31 @@ Hooks.modules["src.battle.TrainerAI"] = function(TrainerAI)
   end)
 end
 
+-- ONE SCREEN FOR THE SIDE.  Gold, Silver and Crystal keep REFLECT and LIGHT
+-- SCREEN on the Pokemon that raised them; in a co-op double that left its
+-- partner standing in the open beside it.  As in HeartGold/SoulSilver, a
+-- screen in a co-op double covers both Pokemon on its side (the foes' too):
+-- the damage of a hit on a Pokemon whose partner has one up is worked out as
+-- if it had it.  Same on both copies: it reads only the battlers.
+function Hooks.sharedScreens(defender, opts)
+  if type(defender) ~= "table" then return opts end
+  if type(opts) == "table" and (opts.screens ~= nil or opts.typeless) then return opts end
+  local CB = package.loaded["src.coop.CoopBattle"]
+  local battle = CB and CB.currentBattle
+  if not (type(battle) == "table" and (battle.coopDouble or battle.coopWild) and battle.partnerOf) then
+    return opts
+  end
+  local ok, partner = pcall(battle.partnerOf, battle, defender)
+  if not (ok and type(partner) == "table") then return opts end
+  local reflect = defender.reflect or partner.reflect
+  local light = defender.lightScreen or partner.lightScreen
+  if reflect == defender.reflect and light == defender.lightScreen then return opts end
+  local out = {}
+  for k, v in pairs(type(opts) == "table" and opts or {}) do out[k] = v end
+  out.screens = { reflect = reflect, lightScreen = light }
+  return out
+end
+
 Hooks.modules["src.battle.Damage"] = function(Damage)
   -- A Gen 2 co-op double has no doubles numbers in its ruleset and passes
   -- HeartGold/SoulSilver's on opts (BattleState:computeDamage); the ruleset's
@@ -491,6 +516,7 @@ Hooks.modules["src.battle.Damage"] = function(Damage)
         end
         if fill then ruleset = setmetatable(fill, { __index = ruleset }) end
       end
+      opts = Hooks.sharedScreens(defender, opts)
       return compute(ruleset, attacker, defender, move, opts, ...)
     end
   end)
