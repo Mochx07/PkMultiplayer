@@ -2581,6 +2581,10 @@ H.coop_story_rewards = function(ow, msg)
   require("src.coop.CoopStory").onPartnerRewards(getGame(ow), msg)
 end
 
+-- the partner is holding a big battle's scene until we walk in (CoopStory)
+H.coop_story_hold = function(ow, msg) require("src.coop.CoopStory").onPartnerHold(msg) end
+H.coop_story_release = function(ow, msg) require("src.coop.CoopStory").onPartnerRelease(msg) end
+
 -- THE STORY THIS SAVE SHARES, AND WITH WHOM.  Once both are in the world,
 -- the save remembers its partner (save.coopPartner) -- so an event played
 -- while the link is down is kept for them (CoopStory.queue) -- and whatever

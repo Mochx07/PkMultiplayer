@@ -38,7 +38,7 @@ CoopBattle.fallbackAllowed = false
 
 CoopBattle.LINK_GRACE = 10.0       -- a dropped link gets this long to come back mid-battle
 CoopBattle.RESULT_GRACE = 6.0      -- guest finishes on its own this long after the host did
-CoopBattle.REPLACE_WAIT = 30.0     -- longest a fallen partner slot waits for their pick
+CoopBattle.REPLACE_WAIT = 30.0     -- a fallen partner slot waits this long only once the link is gone
 -- true = every fallen slot takes the first healthy Pokemon without asking
 -- (both copies agree by construction); the headless lockstep suite sets it
 CoopBattle.AUTO_REPLACE = false
@@ -139,7 +139,7 @@ function CoopBattle.encodeAction(battle, action, opts)
   end
   if action.special == "playerItem" then
     return { kind = "item", id = action.id, targetNick = action.targetNick,
-             messages = action.messages, heal = action.heal }
+             messages = action.messages, heal = action.heal, boost = action.boost }
   end
   if action.special then return { kind = "locked" } end
   local P = BattleStatePos()
@@ -192,7 +192,8 @@ function CoopBattle.decodeAction(battle, w)
     return nil
   elseif w.kind == "item" then
     return { special = "playerItem", id = w.id, targetNick = w.targetNick, messages = w.messages,
-             heal = type(w.heal) == "table" and w.heal or nil }
+             heal = type(w.heal) == "table" and w.heal or nil,
+             boost = type(w.boost) == "table" and w.boost or nil }
   end
   return nil
 end
@@ -334,6 +335,83 @@ function CoopBattle.applyItemHeal(battle, heal, mine)
     if b.shownHP then b.shownHP = mon.hp end
   end
   if battle.syncShownStatus then pcall(battle.syncShownStatus, battle) end
+end
+
+-- An X item, DIRE HIT or GUARD SPEC. works on the user's own battler the
+-- moment it is picked, on this copy only; what it left behind rides with the
+-- action and the partner's copy writes it onto its ally slot as the turn
+-- opens.  The POKé FLUTE carries `flute` and wakes the whole field on both.
+function CoopBattle.itemBoost(battle)
+  local P = BattleStatePos()
+  local b = battle.battlerAt and battle:battlerAt(P.PLAYER_LEFT)
+  if not (b and b.mon) then return nil end
+  local stages = {}
+  for k, v in pairs(b.stages or {}) do stages[k] = v end
+  return { species = b.mon.species, stages = stages, xAccuracy = b.xAccuracy and true or false,
+           focusEnergy = b.focusEnergy and true or false, mist = b.mist and true or false }
+end
+
+local function wakeAll(battle)
+  local function wake(mon)
+    if type(mon) == "table" and mon.status == "SLP" then mon.status = nil end
+  end
+  for p = 0, 3 do
+    local b = battle.battlerAt and battle:battlerAt(p)
+    if b and b.mon then
+      wake(b.mon)
+      if b.status == "SLP" then b.status = nil end
+    end
+  end
+  for _, list in ipairs({ battle.coopChosenMons or {}, (battle.ally and battle.ally.party) or {},
+                          battle.enemyParty or {} }) do
+    for _, mon in ipairs(list) do wake(mon) end
+  end
+  if battle.syncShownStatus then pcall(battle.syncShownStatus, battle) end
+end
+
+-- `mine`: the boost is this copy's own (already on its battler)
+function CoopBattle.applyItemBoost(battle, boost, mine)
+  if type(boost) ~= "table" then return end
+  if boost.flute then wakeAll(battle) end
+  if mine or type(boost.stages) ~= "table" then return end
+  local P = BattleStatePos()
+  local b = battle.battlerAt and battle:battlerAt(P.PLAYER_RIGHT)
+  if not (b and b.mon) or (boost.species and b.mon.species ~= boost.species) then return end
+  b.stages = b.stages or {}
+  for k, v in pairs(boost.stages) do
+    if tonumber(v) then b.stages[k] = v end
+  end
+  b.xAccuracy = boost.xAccuracy or nil
+  b.focusEnergy = boost.focusEnergy or nil
+  b.mist = boost.mist or nil
+end
+
+-- A REVIVE on a player whose whole team was down leaves their slot empty
+-- with a Pokemon able to fight again on the bench.  Nothing would ever send
+-- it in -- replacements are only asked for as a Pokemon faints -- so the
+-- revive did nothing.  Both copies look as the turn opens, after the heals,
+-- and queue the slot: at the end of the turn its owner picks who goes in and
+-- the other copy waits for that pick, the same as after a faint.
+function CoopBattle.queueRevivedSlots(battle)
+  local P = BattleStatePos()
+  for _, pos in ipairs({ P.PLAYER_LEFT, P.PLAYER_RIGHT }) do
+    if battle.battlerAt and battle:battlerAt(pos) == nil then
+      local list = (pos == P.PLAYER_LEFT) and battle.coopChosenMons or (battle.ally and battle.ally.party)
+      local able = false
+      for _, mon in ipairs(type(list) == "table" and list or {}) do
+        if type(mon) == "table" and (mon.hp or 0) > 0 and not mon.isEgg then able = true break end
+      end
+      local queued = false
+      for _, q in ipairs(battle.pendingReplacements or {}) do
+        if q == pos then queued = true end
+      end
+      if able and not queued then
+        battle.pendingReplacements = battle.pendingReplacements or {}
+        battle.pendingReplacements[#battle.pendingReplacements + 1] = pos
+        CoopLog.battle("REVIVE_SLOT", "slot " .. tostring(pos) .. " can fight again")
+      end
+    end
+  end
 end
 
 -- ---------------------------------------------------------------------
@@ -582,6 +660,15 @@ function CoopBattle.executeTurn(battle)
   local function ours() if mineH and mineH.side == "ally" then CoopBattle.applyItemHeal(battle, mineH, false) end end
   local function theirs() if theirsH then CoopBattle.applyItemHeal(battle, theirsH, theirsH.side == "ally") end end
   if battle.isCoopGuest then theirs() ours() else ours() theirs() end
+  -- X items and the flute, the same way: ours is already on our battler
+  local mineB = type(localAction) == "table" and localAction.boost or nil
+  local theirsB = battle.coopPartnerAction and battle.coopPartnerAction.boost or nil
+  if battle.isCoopGuest then
+    CoopBattle.applyItemBoost(battle, theirsB, false) CoopBattle.applyItemBoost(battle, mineB, true)
+  else
+    CoopBattle.applyItemBoost(battle, mineB, true) CoopBattle.applyItemBoost(battle, theirsB, false)
+  end
+  CoopBattle.queueRevivedSlots(battle)
   reseed(battle, turn)
   CoopLog.battle("TURN", string.format("resolve turn %d (partner %s)", turn,
                  c.partnerLost and "AI" or tostring(wire and wire.kind)))
@@ -790,7 +877,13 @@ function ReplaceWait:update(dt)
   self.timer = self.timer + (dt or 0.016)
   local battle = self.battle
   local c = battle.coop
-  if not c or c.partnerLost or self.timer >= CoopBattle.REPLACE_WAIT then
+  -- NO PICK IS MADE FOR A PARTNER WHO IS STILL HERE.  This used to give up
+  -- after REPLACE_WAIT and send in the first healthy one -- and when the
+  -- partner, still in their party screen, then chose another, each screen
+  -- had a different Pokemon in that slot for the rest of the battle (and
+  -- their late pick sat in the queue for the next faint).  Their pick always
+  -- arrives while the link holds; the wait gives up only once it is gone.
+  if not c or c.partnerLost or (self.timer >= CoopBattle.REPLACE_WAIT and not linked()) then
     self:finish(allyPick(battle, nil))
     return
   end
@@ -974,6 +1067,23 @@ function CoopBattle.forceFinishBattle(battle, result)
   local game = battle.game
   local top = game and game.stack and (type(game.stack.top) == "function" and game.stack:top() or game.stack.top)
   CoopLog.battle("FORCE_FINISH", "result: " .. tostring(result))
+  -- THE HOST'S WIN CLOSES THIS COPY, and a foe still standing here was never
+  -- paid for: the experience for it was lost along with the turn.  Pay it
+  -- now, before the battle goes (BattleState:awardExp marks each foe it pays)
+  if result == "win" and battle.isCoopGuest and battle.awardExp and not battle.noExp then
+    local P = BattleStatePos()
+    for _, pos in ipairs({ P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do
+      local b = battle.battlerAt and battle:battlerAt(pos)
+      if b and b.mon and not (battle.expPaidFor and battle.expPaidFor[b.mon]) then
+        local ok, err = pcall(battle.awardExp, battle, b)
+        if ok then
+          CoopLog.battle("FORCE_FINISH", "paid exp for " .. tostring(b.mon.species))
+        else
+          CoopLog.error("BATTLE", "exp on forced finish failed: " .. tostring(err))
+        end
+      end
+    end
+  end
   battle.result = result
   if top == battle and battle.finish then
     CoopBattle.active = false

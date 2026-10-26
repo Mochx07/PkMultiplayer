@@ -3,6 +3,51 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.4.1-alpha.6
+
+**Both players need this version** (link protocol 13): a partner on alpha.5
+or older is told to update.  Works on Gen2Recomped **0.8.46** (the patches are
+made against it) and still on 0.8.45.
+
+### Fixed
+
+- **Crash using an X ATTACK (or any X item, DIRE HIT, GUARD SPEC.) in a
+  co-op double** ("attempt to index local 'target'").  Behind the crash, the
+  boost only ever reached your own screen: from then on every hit did
+  different damage on the two games.  It now rides with your turn and lands
+  on both.
+- **The POKé FLUTE in a co-op double** played a single battle's turn on your
+  screen alone; it now wakes the whole field on both.  The **POKé DOLL** is
+  refused while battling together (it would end the battle on one screen).
+- **The wrong Pokemon sent out when one of you takes a while to choose.**
+  After a faint, the other screen gave up after 30 seconds and sent in the
+  first healthy Pokemon itself -- and when you then chose another, each
+  screen had a different one out for the rest of the battle (and your late
+  pick sat waiting for the next faint).  Your partner's screen now waits for
+  your own pick for as long as you are linked.
+- **Reviving your partner did nothing**: with their whole team down their
+  slot stayed empty, so the revived Pokemon never came back in.  It now
+  does, at the end of the turn: its owner picks who goes in.
+- **Experience lost when the battle got out of step**: when the host's win
+  closed your battle with a foe still standing on your screen, its
+  experience was never paid.  It is now, before the battle closes.
+- **A foe's switch in a double** (JUGGLERs and the like) could pick the
+  Pokemon already out in the other slot -- two of it on the field.
+- **The POKéGEAR clock showed your PLAY TIME**, not the time: its hour and
+  day had nothing to do with day and night outside or the weekday Mom's
+  clock set.  It now shows the clock the game runs on (shared, when you
+  share a clock).
+
+### Changed
+
+- **A big battle waits for your partner.**  The BURNED TOWER's rival walks
+  up the moment you step in, so whoever got there first always fought him
+  alone -- and when the partner walked in, the scene played again on their
+  game.  Now, with your partner linked but elsewhere, a gym leader / rival /
+  League battle asks **WAIT (partner) or SOLO**; WAIT holds the scene until
+  they walk onto the map (up to 5 minutes, B to go solo), their game does not
+  play its own copy, and the usual CO-OP / SOLO question follows.
+
 ## 1.4.1-alpha.5
 
 Plays with 1.4.1-alpha.3 and alpha.4 (same link protocol, 12).

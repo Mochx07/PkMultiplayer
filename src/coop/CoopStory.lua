@@ -42,6 +42,10 @@ CoopStory.current = nil   -- the story record of the script running right now
 CoopStory.feed = {}       -- partner lines waiting to be shown here
 CoopStory.FEED_PAGE = 2.4 -- seconds a page of partner text stays up
 CoopStory.inbox = {}      -- partner events that arrived before our save was up
+CoopStory.held = nil      -- a big battle's scene the partner is holding for us
+CoopStory.HOLD_MAX = 900  -- seconds a hold is honoured without word from them
+CoopStory.WAIT_MAX = 300  -- seconds a scene waits for the partner to arrive
+CoopStory.ARRIVE_SETTLE = 1.5 -- the partner has been on the map this long
 
 local function manager()
   local ok, CM = pcall(require, "src.coop.CoopManager")
@@ -196,6 +200,16 @@ function CoopStory.begin(ctx, script)
   local ow = ctx.overworld
   local here = partnerHere(ow)
   local CM = manager()
+  local class, party = CoopStory.findBigBattle(script, ctx.save)
+  -- THE PARTNER IS ALREADY LIVING THIS SCENE FOR BOTH OF YOU.  A scene that
+  -- starts as the map loads (the rival in the BURNED TOWER) fires on each
+  -- game as each player walks in; theirs is waiting for you, so this copy
+  -- does not play its own -- it stands by for their CO-OP invite, and their
+  -- scene's flags arrive when it ends (onPartnerRewards).
+  if class and CoopStory.heldHere(ow, class) then
+    ctx.coopSkipScript = true
+    return
+  end
   ctx.coopStory = {
     map = ow and ow.map and ow.map.id,
     here = here,
@@ -206,10 +220,16 @@ function CoopStory.begin(ctx, script)
     before = snapshot(ctx.save),
   }
   CoopStory.current = ctx.coopStory
+  -- A BIG BATTLE WITH THE PARTNER ELSEWHERE: wait for them, or go alone.
+  -- Reported from play: the BURNED TOWER's rival walks up the moment you
+  -- step in, so the one who got there first always fought him solo.
+  if not here and class then
+    here = CoopStory.waitForPartner(ctx, class, party)
+    ctx.coopStory.here = here
+  end
   if not here then return end
   -- a gym leader / League / rival scene: CO-OP or SOLO is asked now, before
   -- the first line, so the partner can read it all with you
-  local class, party = CoopStory.findBigBattle(script, ctx.save)
   if class and CM.offerBigBattle then
     CM.offerBigBattle(ctx, class, party)
   end
@@ -288,23 +308,149 @@ function CoopStory.queue(save, rewards)
 end
 
 -- called by ScriptRunner:run when the script ends
+local function releaseHold(ctx)
+  if not (ctx and ctx.coopHoldSent) then return end
+  ctx.coopHoldSent = nil
+  local CM = manager()
+  if CM and CM.net and CM.isConnected and CM.isConnected() then
+    CM.net:send({ type = "coop_story_release", map = ctx.coopHoldSent_map })
+  end
+end
+
 function CoopStory.finish(ctx)
   local st = ctx and ctx.coopStory
   if CoopStory.current == st then CoopStory.current = nil end
-  if not st or st.personal then return end
+  -- the scene's flags go first (below), so the partner's own copy of the
+  -- scene is already closed by the time the hold on it lifts
+  local function done() releaseHold(ctx) end
+  if not st or st.personal then return done() end
   -- flags, scenes and the armed call first, the warp after everything
   for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
   -- the scene walks the partner along only if they were in it
   if st.warp and st.here then st.rewards[#st.rewards + 1] = st.warp end
-  if #st.rewards == 0 then return end
+  if #st.rewards == 0 then return done() end
   local CM = manager()
   if not (CM and CM.net and CM.isConnected and CM.isConnected()) then
     CoopStory.queue(ctx.save, st.rewards)
-    return
+    return done()
   end
   CM.net:send({ type = "coop_story_rewards", map = st.map, rewards = st.rewards,
                 speaker = CM.getLocalPlayerName(ctx.game) })
+  done()
 end
+
+-- ---------------------------------------------------------------------
+-- waiting for the partner at a big battle
+-- ---------------------------------------------------------------------
+
+local function clock()
+  return (love and love.timer and love.timer.getTime and love.timer.getTime()) or os.clock()
+end
+
+function CoopStory.onPartnerHold(msg)
+  if type(msg) ~= "table" or type(msg.map) ~= "string" or type(msg.class) ~= "string" then return end
+  CoopStory.held = { map = msg.map, class = msg.class, at = clock() }
+end
+
+function CoopStory.onPartnerRelease(msg)
+  CoopStory.held = nil
+end
+
+function CoopStory.heldHere(ow, class)
+  local h = CoopStory.held
+  if not h then return false end
+  local CM = manager()
+  if not (CM and CM.isConnected and CM.isConnected()) or clock() - (h.at or 0) > CoopStory.HOLD_MAX then
+    CoopStory.held = nil
+    return false
+  end
+  local map = ow and ow.map and ow.map.id
+  return map ~= nil and CM.mapsMatch(h.map, map) and h.class == class
+end
+
+local Font
+local WaitHere = {}
+WaitHere.__index = WaitHere
+WaitHere.isOpaque = false
+
+function WaitHere:finish(arrived)
+  if self.done then return end
+  self.done = true
+  self.arrived = arrived and true or false
+  local stack = self.game and self.game.stack
+  if stack and stack.states then
+    for i = #stack.states, 1, -1 do
+      if stack.states[i] == self then
+        if i == #stack.states then stack:pop() else table.remove(stack.states, i) end
+        break
+      end
+    end
+  end
+  if self.runner and self.runner.resume then self.runner:resume() end
+end
+
+function WaitHere:update(dt)
+  dt = dt or 0.016
+  self.timer = self.timer + dt
+  local CM = manager()
+  if not (CM and CM.isConnected and CM.isConnected()) then return self:finish(false) end
+  -- they are on the map, and have been for a moment: their own copy of the
+  -- scene has had its frame to stand down (heldHere) before the invite
+  if partnerHere(self.ow) then
+    self.hereFor = self.hereFor + dt
+    if self.hereFor >= CoopStory.ARRIVE_SETTLE then return self:finish(true) end
+  else
+    self.hereFor = 0
+  end
+  if self.timer >= self.timeout then return self:finish(false) end
+  local input = self.game and self.game.input
+  if input and input.wasPressed and input:wasPressed("b") and self.timer >= 0.5 then
+    return self:finish(false)
+  end
+end
+
+function WaitHere:draw()
+  Font = Font or require("src.render.Font")
+  love.graphics.setColor(1, 1, 1, 1)
+  Font.drawBox(0, 0, 20, 5)
+  love.graphics.setColor(0, 0, 0, 1)
+  local left = math.max(0, math.ceil(self.timeout - self.timer))
+  Font.draw(("WAITING " .. self.name):sub(1, 15), 8, 8)
+  Font.draw(string.format("%3d", left), 128, 8)
+  Font.draw("TO COME HERE" .. string.rep(".", math.floor(self.timer * 2) % 4), 8, 16)
+  Font.draw("B: BATTLE SOLO", 8, 24)
+  love.graphics.setColor(1, 1, 1, 1)
+end
+
+-- Inside the script's coroutine: asks WAIT or SOLO, and with WAIT holds the
+-- scene -- and tells the partner's game to hold its own copy -- until they
+-- walk onto this map.  true once they are here.
+function CoopStory.waitForPartner(ctx, class, party)
+  local CM = manager()
+  local game, runner, ow = ctx.game, ctx.runner, ctx.overworld
+  if not (CM and game and game.stack and runner and runner.yield and ow and ow.map) then return false end
+  if not (CM.isConnected and CM.isConnected() and CM.net) then return false end
+  if (CM.partner.healthy or 0) <= 0 then return false end
+  local pname = string.upper(CM.partner.name or "PARTNER")
+  if #pname > 8 then pname = pname:sub(1, 8) end
+  local name = CM.trainerDisplayName and CM.trainerDisplayName(game, class, party) or "TRAINER"
+  local choice = "solo"
+  game.stack:push(require("src.ui.Menu").new(game, {
+    { label = "WAIT " .. pname, onSelect = function() choice = "wait" runner:resume() end },
+    { label = "SOLO", onSelect = function() choice = "solo" runner:resume() end },
+  }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,
+       onCancel = function() choice = "solo" runner:resume() end }))
+  runner:yield()
+  if choice ~= "wait" or not CM.isConnected() then return false end
+  CM.net:send({ type = "coop_story_hold", map = ow.map.id, class = class })
+  ctx.coopHoldSent, ctx.coopHoldSent_map = true, ow.map.id
+  local w = setmetatable({ game = game, runner = runner, ow = ow, name = pname,
+                           timer = 0, hereFor = 0, timeout = CoopStory.WAIT_MAX }, WaitHere)
+  game.stack:push(w)
+  runner:yield()
+  return w.arrived == true
+end
+CoopStory.WaitHere = WaitHere
 
 -- Sends what the partner missed while the two were apart, one event per
 -- message so each is judged on its own on their side.  Called once the

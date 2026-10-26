@@ -38,7 +38,10 @@ CoopNet.DEFAULT_PORT = 7777
 -- v10 copy would send the egg out on its side only
 -- 12: a Wrap holds the foe it hit and the guest sweeps the field in the
 -- host's order -- a v11 copy would resolve the same turn differently
-CoopNet.PROTOCOL = 12
+-- 13: X items and the flute ride with the turn, a fallen partner's slot waits
+-- for their own pick, and a revive brings a player back -- a v12 copy would
+-- resolve those turns differently
+CoopNet.PROTOCOL = 13
 CoopNet.CHANNELS = 2
 CoopNet.CH_RELIABLE = 0
 CoopNet.CH_FAST = 1

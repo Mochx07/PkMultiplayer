@@ -389,6 +389,11 @@ end
 Hooks.modules["src.inventory.ItemEffects"] = function(ItemEffects)
   wrap(ItemEffects, "ItemEffects", "use", function(use)
     return function(data, save, id, target, battle, ...)
+      -- a POKé DOLL would end the battle on this copy alone
+      local key = ItemEffects.alias and ItemEffects.alias(id, data and data.items and data.items[id]) or id
+      if key == "POKE_DOLL" and type(battle) == "table" and battle.coopDouble then
+        return "failed", { "Not while you\nbattle together!" }
+      end
       local result, a, b, c = use(data, save, id, target, battle, ...)
       if result == "ball" and type(battle) == "table" and battle.coopWild then
         local W = package.loaded["src.coop.CoopWild"]
@@ -444,7 +449,27 @@ Hooks.modules["src.battle.TrainerAI"] = function(TrainerAI)
          and not battle:canRecall(battle.enemy) then
         return nil
       end
-      return switchAction(battle, ...)
+      local act = switchAction(battle, ...)
+      -- IN A DOUBLE THE OTHER FOE IS OUT TOO.  The bench is read as "every
+      -- Pokemon but the one in front of you", which in a double includes the
+      -- one fighting in the other slot -- and a JUGGLER switched the left foe
+      -- into the Pokemon already standing on the right, two of it on the field
+      if act and act.index and battle.isDouble and battle:isDouble() then
+        local out = {}
+        for p = 0, 3 do
+          local b = battle.battlerAt and battle:battlerAt(p)
+          if b and b.mon then out[b.mon] = true end
+        end
+        local party = battle.enemyParty or {}
+        if out[party[act.index]] then
+          act.index = nil
+          for i, mon in ipairs(party) do
+            if (mon.hp or 0) > 0 and not out[mon] then act.index = i break end
+          end
+          if not act.index then return nil end
+        end
+      end
+      return act
     end
   end)
 end

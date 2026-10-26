@@ -62,6 +62,7 @@ MODULES = [
     ('src/ui/HallOfFame.lua', 'src.ui.HallOfFame', set(), True),
     ('src/ui/Menu.lua', 'src.ui.Menu', {'Menu.new'}, True),
     ('src/ui/PartyMenu.lua', 'src.ui.PartyMenu', set(), True),
+    ('src/ui/PokegearMenu.lua', 'src.ui.PokegearMenu', set(), True),
     ('src/ui/TitleState.lua', 'src.ui.TitleState', set(), True),
     ('src/world/BugContest.lua', 'src.world.BugContest', set(), True),
     ('src/world/OverworldController.lua', 'src.world.OverworldController', OVERWORLD_SKIP, False),
