@@ -20,6 +20,8 @@ local SaveData = require("src.core.SaveData")
 local BattleState = require("src.battle.BattleState")
 local CoopBattle = require("src.coop.CoopBattle")
 local CoopManager = require("src.coop.CoopManager")
+-- the trainers here are the scenario: no co-op difficulty on top (coop_balance.lua)
+CoopManager.balancedFoes, CoopManager.hardFoes = false, false
 local DoublesAI = require("src.battle.DoublesAI")
 local Json = require("src.link.Json")
 require("src.coop.CoopLog").enabled = false

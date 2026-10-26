@@ -5,8 +5,35 @@ Version headings match `manifest.json`'s `version`.
 
 ## 1.5.1 (en desarrollo)
 
+### Añadido
+
+- **Dificultad co-op**, dos reglas compartidas en RULES:
+  - **BALANCED FOES** (activada por defecto): un entrenador de un doble co-op
+    trae al menos dos Pokémon por cada tres de los vuestros (los de más son
+    copias de su propio equipo, en orden). Si vuestro equipo le saca ventaja,
+    sube uno o dos niveles.
+  - **HARD FOES**: un rival por cada Pokémon vuestro, y tres niveles más.
+  - Las dos desactivadas dejan el equipo del cartucho. Nunca afectan a los
+    salvajes en pareja, la Torre de Combate ni P1 vs P2. Los dos juegos
+    calculan el mismo equipo sin tirar dados.
+
 ### Corregido
 
+- **Combate co-op sincronizado:**
+  - cada turno las dos copias comparan una firma del estado (HP, estado,
+    etapas, PP, objeto, contadores, banquillo rival) y, si difieren, el
+    invitado toma la palabra del anfitrión;
+  - la sincronización de un turno viejo ya no pisa el HP de uno nuevo;
+  - las acciones, cambios y sincronizaciones enviados durante un corte llegan
+    al reconectar, y ya nadie se queda esperando un turno perdido;
+  - la IA solo toma el Pokémon del compañero tras 20 s sin enlace, y se lo
+    avisa.
+- **IA rival de los dobles:**
+  - ya no repite GROWL, LEER y compañía sin fin;
+  - ya no encadena PROTECT;
+  - ve el REFLECT y la PANTALLA LUZ de Oro, Plata y Cristal;
+  - ya no calcula el daño reducido de un ataque en área cuando solo queda un
+    objetivo en pie.
 - **Nuestros Pokémon miraban hacia el otro lado en los combates dobles co-op**
   con el mod de vóxeles (DramaticShapes) activado. En sus combates 3D los dos
   bandos miran a la cámara, así que cambia la foto de espaldas de tu lado por

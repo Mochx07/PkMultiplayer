@@ -130,6 +130,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopVisit",
   "src.coop.CoopDayCare",
   "src.coop.CoopTower",
+  "src.coop.CoopBalance",
 }
 CoopManager.render = nil
 

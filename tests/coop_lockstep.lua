@@ -23,6 +23,8 @@ local SaveData = require("src.core.SaveData")
 local BattleState = require("src.battle.BattleState")
 local CoopBattle = require("src.coop.CoopBattle")
 local CoopManager = require("src.coop.CoopManager")
+-- the trainers here are the scenario: no co-op difficulty on top (coop_balance.lua)
+CoopManager.balancedFoes, CoopManager.hardFoes = false, false
 require("src.coop.CoopLog").enabled = false
 -- nobody is here to answer a party screen: both copies take the first
 -- healthy Pokemon (the interactive pick is covered by tests/test_coop.lua)

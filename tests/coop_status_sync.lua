@@ -37,6 +37,8 @@ local SaveData = require("src.core.SaveData")
 local BattleState = require("src.battle.BattleState")
 local CoopBattle = require("src.coop.CoopBattle")
 local CoopManager = require("src.coop.CoopManager")
+-- the trainers here are the scenario: no co-op difficulty on top (coop_balance.lua)
+CoopManager.balancedFoes, CoopManager.hardFoes = false, false
 require("src.coop.CoopLog").enabled = false
 CoopBattle.AUTO_REPLACE = true
 local P = BattleState.POS
@@ -97,7 +99,7 @@ local function drain(b)
 end
 
 local SKIP = { position = true, isPlayer = true, ally = true, shownHP = true, x = true, y = true,
-  picX = true, picY = true, name = true, drainFloor = true }
+  picX = true, picY = true, name = true, drainFloor = true, drainHold = true }
 local function scalarFields(b)
   local out = {}
   if not b then return out end

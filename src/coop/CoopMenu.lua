@@ -188,6 +188,10 @@ function CoopMenu:connectedRows(ow, page)
            { "AFTER YOU WIN A", "CO-OP BATTLE, BOTH", "TEAMS ARE HEALED." }),
       rule("soulLink", "SOUL LINK",
            { "PAIRED CATCHES:", "IF ONE FAINTS,", "BOTH ARE LOST." }),
+      rule("balancedFoes", "BALANCED FOES",
+           { "TRAINERS FACING", "YOU TWO BRING MORE", "POKéMON, + LEVELS." }),
+      rule("hardFoes", "HARD FOES",
+           { "ONE FOE FOR EACH", "OF YOURS, AND", "3 LEVELS HIGHER." }),
       { label = "SOUL LINKS", info = { "SEE WHICH OF YOUR", "POKéMON ARE LINKED", "AND TO WHICH." },
         run = function() require("src.coop.CoopSoulLink").open(menu.game) end },
     }
