@@ -4,8 +4,12 @@
 -- OTHER player, rarer ones less often, once a day per friend.  Here it runs
 -- over the co-op link: START -> CO-OP -> PARTNER -> MYSTERY GIFT asks the partner,
 -- whose game asks them; on a yes each game picks a gift for the other.
--- One swap a day with each partner, by the session's shared clock.  Items
--- only: the engine has no bedroom decorations to send.
+-- One swap a day with each partner, by the real calendar (a shared clock
+-- that moves the hours must not hand out another swap).  Items only: the
+-- engine has no bedroom decorations to send.  A partner's answer that comes
+-- after the wait ran out still completes the swap -- they already gave
+-- theirs -- and a gift this cartridge has no such item for arrives as
+-- another of the same rarity.
 --
 -- Wire: coop_gift_req { id } -> coop_gift_reply { id, ok, why?, item? }
 -- -> coop_gift_give { id, item }.  A gift that finds the BAG full waits in
@@ -39,9 +43,10 @@ local function itemByKey(data, key)
   return nil
 end
 
--- the session's day (os.date follows the shared clock while there is one)
+-- today, by the real calendar (os.date follows the shared clock while
+-- there is one; CoopManager keeps the real one)
 function CoopGift.today()
-  return os.date("%Y-%m-%d")
+  return (CoopManager.realDate or os.date)("%Y-%m-%d")
 end
 
 local function now()
@@ -53,14 +58,22 @@ local function partnerName()
   return CoopManager.partner.name or "PARTNER"
 end
 
+-- one swap a day per partner save (by name for a partner with no id)
+local function partnerKey()
+  return CoopManager.partner.id or partnerName()
+end
+
 function CoopGift.swappedToday(save, name)
   local log = save and save.coopGifts
-  return type(log) == "table" and log[name or partnerName()] == CoopGift.today()
+  if type(log) ~= "table" then return false end
+  local today = CoopGift.today()
+  if name then return log[name] == today end
+  return log[partnerKey()] == today or log[partnerName()] == today
 end
 
 local function markToday(save)
   save.coopGifts = type(save.coopGifts) == "table" and save.coopGifts or {}
-  save.coopGifts[partnerName()] = CoopGift.today()
+  save.coopGifts[partnerKey()] = CoopGift.today()
 end
 
 -- a gift for the partner, from this cartridge's own items
@@ -92,17 +105,32 @@ local function say(game, text, onDone)
   game.stack:push(require("src.render.TextBox").new(game, text, onDone))
 end
 
+-- a gift this cartridge has no item for: another one of the same rarity
+function CoopGift.substitute(game, key, rand)
+  if itemByKey(game.data, key) then return key end
+  local weight
+  for _, g in ipairs(CoopGift.TABLE) do if g[1] == key then weight = g[2] end end
+  local pool = {}
+  for _, g in ipairs(CoopGift.TABLE) do
+    if (weight == nil or g[2] == weight) and itemByKey(game.data, g[1]) then pool[#pool + 1] = g[1] end
+  end
+  if #pool == 0 then return CoopGift.pick(game, rand) end
+  rand = rand or math.random
+  return pool[math.min(#pool, math.floor(rand() * #pool) + 1)]
+end
+
 -- into the BAG, or kept until there is room
 function CoopGift.receive(game, key)
-  local id = itemByKey(game.data, key)
-  if not id then return false end
+  key = CoopGift.substitute(game, key)
+  local id = key and itemByKey(game.data, key)
+  if not id then return false, key end
   local ok, added = pcall(function()
     return require("src.inventory.Bag").add(game.save, id, 1, game.data)
   end)
-  if ok and added ~= false then return true end
+  if ok and added ~= false then return true, key end
   game.save.coopGiftPending = game.save.coopGiftPending or {}
   table.insert(game.save.coopGiftPending, key)
-  return false
+  return false, key
 end
 
 local function send(msg)
@@ -163,8 +191,9 @@ end
 -- A: the answer, and B's gift with it
 H.coop_gift_reply = function(ow, msg)
   local ask = CoopGift.asking
-  if not (ask and ask.id == msg.id) then return end
-  CoopGift.asking = nil
+  local late = CoopGift.late == msg.id
+  if not ((ask and ask.id == msg.id) or late) then return end
+  if late then CoopGift.late = nil else CoopGift.asking = nil end
   local game = getGame(ow)
   local name = partnerName()
   if not msg.ok then
@@ -179,7 +208,8 @@ H.coop_gift_reply = function(ow, msg)
   send({ type = "coop_gift_give", id = msg.id, item = gift })
   local got = type(msg.item) == "string" and msg.item
   if got then
-    local inBag = CoopGift.receive(game, got)
+    local inBag
+    inBag, got = CoopGift.receive(game, got)
     pcall(function() require("src.core.Sound").play(game.data, "Item") end)
     say(game, ("%s sent you\n%s!"):format(name, itemName(game, got))
               .. (inBag and "" or "\fThe BAG is full.\nIt will wait."))
@@ -193,7 +223,8 @@ H.coop_gift_give = function(ow, msg)
   local game = getGame(ow)
   local key = type(msg.item) == "string" and msg.item
   if not key then return end
-  local inBag = CoopGift.receive(game, key)
+  local inBag
+  inBag, key = CoopGift.receive(game, key)
   pcall(function() require("src.core.Sound").play(game.data, "Item") end)
   local name = partnerName()
   local function show()
@@ -209,6 +240,8 @@ CoopManager.onIdleTick("gift", function(dt, game)
   local ask = CoopGift.asking
   if ask and now() - ask.at > CoopGift.ASK_TIMEOUT then
     CoopGift.asking = nil
+    -- their YES may still come: it completes the swap
+    CoopGift.late = ask.id
     CoopManager.showStatus(partnerName() .. " didn't answer", 3)
   end
   local pending = game and game.save and game.save.coopGiftPending

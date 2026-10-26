@@ -14,6 +14,15 @@
 -- partner); the other is asked; on yes both open LinkState already past its
 -- connection menus -- the asker as the side that picks the mode, the other
 -- waiting for it -- and the Cable Club takes it from there.
+--
+-- A DROPPED LINK IS NOT A PULLED CABLE.  The co-op session survives a short
+-- drop (CoopNet resends what the other side never got), so the tunnel stays
+-- open through RECONNECTING: a trade's last CONFIRM still arrives and both
+-- games commit, instead of one committing and the other closing -- a clone
+-- or a lost Pokemon.  The tunnel closes when the session itself ends (the
+-- partner left, the reconnect window ran out, or they came back as a new
+-- game).  Every tunnel carries its invite's id, so a message from an older
+-- trade -- a CONFIRM that arrived late -- never arms the next one.
 
 local CoopLink = {}
 
@@ -34,10 +43,12 @@ end
 local Tunnel = {}
 Tunnel.__index = Tunnel
 
-function CoopLink.newTunnel()
-  local t = setmetatable({ inbox = {}, paired = true, closed = false, error = nil,
+function CoopLink.newTunnel(id)
+  local t = setmetatable({ id = id, inbox = {}, paired = true, closed = false, error = nil,
                            target = "CO-OP PARTNER", address = "CO-OP PARTNER" }, Tunnel)
-  for _, m in ipairs(CoopLink.early) do t.inbox[#t.inbox + 1] = m end
+  for _, m in ipairs(CoopLink.early) do
+    if m.link == id then t.inbox[#t.inbox + 1] = m.payload end
+  end
   CoopLink.early = {}
   CoopLink.adapter = t
   return t
@@ -45,10 +56,14 @@ end
 
 function Tunnel:update()
   local CM = manager()
+  local net = CM and CM.net
   local up = CM and CM.isConnected and CM.isConnected()
-  self.paired = up and not self.closed
-  if not up and not self.closed then
-    -- the co-op link dropped: to LinkState this is the cable coming out
+  -- reconnecting: the session (and what we sent) is kept, so is the tunnel
+  local waiting = net and not net.closed and net.sessionActive
+                  and (net.state == "RECONNECTING" or net.state == "HANDSHAKE")
+  self.paired = (up or waiting) and not self.closed
+  if not (up or waiting) and not self.closed then
+    -- the session ended: to LinkState this is the cable coming out
     self.closed = true
   end
 end
@@ -62,7 +77,7 @@ end
 function Tunnel:send(msg)
   if self.closed then return end
   local CM = manager()
-  if CM and CM.net then CM.net:send({ type = "coop_link", payload = msg }) end
+  if CM and CM.net then CM.net:send({ type = "coop_link", link = self.id, payload = msg }) end
 end
 
 -- LinkState closes its net when it ends; the co-op link itself stays up
@@ -73,10 +88,13 @@ end
 
 function CoopLink.onLinkMessage(msg)
   if type(msg.payload) ~= "table" then return end
-  if CoopLink.adapter and not CoopLink.adapter.closed then
-    table.insert(CoopLink.adapter.inbox, msg.payload)
+  local open = CoopLink.adapter and not CoopLink.adapter.closed and CoopLink.adapter
+  if open and open.id == msg.link then
+    table.insert(open.inbox, msg.payload)
+  elseif open then
+    require("src.coop.CoopLog").info("LINK", "dropped a message from another trade: " .. tostring(msg.link))
   else
-    table.insert(CoopLink.early, msg.payload)
+    table.insert(CoopLink.early, { link = msg.link, payload = msg.payload })
     while #CoopLink.early > 64 do table.remove(CoopLink.early, 1) end
   end
 end
@@ -85,10 +103,10 @@ end
 -- starting the Cable Club on both screens
 -- ---------------------------------------------------------------------
 
-local function openLinkState(game, mode, asker)
+local function openLinkState(game, mode, asker, linkId)
   local LinkState = require("src.link.LinkState")
   local ls = LinkState.new(game)
-  ls.net = CoopLink.newTunnel()
+  ls.net = CoopLink.newTunnel(linkId)
   ls.coopTunnel = true
   if asker then
     -- the side that picked the mode is the link "host": it announces the
@@ -174,7 +192,7 @@ function CoopLink.onInvite(game, msg)
   local modal = Invite.new(game, who, "", function()
     CoopLink.asked = nil
     answer("coop_link_accept")
-    openLinkState(game, mode, false)
+    openLinkState(game, mode, false, msg.id)
   end, function()
     CoopLink.asked = nil
     answer("coop_link_decline", "declined")
@@ -202,7 +220,7 @@ function CoopLink.onAccept(game, msg)
   local p = CoopLink.pending
   if not (p and p.id == msg.id) then return end
   closePending(game)
-  openLinkState(game, p.mode, true)
+  openLinkState(game, p.mode, true, p.id)
 end
 
 function CoopLink.onDecline(game, msg)
@@ -227,9 +245,18 @@ function CoopLink.onCancel(game, msg)
   end
 end
 
--- the co-op link dropped
-function CoopLink.onLinkLost(game)
+-- the co-op link dropped; `reason` "lost" is a drop the session may
+-- recover from, and an open trade waits it out (Tunnel:update)
+function CoopLink.onLinkLost(game, reason)
   if CoopLink.pending then closePending(game) end
+  if reason == "lost" then return end
+  if CoopLink.adapter then CoopLink.adapter.closed = true end
+  CoopLink.early = {}
+end
+
+-- the link came back as a new session (the partner restarted): nothing of
+-- an open trade survives on their side
+function CoopLink.onNewSession()
   if CoopLink.adapter then CoopLink.adapter.closed = true end
   CoopLink.early = {}
 end

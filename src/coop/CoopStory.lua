@@ -42,6 +42,7 @@ CoopStory.current = nil   -- the story record of the script running right now
 CoopStory.feed = {}       -- partner lines waiting to be shown here
 CoopStory.FEED_PAGE = 2.4 -- seconds a page of partner text stays up
 CoopStory.inbox = {}      -- partner events that arrived before our save was up
+CoopStory.deferred = {}   -- partner events that arrived while a script of ours ran
 CoopStory.held = nil      -- a big battle's scene the partner is holding for us
 CoopStory.HOLD_MAX = 900  -- seconds a hold is honoured without word from them
 CoopStory.WAIT_MAX = 300  -- seconds a scene waits for the partner to arrive
@@ -297,13 +298,48 @@ function CoopStory.onText(ctx, text)
                 speaker = CM.getLocalPlayerName(ctx.game) })
 end
 
+-- EVERY EVENT HAS ITS OWN NAME: this save's co-op id and a counter kept in
+-- the save.  The partner remembers the names it has applied (in its own
+-- save), so an event that reaches it twice -- sent live and again from the
+-- outbox of a game that quit before saving, or resent after a dropped link
+-- -- is only lived once.  A partner that did not save either lost what it
+-- applied, and takes it again: the two files stay in step.
+function CoopStory.stamp(save)
+  if type(save) ~= "table" then return nil end
+  local CM = manager()
+  local id = CM and CM.coopId and CM.coopId(save) or "?"
+  save.coopEventN = (tonumber(save.coopEventN) or 0) + 1
+  return id .. ":" .. save.coopEventN
+end
+
+CoopStory.SEEN_MAX = 1500
+
+local function seen(save, eid)
+  return type(eid) == "string" and type(save.coopEventsSeen) == "table"
+         and save.coopEventsSeen[eid] == true
+end
+
+local function markSeen(save, eid)
+  if type(eid) ~= "string" then return end
+  local set = type(save.coopEventsSeen) == "table" and save.coopEventsSeen or {}
+  local order = type(save.coopEventsOrder) == "table" and save.coopEventsOrder or {}
+  save.coopEventsSeen, save.coopEventsOrder = set, order
+  if set[eid] then return end
+  set[eid] = true
+  order[#order + 1] = eid
+  while #order > CoopStory.SEEN_MAX do
+    set[table.remove(order, 1)] = nil
+  end
+end
+CoopStory.seen, CoopStory.markSeen = seen, markSeen
+
 -- an event the partner could not be told about: kept in the save until
 -- the two link again
-function CoopStory.queue(save, rewards)
+function CoopStory.queue(save, rewards, eid)
   if type(save) ~= "table" or type(rewards) ~= "table" or #rewards == 0 then return end
   local box = save.coopStoryOutbox
   if type(box) ~= "table" then box = {} save.coopStoryOutbox = box end
-  box[#box + 1] = rewards
+  box[#box + 1] = { eid = eid or CoopStory.stamp(save), rewards = rewards }
   while #box > CoopStory.OUTBOX_MAX do table.remove(box, 1) end
 end
 
@@ -330,11 +366,12 @@ function CoopStory.finish(ctx)
   if st.warp and st.here then st.rewards[#st.rewards + 1] = st.warp end
   if #st.rewards == 0 then return done() end
   local CM = manager()
+  local eid = CoopStory.stamp(ctx.save)
   if not (CM and CM.net and CM.isConnected and CM.isConnected()) then
-    CoopStory.queue(ctx.save, st.rewards)
+    CoopStory.queue(ctx.save, st.rewards, eid)
     return done()
   end
-  CM.net:send({ type = "coop_story_rewards", map = st.map, rewards = st.rewards,
+  CM.net:send({ type = "coop_story_rewards", map = st.map, rewards = st.rewards, eid = eid,
                 speaker = CM.getLocalPlayerName(ctx.game) })
   done()
 end
@@ -463,9 +500,14 @@ function CoopStory.flushOutbox(game)
   if not (CM and CM.storySync and CM.net and CM.isConnected and CM.isConnected()) then return 0 end
   local partner = CM.partner and CM.partner.name
   if save.coopPartner and partner and partner ~= save.coopPartner then return 0 end
+  local pid = CM.partner and CM.partner.id
+  if save.coopPartnerId and pid and pid ~= save.coopPartnerId then return 0 end
   local speaker = CM.getLocalPlayerName(game)
-  for _, rewards in ipairs(box) do
-    CM.net:send({ type = "coop_story_rewards", backlog = true, rewards = rewards, speaker = speaker })
+  for _, entry in ipairs(box) do
+    -- saves from before 1.5 kept the bare reward list
+    local rewards = entry.rewards or entry
+    CM.net:send({ type = "coop_story_rewards", backlog = true, rewards = rewards,
+                  eid = entry.eid, speaker = speaker })
   end
   local n = #box
   save.coopStoryOutbox = nil
@@ -543,11 +585,27 @@ function CoopStory.onPartnerRewards(game, msg)
   if type(msg.rewards) ~= "table" then return end
   if not (game and game.save and game.overworld) then
     -- still on the title screen / loading: applied once the save is up
-    CoopStory.inbox[#CoopStory.inbox + 1] = msg
+    if #CoopStory.inbox < CoopStory.OUTBOX_MAX then CoopStory.inbox[#CoopStory.inbox + 1] = msg end
     return
   end
-  local here = not msg.backlog and sameMap(game, msg.map)
   local save = game.save
+  if seen(save, msg.eid) then
+    require("src.coop.CoopLog").info("STORY", "event " .. msg.eid .. " was already lived here")
+    return
+  end
+  -- NOT IN THE MIDDLE OF OUR OWN SCRIPT.  Both talking to the same NPC, or
+  -- the leader's after-battle script running on both games: the partner's
+  -- flags and items landing between our script's check and its GIVEITEM
+  -- handed the item out twice.  It waits for the script to end; by then
+  -- the flags match and its goods are not given again.
+  local ow = game.overworld
+  if not msg.deferredAt and ow.runner and ow.runner.isRunning and ow.runner:isRunning() then
+    msg.deferredAt = love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
+    CoopStory.deferred[#CoopStory.deferred + 1] = msg
+    return
+  end
+  markSeen(save, msg.eid)
+  local here = not msg.backlog and sameMap(game, msg.map)
   local skipGoods = alreadyLived(save, msg.rewards)
   local Commands = require("src.script.Commands")
   pcall(require, "src.script.Gen2Commands")
@@ -619,7 +677,23 @@ function CoopStory.onPartnerRewards(game, msg)
 end
 
 -- ticked by CoopManager.update; returns the page to draw (two lines) or nil
+CoopStory.DEFER_MAX = 120   -- seconds an event waits for our script, at most
+
 function CoopStory.tick(dt, game)
+  if #CoopStory.deferred > 0 and game and game.save and game.overworld then
+    local ow = game.overworld
+    local busy = ow.runner and ow.runner.isRunning and ow.runner:isRunning()
+    local t = love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
+    local first = CoopStory.deferred[1]
+    if not busy or (t - (first.deferredAt or t)) > CoopStory.DEFER_MAX then
+      local list = CoopStory.deferred
+      CoopStory.deferred = {}
+      for _, msg in ipairs(list) do
+        msg.deferredAt = true
+        CoopStory.onPartnerRewards(game, msg)
+      end
+    end
+  end
   if #CoopStory.inbox > 0 and game and game.save and game.overworld then
     local inbox = CoopStory.inbox
     CoopStory.inbox = {}

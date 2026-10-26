@@ -25,6 +25,7 @@ local CoopManager = {}
 
 -- the real clock, captured before any shared-clock shim (see applyTimeMode)
 local realTime, realDate = os.time, os.date
+CoopManager.realTime, CoopManager.realDate = realTime, realDate
 
 CoopManager.PROTOCOL = CoopNet.PROTOCOL
 
@@ -164,6 +165,8 @@ local STORY_GATE_MAPS = {
   VIRIDIAN_GYM = true,
   WILLS_ROOM = true, KOGAS_ROOM = true, BRUNOS_ROOM = true, KARENS_ROOM = true,
   LANCES_ROOM = true, HALL_OF_FAME = true,
+  -- Red / Blue / Yellow's Elite Four
+  LORELEIS_ROOM = true, AGATHAS_ROOM = true, CHAMPIONS_ROOM = true,
 }
 
 -- The Elite Four is one corridor: anyone inside it counts as "with you"
@@ -171,7 +174,13 @@ local LEAGUE_MAPS = {
   INDIGO_PLATEAU_POKECENTER1_F = true, INDIGO_PLATEAU_POKECENTER_1F = true,
   WILLS_ROOM = true, KOGAS_ROOM = true, BRUNOS_ROOM = true, KARENS_ROOM = true,
   LANCES_ROOM = true, HALL_OF_FAME = true,
+  -- Red / Blue / Yellow's Elite Four
+  INDIGO_PLATEAU_LOBBY = true, LORELEIS_ROOM = true, AGATHAS_ROOM = true,
+  CHAMPIONS_ROOM = true,
 }
+
+-- where a partner who entered the HALL OF FAME with you is standing
+local HOF_PARTNER_MAPS = { LANCES_ROOM = true, HALL_OF_FAME = true, CHAMPIONS_ROOM = true }
 
 local P2_BLUE_PALETTE = {
   { 255, 255, 255 },
@@ -354,9 +363,31 @@ local function resetSession()
   CoopManager.lastSentPos = nil
 end
 
+-- THIS SAVE'S CO-OP NAME.  Trainer names collide (two GOLDs), so the save
+-- gets an id of its own the first time it links: the partner is told it in
+-- the hello, the transport keeps the host's place for it while the link is
+-- down (only the same save may come back into it), and the story remembers
+-- which save its events are owed to.
+function CoopManager.coopId(save)
+  if type(save) ~= "table" then
+    local game = getGame()
+    save = game and game.save
+  end
+  if type(save) ~= "table" then return nil end
+  if type(save.coopId) ~= "string" or save.coopId == "" then
+    save.coopId = CoopNet.newId()
+  end
+  return save.coopId
+end
+
+local function stampIdentity()
+  if CoopManager.net then CoopManager.net.identity = CoopManager.coopId() or CoopManager.net.identity end
+end
+
 function CoopManager.host(port)
   CoopManager.init()
   resetSession()
+  stampIdentity()
   local ok = CoopManager.net:host(port)
   if ok then
     CoopManager.isHost = true
@@ -368,6 +399,7 @@ end
 function CoopManager.join(ip, port)
   CoopManager.init()
   resetSession()
+  stampIdentity()
   local ok = CoopManager.net:join(ip, port)
   if ok then
     CoopManager.isHost = false
@@ -488,6 +520,7 @@ local function buildHello(ow, kind)
   return {
     type = kind or "coop_hello",
     proto = CoopManager.PROTOCOL,
+    id = CoopManager.coopId(save),
     ver = CoopManager.modVersion(),
     game = GameVersion.get(),
     gen = GameVersion.generation(),
@@ -514,6 +547,7 @@ local function buildHello(ow, kind)
 end
 
 local function sendHello(ow, kind)
+  stampIdentity()
   CoopManager.net:send(buildHello(ow, kind))
 end
 CoopManager.sendHello = sendHello
@@ -524,6 +558,7 @@ local function applyPartnerInfo(msg)
   CoopManager.partnerLiveN = 0
   CoopManager.partnerTyping = nil
   partner.name = msg.name or partner.name or "PARTNER"
+  partner.id = type(msg.id) == "string" and msg.id or nil
   partner.version = msg.ver or nil
   partner.sprite = msg.sprite or partner.sprite
   partner.walk = type(msg.walk) == "string" and msg.walk or nil
@@ -592,6 +627,8 @@ local function completeHandshake(ow)
     playSound(getGame(ow), "Menu")
   end
   CoopManager.lastSyncedName = CoopManager.getLocalPlayerName(getGame(ow))
+  -- medicine handed over whose answer never came
+  pcall(CoopManager.askHeldItems, getGame(ow))
   -- the host's rules are the session's rules
   if CoopManager.isHost and not wasConnected then
     for name in pairs(SHARED_RULES) do
@@ -1078,6 +1115,14 @@ end
 -- Their machine owns their party, so it applies the item -- ItemEffects.use,
 -- exactly as if they had used it from their own bag -- and answers; the item
 -- leaves YOUR bag only when it worked.
+--
+-- ONE ITEM, ONE HEAL, WHATEVER THE LINK DOES.  The item is set aside the
+-- moment it is sent (save.coopItemHeld, by request id) and only given back
+-- if the answer says it did not work.  The partner's machine remembers each
+-- request it answered (save.coopItemDone): the same request arriving again
+-- gets the same answer and heals nobody twice.  An answer that never came
+-- (the wait ran out, the link dropped) is asked for again on the next link;
+-- a partner that has no record of it never used it, and the item comes back.
 -- ---------------------------------------------------------------------
 
 CoopManager.ITEM_REPLY_WAIT = 8
@@ -1098,6 +1143,35 @@ local function showLines(game, lines, onDone)
   game.stack:push(require("src.render.TextBox").new(game, text, onDone))
 end
 
+CoopManager.ITEM_DONE_MAX = 64
+
+local function heldItems(save)
+  if type(save.coopItemHeld) ~= "table" then save.coopItemHeld = {} end
+  return save.coopItemHeld
+end
+
+-- the answer to a request whose item was set aside: keep it spent, or give
+-- it back.  Returns the item id when this request was still open.
+local function settleHeld(game, reqId, worked)
+  local save = game and game.save
+  if not (save and type(save.coopItemHeld) == "table") then return nil end
+  local item = save.coopItemHeld[reqId]
+  if not item then return nil end
+  save.coopItemHeld[reqId] = nil
+  if not worked then require("src.inventory.Bag").add(save, item, 1, game.data) end
+  return item
+end
+CoopManager.settleHeldItem = settleHeld
+
+-- on every new link: ask about each answer that never came
+function CoopManager.askHeldItems(game)
+  local save = game and game.save
+  if not (save and type(save.coopItemHeld) == "table") then return end
+  for reqId in pairs(save.coopItemHeld) do
+    CoopManager.net:send({ type = "coop_item_query", req = reqId })
+  end
+end
+
 local function endItemRequest(game)
   local req = CoopManager.itemRequest
   CoopManager.itemRequest = nil
@@ -1111,7 +1185,12 @@ local function waitForPartner(game, req, line2)
   req.modal = CoopWaitModal.new(game, pName, function(reason)
     if CoopManager.itemRequest == req then
       CoopManager.itemRequest = nil
-      if reason == "timeout" then CoopManager.showStatus(pName .. " didn't answer", 2.5) end
+      if req.stage == "use" then
+        -- the item stays set aside: the answer may still come
+        CoopManager.showStatus(pName .. " hasn't answered yet: your item comes back if it didn't work", 4)
+      elseif reason == "timeout" then
+        CoopManager.showStatus(pName .. " didn't answer", 2.5)
+      end
     end
   end, CoopManager.ITEM_REPLY_WAIT, { lines = { "WAITING " .. pName, line2 }, compact = true })
   game.stack:push(req.modal)
@@ -1224,6 +1303,8 @@ function CoopManager.sendItemUse(game, ow, itemId, mon)
   end
   local req = { id = newRequestId(), item = itemId, stage = "use", ow = ow }
   CoopManager.itemRequest = req
+  require("src.inventory.Bag").remove(game.save, itemId, 1)
+  heldItems(game.save)[req.id] = itemId
   CoopManager.net:send({ type = "coop_item_use", req = req.id, item = itemId,
                          slot = mon.slot, species = mon.species,
                          from = game.save.player and game.save.player.name })
@@ -1232,13 +1313,22 @@ end
 
 -- their answer: the item worked (spend it) or it did not
 function CoopManager.onItemResult(ow, msg)
-  local req = CoopManager.itemRequest
-  if not (req and req.stage == "use" and msg.req == req.id) then return end
   local game = getGame(ow)
+  local item = settleHeld(game, msg.req, msg.ok == true)
+  local req = CoopManager.itemRequest
+  if not (req and req.stage == "use" and msg.req == req.id) then
+    -- the answer to a wait that already ran out (or to the last session)
+    if item then
+      local def = game.data.items[item]
+      local name = def and def.name or tostring(item)
+      CoopManager.showStatus(msg.ok and Strings("%s worked on your partner's Pokemon", name)
+                             or Strings("%s came back to your BAG", name), 3.5)
+    end
+    return
+  end
   endItemRequest(game)
   local lines = type(msg.messages) == "table" and msg.messages or {}
   if msg.ok then
-    require("src.inventory.Bag").remove(game.save, req.item, 1)
     playSound(game, "Heal_HP")
   elseif msg.refused then
     lines = { Strings("%s can't take\nthat right now.", CoopManager.partner.name or "PARTNER") }
@@ -1281,10 +1371,50 @@ function CoopManager.onPartyRequest(ow, msg)
   CoopManager.net:send({ type = "coop_party", req = msg.req, mons = partySummary(game) })
 end
 
+local function itemDone(save)
+  if type(save.coopItemDone) ~= "table" then save.coopItemDone = { order = {} } end
+  return save.coopItemDone
+end
+
+local function rememberItemAnswer(save, reqId, answer)
+  if type(reqId) ~= "string" then return end
+  local done = itemDone(save)
+  if done[reqId] == nil then done.order[#done.order + 1] = reqId end
+  done[reqId] = answer
+  while #done.order > CoopManager.ITEM_DONE_MAX do
+    done[table.remove(done.order, 1)] = nil
+  end
+end
+
+function CoopManager.onItemQuery(ow, msg)
+  local game = getGame(ow)
+  if not (game and game.save) then return end
+  local answer = itemDone(game.save)[msg.req]
+  local t = { type = "coop_item_result", req = msg.req }
+  if type(answer) == "table" then
+    t.ok, t.refused = answer.ok, answer.refused
+  else
+    t.ok, t.unknown = false, true
+  end
+  CoopManager.net:send(t)
+end
+
 function CoopManager.onItemUse(ow, msg)
   local game = getGame(ow)
+  if game and game.save then
+    local answer = itemDone(game.save)[msg.req]
+    if type(answer) == "table" then
+      -- the same request again: the same answer, nothing used twice
+      CoopManager.net:send({ type = "coop_item_result", req = msg.req, ok = answer.ok,
+                             refused = answer.refused, messages = answer.messages })
+      return
+    end
+  end
   local function reply(t)
     t.type, t.req = "coop_item_result", msg.req
+    if game and game.save and not t.refused then
+      rememberItemAnswer(game.save, msg.req, { ok = t.ok == true, messages = t.messages })
+    end
     CoopManager.net:send(t)
   end
   if not canTakeItem(ow) then return reply({ refused = true }) end
@@ -2316,9 +2446,12 @@ end
 
 local H = {}
 
-H.net_connect = function(ow)
+H.net_connect = function(ow, msg)
   -- both ends say hello as soon as the link is up; each hello is answered
   -- with a welcome, and either one completes the handshake
+  if msg and msg.resumed == false then
+    pcall(function() require("src.coop.CoopLink").onNewSession() end)
+  end
   sendHello(ow, "coop_hello")
 end
 
@@ -2329,7 +2462,7 @@ H.net_disconnect = function(ow, msg)
   CoopManager.render = nil
   local okCB, CoopBattle = pcall(require, "src.coop.CoopBattle")
   if okCB and CoopBattle and CoopBattle.onLinkLost then pcall(CoopBattle.onLinkLost, msg.reason) end
-  pcall(function() require("src.coop.CoopLink").onLinkLost(getGame(ow)) end)
+  pcall(function() require("src.coop.CoopLink").onLinkLost(getGame(ow), msg.reason) end)
   if CoopManager.pendingBattleInvite then
     pcall(CoopManager.onBattleDeclined, ow, { inviteId = CoopManager.pendingBattleInvite.inviteId, reason = "far" })
   end
@@ -2345,6 +2478,8 @@ H.net_disconnect = function(ow, msg)
     CoopManager.showStatus(string.format("%s left the session", CoopManager.partner.name or "Partner"), 3)
   elseif msg.reason == "unreachable" then
     CoopManager.showStatus("Host not found", 3)
+  elseif msg.reason == "busy" then
+    CoopManager.showStatus("The host is waiting for its own partner", 4)
   end
 end
 
@@ -2356,9 +2491,16 @@ local function onHello(ow, msg)
     if CoopManager.net then
       CoopManager.net:send({ type = "coop_reject", reason = tellThem or bad })
       CoopManager.net:flush()
-      CoopManager.net:shutdown()
+      -- the host keeps its door open for the right partner
+      CoopManager.net:dropPeer()
     end
-    resetSession()
+    if CoopManager.isHost then
+      CoopManager.connected = false
+      CoopManager.partner = freshPartner()
+    else
+      resetSession()
+    end
+    CoopManager.lastLinkError = bad
     return
   end
   applyPartnerInfo(msg)
@@ -2379,7 +2521,8 @@ H.coop_hello = onHello
 H.coop_welcome = onHello
 
 H.coop_reject = function(ow, msg)
-  CoopManager.showStatus(tostring(msg.reason or "Partner refused link"), 4)
+  CoopManager.lastLinkError = tostring(msg.reason or "PARTNER REFUSED THE LINK")
+  CoopManager.showStatus(CoopManager.lastLinkError, 4)
 end
 
 H.coop_pos = function(ow, msg)
@@ -2444,6 +2587,7 @@ H.coop_party_req = function(ow, msg) CoopManager.onPartyRequest(ow, msg) end
 H.coop_party = function(ow, msg) CoopManager.onPartnerParty(ow, msg) end
 H.coop_item_use = function(ow, msg) CoopManager.onItemUse(ow, msg) end
 H.coop_item_result = function(ow, msg) CoopManager.onItemResult(ow, msg) end
+H.coop_item_query = function(ow, msg) CoopManager.onItemQuery(ow, msg) end
 
 H.coop_warp_req = function(ow, msg) CoopManager.onWarpRequest(ow, msg) end
 H.coop_warp_reply = function(ow, msg) CoopManager.onWarpReply(ow, msg) end
@@ -2511,10 +2655,22 @@ function CoopManager.partnerContestSecondsLeft()
   return math.floor(c.secondsLeft - (now() - c.at))
 end
 
+-- ONE WINNER FOR A TIE.  Each board puts its own player first in a tie, so
+-- an exact tie gave both of you 1st prize.  Both games now break it the same
+-- way -- the lower save id wins (the host, for a partner with no id) -- by
+-- lifting the partner's entry half a point when the tie is theirs.
+function CoopManager.partnerWinsContestTie()
+  local theirs, mine = CoopManager.partner.id, CoopManager.coopId()
+  if theirs and mine then return theirs < mine end
+  return not CoopManager.isHost
+end
+
 function CoopManager.partnerContestEntry()
   local c = CoopManager.partner.contest
   if not (c and c.score) then return nil end
-  return { score = c.score, species = c.species, name = CoopManager.partner.name }
+  local score = tonumber(c.score) or 0
+  if score > 0 and CoopManager.partnerWinsContestTie() then score = score + 0.5 end
+  return { score = score, species = c.species, name = CoopManager.partner.name }
 end
 
 H.coop_contest = function(ow, msg)
@@ -2553,6 +2709,9 @@ end
 -- ours, then the partner's under their name, then the two of us.
 function CoopManager.recordHallOfFame(game, entry)
   if not (CoopManager.connected and CoopManager.net) then return end
+  -- a partner off somewhere else did not walk in with you
+  local where = CoopManager.partner.map
+  if not (where and HOF_PARTNER_MAPS[where]) then return end
   CoopManager.hofEntry = entry
   entry.coop = { partner = CoopManager.partner.name or "PARTNER",
                  mons = CoopManager.partner.hofTeam }
@@ -2599,13 +2758,16 @@ function CoopManager.bindStoryPartner(game, ow)
   if not (save and ow and ow.map and CoopManager.storySync and CoopManager.isConnected()) then return end
   local name = CoopManager.partner.name
   if not (realName(name) and CoopManager.partner.map) then return end
-  if save.coopPartner ~= name then
-    if save.coopPartner ~= nil and save.coopStoryOutbox then
-      CoopLog.info("STORY", "new partner " .. name .. ": dropped events kept for " .. tostring(save.coopPartner))
-      save.coopStoryOutbox = nil
-    end
-    save.coopPartner = name
+  -- the partner is their save's id; a save from before 1.5 knows a name only
+  local id = CoopManager.partner.id
+  local other = (id and save.coopPartnerId and save.coopPartnerId ~= id)
+                or (not save.coopPartnerId and save.coopPartner ~= nil and save.coopPartner ~= name)
+  if other and save.coopStoryOutbox then
+    CoopLog.info("STORY", "new partner " .. name .. ": dropped events kept for " .. tostring(save.coopPartner))
+    save.coopStoryOutbox = nil
   end
+  save.coopPartner = name
+  if id then save.coopPartnerId = id end
   if save.coopStoryOutbox then
     local n = require("src.coop.CoopStory").flushOutbox(game)
     if n > 0 then CoopManager.showStatus("Shared " .. n .. " event(s) with " .. name, 3) end

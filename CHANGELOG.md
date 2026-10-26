@@ -3,6 +3,69 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.5.0
+
+**Los dos jugadores necesitan esta versión** (protocolo 14): a un compañero
+con 1.4.1-alpha.6 o anterior se le dice que actualice.
+
+### Añadido
+
+- **Una sesión que sobrevive a los cortes.**
+  - Cada mensaje del enlace va numerado y se guarda hasta que el compañero
+    confirma que le llegó.
+  - Si la conexión se cae, al volver se reenvía justo lo que el otro no
+    recibió, incluido lo enviado en los segundos antes de notar el corte (antes
+    se perdía), y lo que llega dos veces se descarta.
+  - Si el compañero reinició el juego, empieza una sesión nueva y no recibe
+    nada pensado para la anterior.
+- **Tu sitio es tuyo.** Mientras el anfitrión espera a que vuelva su
+  compañero, solo esa misma partida puede ocupar su lugar (cada partida tiene
+  ahora su propio id de co-op). Otra máquina recibe "HOST IS BUSY", y una
+  tercera que llama con la sesión en marcha, también.
+
+### Corregido
+
+- **Objetos duplicados al usar medicina en el Pokémon del compañero.** Si la
+  respuesta llegaba tarde, la curación era gratis.
+  - Ahora el objeto se aparta al enviarlo y solo vuelve a la mochila si no
+    sirvió.
+  - El juego del compañero recuerda cada petición y no cura dos veces la
+    misma.
+  - Una respuesta que nunca llegó se pregunta otra vez en el siguiente enlace.
+- **Clones o Pokémon perdidos en el Cable Club tras un corte.**
+  - El intercambio ya no se cierra en un corte corto: el último CONFIRM llega
+    y los dos juegos lo completan.
+  - Cada intercambio lleva su id, y un CONFIRM viejo ya no prepara el
+    siguiente.
+- **Eventos de historia dados dos veces.**
+  - Cada evento tiene su nombre y la partida recuerda los que ya vivió (un
+    reenvío, o la cola de un juego que salió sin guardar, ya no lo repite).
+  - Un evento del compañero que llega a mitad de tu propio script espera a
+    que termine. Antes, hablar los dos con el mismo NPC, o el script del líder
+    después de un combate co-op, podía dar el objeto dos veces.
+- **Regalo Misterioso.**
+  - El "una vez al día" va por el calendario real, no por el reloj
+    compartido.
+  - Un SÍ que llega después de la espera completa el intercambio, en vez de
+    perderse.
+  - Un regalo que tu juego no tiene llega como otro de la misma rareza.
+- **Concurso de Bichos:** un empate exacto daba el 1.er premio a los dos;
+  ahora los dos juegos lo rompen igual.
+- **Guardería unida:** el Pokémon del compañero ya no cría con tu partida
+  cuando juegas con otra persona.
+- **Salón de la Fama:** solo cuenta como co-op si tu compañero entró contigo.
+- **Un invitado rechazado (otra versión, otro juego) ya no cierra la sesión
+  del anfitrión,** que sigue escuchando. El invitado ve el motivo.
+- **Visitantes:**
+  - uno con otra versión recibe un aviso y vuelve a casa;
+  - una posición atrasada ya no lo mueve hacia atrás;
+  - su chat queda limitado a unas pocas líneas seguidas.
+- Un paquete que se hacía pasar por un evento interno ("net_disconnect") ya
+  no puede tumbar la sesión.
+- El invitado que reconecta por una red lenta (ZeroTier con relay) espera
+  cada vez un poco más entre intentos, en lugar de cortar el intento cada
+  2 segundos.
+
 ## 1.4.1-alpha.6
 
 **Both players need this version** (link protocol 13): a partner on alpha.5

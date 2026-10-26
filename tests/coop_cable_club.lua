@@ -147,4 +147,36 @@ do
   T.check(mon and not mon.isEgg and mon.eggSteps == nil, "a Pokemon is rebuilt as a Pokemon")
 end
 
+-- a dropped link is not a pulled cable; a message from another trade is not this one's
+do
+  local CoopNet = require("src.coop.CoopNet")
+  local realConnected = CoopManager.isConnected
+  local net = { send = function() end, flush = function() end, closed = false,
+                sessionActive = true, state = CoopNet.STATE.SYNCED }
+  CoopManager.net = net
+  CoopLink.adapter, CoopLink.early = nil, {}
+  CoopLink.onLinkMessage({ type = "coop_link", link = "OLD", payload = { type = "confirm", ok = true } })
+  CoopLink.onLinkMessage({ type = "coop_link", link = "NEW", payload = { type = "hello" } })
+  local t = CoopLink.newTunnel("NEW")
+  T.check(#t.inbox == 1 and t.inbox[1].type == "hello", "a new tunnel takes only its own early messages")
+  CoopLink.onLinkMessage({ type = "coop_link", link = "OLD", payload = { type = "confirm", ok = true } })
+  T.check(#t.inbox == 1, "a late CONFIRM from an older trade never reaches this one")
+
+  CoopManager.isConnected = function() return false end
+  net.state = CoopNet.STATE.RECONNECTING
+  CoopLink.onLinkLost({}, "lost")
+  t:update()
+  T.check(not t.closed, "the tunnel stays open while the session reconnects")
+  net.state = CoopNet.STATE.LISTENING
+  net.sessionActive = false
+  t:update()
+  T.check(t.closed, "...and closes once the session has ended")
+
+  local t2 = CoopLink.newTunnel("NEXT")
+  CoopLink.onNewSession()
+  T.check(t2.closed, "a partner who came back as a new game ends the trade")
+  CoopManager.isConnected = realConnected
+  CoopLink.adapter = nil
+end
+
 T.finish("co-op cable club tunnel")

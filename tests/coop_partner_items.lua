@@ -209,7 +209,8 @@ do
   CoopManager.sendItemUse(mine, ow, "POTION", { slot = 1, species = "FIXMON_A" })
   local use = lastSent("coop_item_use")
   T.check(use and use.item == "POTION" and use.slot == 1, "the pick goes to the partner")
-  T.check(mine.save.inventory.POTION == 2, "...and nothing leaves the bag before they answer")
+  T.check(mine.save.inventory.POTION == 1 and mine.save.coopItemHeld[use.req] == "POTION",
+          "...and the item is set aside while they answer")
   CoopManager.onItemResult(ow, { req = use.req, ok = false, messages = { "It won't have\nany effect." } })
   T.check(mine.save.inventory.POTION == 2, "an item that did nothing stays in your bag")
 
@@ -220,6 +221,59 @@ do
   T.check(mine.save.inventory.POTION == 1, "an item that worked is spent from YOUR bag")
   CoopManager.onItemResult(ow, { req = use.req, ok = true })
   T.check(mine.save.inventory.POTION == 1, "a repeated answer spends nothing more")
+
+  -- the wait runs out: the item stays set aside, and the late answer settles it
+  sent = {}
+  CoopManager.sendItemUse(mine, ow, "POTION", { slot = 1, species = "FIXMON_A" })
+  use = lastSent("coop_item_use")
+  CoopManager.itemRequest = nil
+  T.check((mine.save.inventory.POTION or 0) == 0, "an unanswered item is not in the bag")
+  CoopManager.onItemResult(ow, { req = use.req, ok = false })
+  T.check(mine.save.inventory.POTION == 1 and mine.save.coopItemHeld[use.req] == nil,
+          "a late 'did nothing' gives it back")
+
+  -- never answered at all: asked again on the next link; no record = never used
+  sent = {}
+  CoopManager.sendItemUse(mine, ow, "POTION", { slot = 1, species = "FIXMON_A" })
+  use = lastSent("coop_item_use")
+  CoopManager.itemRequest = nil
+  sent = {}
+  CoopManager.askHeldItems(mine)
+  local q = lastSent("coop_item_query")
+  T.check(q and q.req == use.req, "a new link asks about the answer that never came")
+  local theirs = newGame("THEM")
+  local theirOw = overworld(theirs, "ROUTE_29")
+  sent = {}
+  CoopManager.onItemQuery(theirOw, q)
+  local a = lastSent("coop_item_result")
+  T.check(a and a.unknown and not a.ok, "a partner with no record of it says so")
+  CoopManager.onItemResult(ow, a)
+  T.check(mine.save.inventory.POTION == 1, "...and the item comes back")
+end
+
+-- the partner's side: the same request twice heals once
+do
+  local theirs = newGame("THEM")
+  local ow = overworld(theirs, "ROUTE_29")
+  local mon = theirs.save.party[1]
+  local full = mon.stats and mon.stats.hp or mon.maxHp or mon.hp
+  mon.hp = 1
+  local Bag = require("src.inventory.Bag")
+  sent = {}
+  CoopManager.onItemUse(ow, { req = "TWICE", item = "POTION", slot = 1, species = mon.species })
+  local first = lastSent("coop_item_result")
+  local hpAfter = mon.hp
+  mon.hp = 1
+  sent = {}
+  CoopManager.onItemUse(ow, { req = "TWICE", item = "POTION", slot = 1, species = mon.species })
+  local second = lastSent("coop_item_result")
+  T.check(first and first.ok and hpAfter > 1, "the first request heals")
+  T.check(second and second.ok and mon.hp == 1, "the same request again answers the same and heals nothing")
+  sent = {}
+  CoopManager.onItemQuery(ow, { req = "TWICE" })
+  local q = lastSent("coop_item_result")
+  T.check(q and q.ok and not q.unknown, "asked later, it remembers the heal")
+  local _ = full and Bag
 end
 
 -- ---------------------------------------------------------------------

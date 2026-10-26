@@ -68,6 +68,10 @@ local function fakeNet()
   function net:poll() local q = self.queue; self.queue = {}; return q end
   function net:flush() end
   function net:shutdown() self.closed = true; self.paired = false end
+  function net:dropPeer()
+    if self.isHostNet then self.paired = false; self.state = CoopNet.STATE.LISTENING
+    else self:shutdown() end
+  end
   function net:close() self.closed = true; self.paired = false end
   function net:isLinked() return not self.closed and self.paired end
   function net:markSynced() self.state = CoopNet.STATE.SYNCED end
@@ -216,6 +220,15 @@ do
   CoopManager.update(nil, 0.016)
   check(not CoopManager.connected, "old protocol partner is not linked")
   check(net.closed, "link to incompatible partner is closed")
+
+  -- ...and a host refusing one keeps listening for the right partner
+  net = freshManager(true)
+  net.isHostNet = true
+  table.insert(net.queue, hello({ proto = 1, ver = "1.3.1" }))
+  CoopManager.update(nil, 0.016)
+  check(not CoopManager.connected and not net.closed and net.state == CoopNet.STATE.LISTENING,
+        "a host that refuses a partner keeps its door open")
+  check(net:lastOf("coop_reject") ~= nil, "...after telling them why")
   check(CoopManager.statusMessage == "PARTNER HAS V1.3.1", "the refusal names the partner's version ("
         .. tostring(CoopManager.statusMessage) .. ")")
   local reject = net:lastOf("coop_reject")

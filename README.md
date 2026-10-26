@@ -68,7 +68,7 @@ no incluye nada del ROM.
 | Regalo Misterioso | **MYSTERY GIFT**: una vez al día por compañero, cada juego elige un objeto para el otro |
 | Pokédex | **POKéDEX**: lo que tiene tu compañero y tú no, y al revés. Regla **SHARE DEX**: sus capturas cuentan como VISTAS en la tuya |
 | Pokégear | tu compañero encabeza la agenda (llamarlo abre el chat y le suena el Pokégear) y su marca parpadea en el mapa |
-| Reconexión | la partida recuerda el último enlace: el anfitrión vuelve a escuchar y el invitado vuelve a llamar solo (opción **AUTO RECONNECT**); fila **RECONNECT** en el menú |
+| Reconexión | la partida recuerda el último enlace: el anfitrión vuelve a escuchar y el invitado vuelve a llamar solo (opción **AUTO RECONNECT**); fila **RECONNECT** en el menú. Tras un corte, lo que se envió en esos segundos llega al volver, una sola vez, y el sitio del compañero solo lo puede ocupar su misma partida |
 
 Menú co-op (START → CO-OP (LAN) estando conectado), siete filas sin scroll:
 CHAT, EMOTE, WARP TO PARTNER, **PARTNER ▶** (ITEM FOR PARTNER, WATCH, TRADE,

@@ -14,7 +14,8 @@
 --
 -- The copy is kept in the save (save.coopDayCareMate), so the pair keeps
 -- walking when you play apart; it changes when the partner's day care does,
--- and goes when the rule is switched off.
+-- and goes when the rule is switched off or the save links with another
+-- partner (the copy names the partner save it came from).
 --
 -- Wire: coop_daycare { mon } (nil: nothing boarded at theirs).
 
@@ -89,7 +90,7 @@ CoopManager.handlers.coop_daycare = function(ow, msg)
   if type(msg.mon) == "table" and msg.mon.species then
     local mon = CoopManager.wireMon(msg.mon)
     mon.isEgg = nil
-    save.coopDayCareMate = { partner = name, mon = mon }
+    save.coopDayCareMate = { partner = name, partnerId = CoopManager.partner.id, mon = mon }
     if not had and CoopDayCare.lone(save) then
       local def = game.data.pokemon and game.data.pokemon[mon.species]
       CoopManager.showStatus(("%s's %s joins your DAY-CARE"):format(name, (def and def.name) or "POKéMON"), 4)
@@ -114,6 +115,12 @@ end)
 CoopManager.onTick("daycare", function(dt, game)
   local save = game and game.save
   if not (save and CoopManager.shareDayCare) then return end
+  local mate = save.coopDayCareMate
+  if type(mate) == "table" and mate.partnerId and CoopManager.partner.id
+     and mate.partnerId ~= CoopManager.partner.id then
+    -- linked with someone else now: the last partner's Pokemon is not theirs
+    save.coopDayCareMate = nil
+  end
   CoopDayCare.timer = (CoopDayCare.timer or 0) - dt
   if CoopDayCare.timer > 0 and CoopDayCare.serial == CoopManager.linkSerial then return end
   CoopDayCare.timer = 1

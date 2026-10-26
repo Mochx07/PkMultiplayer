@@ -212,9 +212,79 @@ do
   local before = #sentOf("coop_gift_req")
   CoopGift.ask(game, ow)
   T.check(#sentOf("coop_gift_req") == before and boxes[#boxes].text:find("today"), "once a day per partner")
+
+  -- a shared clock that moves the hours hands out no second swap
+  local realDate = os.date
+  os.date = function(fmt, t) return realDate(fmt, (t or os.time()) + 86400 * 3) end
+  T.check(CoopGift.swappedToday(save), "the once-a-day is the real calendar, not the shared clock")
+  os.date = realDate
+
+  -- their YES after the wait ran out still completes the swap
+  save.coopGifts = nil
+  sent = {}
+  CoopGift.ask(game, ow)
+  local ask2 = sentOf("coop_gift_req")[1]
+  CoopGift.asking.at = -1e9
+  CoopManager.idleTickers.gift(0.1, game)
+  T.check(CoopGift.asking == nil and CoopGift.late == ask2.id, "the wait runs out, the answer is still expected")
+  local bagBefore = save.inventory.FIX_POTION or 0
+  CoopManager.dispatch(ow, { type = "coop_gift_reply", id = ask2.id, ok = true, item = "BERRY" })
+  T.check((save.inventory.FIX_POTION or 0) == bagBefore + 1 and sentOf("coop_gift_give")[1],
+          "a late yes still delivers both gifts")
+
+  -- a gift this cartridge has no item for arrives as one of the same rarity
+  T.check(CoopGift.substitute(game, "MIRAGE_MAIL") == "BERRY", "an unknown gift becomes one this game has")
   package.loaded["src.render.TextBox"] = TextBox
   CoopManager.overworldIdle = idleFn
   game.stack = newStack()
+end
+
+-- ---------------------------------------------------------------------
+-- STORY EVENTS: each lived once, never in the middle of our own script
+-- ---------------------------------------------------------------------
+
+do
+  local CoopStory = require("src.coop.CoopStory")
+  local Bag = require("src.inventory.Bag")
+  local running = false
+  local storyGame = { data = Data, save = SaveData.newGame(), stack = newStack(),
+                      overworld = { map = { id = "ROUTE_29" },
+                                    runner = { isRunning = function() return running end } } }
+  storyGame.save.flags = {}
+  storyGame.save.inventory = {}
+  CoopManager.storySync = true
+  local function event(eid)
+    return { type = "coop_story_rewards", backlog = true, eid = eid, speaker = "TOBY",
+             rewards = { { kind = "item", id = "FIX_POTION", count = 1 } } }
+  end
+  CoopStory.onPartnerRewards(storyGame, event("P:1"))
+  T.check(storyGame.save.inventory.FIX_POTION == 1, "a partner's event hands out its item")
+  CoopStory.onPartnerRewards(storyGame, event("P:1"))
+  T.check(storyGame.save.inventory.FIX_POTION == 1, "the same event arriving again is not lived twice")
+
+  -- both of us talked to the same NPC: theirs lands while ours is talking
+  running = true
+  CoopStory.onPartnerRewards(storyGame, { type = "coop_story_rewards", eid = "P:2", speaker = "TOBY",
+    rewards = { { kind = "set_flag", id = "EVENT_FIX_GIFT" }, { kind = "item", id = "FIX_POTION", count = 1 } } })
+  T.check(storyGame.save.inventory.FIX_POTION == 1 and not storyGame.save.flags.EVENT_FIX_GIFT,
+          "an event that arrives mid-script waits for the script")
+  -- our own script gives the item and sets the flag
+  Bag.add(storyGame.save, "FIX_POTION", 1, Data)
+  storyGame.save.flags.EVENT_FIX_GIFT = true
+  CoopStory.tick(0.1, storyGame)
+  T.check(#CoopStory.deferred == 1, "...for as long as it runs")
+  running = false
+  CoopStory.tick(0.1, storyGame)
+  T.check(#CoopStory.deferred == 0 and storyGame.save.inventory.FIX_POTION == 2,
+          "once it ends, the partner's copy sees the flag set and gives nothing more")
+
+  -- each event leaving this save has its own name
+  local a, b = CoopStory.stamp(save), CoopStory.stamp(save)
+  T.check(a ~= b and a:find(":") ~= nil, "every event gets its own id")
+  save.coopStoryOutbox = nil
+  CoopStory.queue(save, { { kind = "money", amount = 10 } })
+  T.check(save.coopStoryOutbox[1].eid ~= nil, "a queued event keeps its id for the partner")
+  save.coopStoryOutbox = nil
 end
 
 -- ---------------------------------------------------------------------
@@ -438,6 +508,46 @@ do
   T.check(routed == "VISITING", "a visitor's chat goes to the host's world")
   CoopManager.chatRoute = nil
   CoopManager.connected = true
+
+  -- the host's door: old versions sent home, late positions ignored, chat held back
+  local Json = require("src.link.Json")
+  local events = {}
+  local wasHost = CoopManager.isHost
+  CoopManager.isHost = true
+  CoopManager.net.isHost, CoopManager.net.closed, CoopManager.net.port = true, false, 7777
+  CoopVisit.server = { visitors = {}, nextId = 1, timer = 99,
+                       enetHost = { service = function() return table.remove(events, 1) end,
+                                    flush = function() end } }
+  local function visitor()
+    local v = { out = {} }
+    v.send = function(_, s2) v.out[#v.out + 1] = Json.decode(s2) end
+    v.disconnect_later = function() v.gone = true end
+    return v
+  end
+  local function tick() CoopManager.idleTickers.visit(0.016, game, nil) end
+  local old = visitor()
+  events[#events + 1] = { type = "connect", peer = old }
+  events[#events + 1] = { type = "receive", peer = old, data = Json.encode({ t = "hi", name = "OLD", proto = 13 }) }
+  tick()
+  T.check(old.gone and old.out[1] and old.out[1].t == "old", "a visitor on another version is told and sent home")
+  local ash = visitor()
+  events[#events + 1] = { type = "connect", peer = ash }
+  events[#events + 1] = { type = "receive", peer = ash,
+                          data = Json.encode({ t = "hi", name = "ASH", proto = CoopManager.PROTOCOL }) }
+  events[#events + 1] = { type = "receive", peer = ash, data = Json.encode({ t = "pos", n = 5, map = "ROUTE_29", px = 80, py = 0 }) }
+  events[#events + 1] = { type = "receive", peer = ash, data = Json.encode({ t = "pos", n = 4, map = "ROUTE_29", px = 16, py = 0 }) }
+  tick()
+  local v = CoopVisit.server.visitors[ash]
+  T.check(v and v.px == 80, "a late position never moves a visitor backwards")
+  sent = {}
+  for i = 1, 10 do
+    events[#events + 1] = { type = "receive", peer = ash, data = Json.encode({ t = "chat", text = "SPAM" .. i }) }
+  end
+  tick()
+  T.check(#sentOf("coop_chat") == CoopVisit.CHAT_BURST, "a visitor's flood of chat is held to a few lines")
+  CoopVisit.server = nil
+  CoopManager.isHost = wasHost
+  CoopManager.net.isHost, CoopManager.net.closed = nil, nil
 end
 
 -- ---------------------------------------------------------------------

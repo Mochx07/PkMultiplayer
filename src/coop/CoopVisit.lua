@@ -12,10 +12,14 @@
 -- (coop_visitors); chat goes to all.
 --
 -- Visitor wire (JSON over its own ENet link):
---   visitor -> host  { t = "hi", name, sprite } { t = "pos", map, px, py, f, e }
+--   visitor -> host  { t = "hi", name, sprite, proto, ver } { t = "pos", n, map, px, py, f, e }
 --                    { t = "chat", text }
 --   host -> visitor  { t = "world", list = { {id, name, sprite, map, px, py, f, e} } }
---                    { t = "chat", from, text }  { t = "full" }
+--                    { t = "chat", from, text }  { t = "full" }  { t = "old", ver }
+--
+-- A visitor on another protocol is told the host's version and sent home;
+-- its positions carry a counter so a late one never moves it backwards, and
+-- its chat is held to a few lines every few seconds.
 
 local CoopManager = require("src.coop.CoopManager")
 local CoopLog = require("src.coop.CoopLog")
@@ -126,6 +130,19 @@ local function relayChat(peer, v, text)
   broadcastChat(v.name, text, peer)
 end
 
+CoopVisit.CHAT_BURST = 4      -- lines a visitor may send at once...
+CoopVisit.CHAT_REFILL = 1.5   -- ...and one more every this many seconds
+
+local function chatAllowed(v)
+  local t = now()
+  v.chatTokens = math.min(CoopVisit.CHAT_BURST,
+                          (v.chatTokens or CoopVisit.CHAT_BURST) + (t - (v.chatAt or t)) / CoopVisit.CHAT_REFILL)
+  v.chatAt = t
+  if v.chatTokens < 1 then return false end
+  v.chatTokens = v.chatTokens - 1
+  return true
+end
+
 local function serveOnce(game, ow)
   local srv = CoopVisit.server
   for _ = 1, 64 do
@@ -149,7 +166,11 @@ local function serveOnce(game, ow)
       local v = srv.visitors[ev.peer]
       local m = v and decode(ev.data)
       if m then
-        if m.t == "hi" then
+        if m.t == "hi" and (tonumber(m.proto) or 0) ~= CoopManager.PROTOCOL then
+          sendTo(ev.peer, { t = "old", ver = CoopManager.modVersion() }, true)
+          pcall(ev.peer.disconnect_later, ev.peer, 0)
+          srv.visitors[ev.peer] = nil
+        elseif m.t == "hi" then
           v.name = tostring(m.name or "VISITOR"):upper():sub(1, 8)
           v.sprite = m.sprite
           v.game = type(m.game) == "string" and m.game or nil
@@ -158,9 +179,10 @@ local function serveOnce(game, ow)
             CoopManager.showStatus(v.name .. " is visiting!", 3)
             sendTo(ev.peer, { t = "chat", from = "*", text = "Welcome to " .. tostring(CoopManager.getLocalPlayerName(game)) .. "'s world!" }, true)
           end
-        elseif m.t == "pos" then
+        elseif m.t == "pos" and (tonumber(m.n) or 0) > (v.posN or 0) then
+          v.posN = tonumber(m.n)
           v.map, v.px, v.py, v.f, v.e = m.map, tonumber(m.px), tonumber(m.py), m.f, m.e
-        elseif m.t == "chat" and type(m.text) == "string" and m.text ~= "" then
+        elseif m.t == "chat" and type(m.text) == "string" and m.text ~= "" and chatAllowed(v) then
           relayChat(ev.peer, v, m.text:sub(1, CoopManager.CHAT_MAX or 64))
         end
       end
@@ -261,7 +283,8 @@ local function visitOnce(game, ow, dt)
     if ev.type == "connect" then
       c.linked = true
       sendTo(c.peer, { t = "hi", name = CoopManager.getLocalPlayerName(game),
-                       sprite = ow and CoopManager.localSpriteId(ow.player), game = myVersion() }, true)
+                       sprite = ow and CoopManager.localSpriteId(ow.player), game = myVersion(),
+                       proto = CoopManager.PROTOCOL, ver = CoopManager.modVersion() }, true)
     elseif ev.type == "disconnect" then
       CoopManager.showStatus(c.linked and "The visit ended" or "Host not found", 3)
       CoopVisit.leave()
@@ -282,6 +305,9 @@ local function visitOnce(game, ow, dt)
         CoopManager.onChatReceived(m.from == "*" and "HOST" or m.from, m.text, false)
       elseif m and m.t == "full" then
         CoopManager.showStatus("That world is full", 3)
+      elseif m and m.t == "old" then
+        c.linked = false
+        CoopManager.showStatus("The host has PkMultiplayer v" .. tostring(m.ver or "?") .. ": update to the same version", 5)
       end
     end
   end
@@ -296,6 +322,8 @@ local function visitOnce(game, ow, dt)
     local me = myEntry(game, ow, "me")
     if me then
       me.t = "pos"
+      c.posN = (c.posN or 0) + 1
+      me.n = c.posN
       sendTo(c.peer, me, false)
     end
   end
