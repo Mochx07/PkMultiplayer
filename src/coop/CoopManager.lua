@@ -2069,6 +2069,7 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   if not (game and runner and ow) then return end
   local ok = CoopManager.partnerAvailable(ow)
   if not ok then return end
+  CoopManager.warnNotReady()
   local name = CoopManager.trainerDisplayName(game, oppClass, partyIndex)
   local choice = "solo"
   local Menu = require("src.coop.CoopI18n").menu()
@@ -2089,6 +2090,45 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   else
     CoopManager.bigBattle = { solo = true, oppClass = oppClass, partyIndex = partyIndex }
   end
+end
+
+-- ---------------------------------------------------------------------
+-- READY / NOT READY: before a gym or the League, each one says when they
+-- are set (key R, or READY in the co-op menu).  The partner sees it over
+-- your head and beside your name, and a leader's CO-OP / SOLO question says
+-- when they are not.  It clears itself once a co-op battle starts.
+-- ---------------------------------------------------------------------
+CoopManager.localReady = false
+
+function CoopManager.setReady(on, quiet)
+  on = on and true or false
+  if CoopManager.localReady == on and quiet then return end
+  CoopManager.localReady = on
+  if CoopManager.connected and CoopManager.net then
+    CoopManager.net:send({ type = "coop_ready", ready = on })
+  end
+  if not quiet then CoopManager.showStatus(on and "You are READY!" or "You are not ready", 2) end
+end
+
+-- asked CO-OP or SOLO while the partner said they are not ready
+function CoopManager.warnNotReady()
+  if CoopManager.partner and CoopManager.partner.ready == false then
+    CoopManager.showStatus((CoopManager.partner.name or "Partner") .. " is not ready", 3)
+  end
+end
+
+-- a co-op battle has started: both are back to "not ready"
+function CoopManager.clearReady()
+  CoopManager.localReady = false
+  if CoopManager.partner then CoopManager.partner.ready = nil end
+end
+
+function CoopManager.onPartnerReady(msg)
+  local partner = CoopManager.partner
+  partner.ready = msg.ready == true
+  partner.readyAt = now()
+  local name = partner.name or "Partner"
+  CoopManager.showStatus(partner.ready and (name .. " is READY!") or (name .. " is not ready"), 2.5)
 end
 
 -- RED / BLUE / YELLOW'S LEADERS ARE ASKED ABOUT FIRST TOO.  Their talk
@@ -2113,6 +2153,7 @@ function CoopManager.askBigBattle(ow, npc, onDone)
   if not CoopManager.isBigBattleClass(class, game.save, party) then return false end
   if not CoopManager.partnerAvailable(ow) then return false end
   if not mapsMatch(CoopManager.partner.map, ow.map.id) then return false end
+  CoopManager.warnNotReady()
   local name = CoopManager.trainerDisplayName(game, class, party)
   local function answer(choice)
     if choice == "coop" and CoopManager.isConnected() then
@@ -2734,6 +2775,7 @@ H.coop_warp = function()
 end
 
 H.coop_battle_invite = function(ow, msg) CoopManager.onBattleInviteReceived(ow, msg) end
+H.coop_ready = function(ow, msg) CoopManager.onPartnerReady(msg) end
 H.coop_bigbattle_invite = function(ow, msg) CoopManager.onBigBattleInvite(ow, msg) end
 H.coop_bigbattle_ready = function(ow, msg) CoopManager.onBigBattleReady(ow, msg) end
 H.coop_bigbattle_go = function(ow, msg) CoopManager.onBigBattleGo(ow, msg) end
@@ -3214,6 +3256,35 @@ local function drawOffscreenArrow(sx, sy, vw, vh)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+-- WHERE A MAP SITS ON THE TOWN MAP, to point at a partner on another map.
+-- Gen 2: every map carries its landmark (a building, its town's), whose
+-- coordinates are the POKeGEAR map's; Kanto has a picture of its own, so
+-- its landmarks are put to the east of Johto's, which is where Kanto is.
+-- Gen 1: field.townMap holds a square per map.  nil when there is none.
+local GEN2_KANTO_FIRST = 0x2E
+
+function CoopManager.mapPoint(game, mapId)
+  local data = game and game.data
+  local tm = data and data.field and data.field.townMap
+  if type(tm) ~= "table" or type(mapId) ~= "string" then return nil end
+  if type(tm.landmarks) == "table" then
+    local def = data.maps and data.maps[mapId]
+    local id = def and tonumber(def.landmark)
+    local e = id and (tm.landmarks[id] or tm.landmarks[tostring(id)])
+    local x, y = type(e) == "table" and tonumber(e.x), type(e) == "table" and tonumber(e.y)
+    if not (x and y) then return nil end
+    if id >= GEN2_KANTO_FIRST then x = x + 160 end
+    return x, y
+  end
+  local locs = type(tm.locations) == "table" and tm.locations or tm
+  local e = locs[mapId]
+  if type(e) ~= "table" then return nil end
+  local c = type(e.coords) == "table" and e.coords or e
+  local x, y = tonumber(c.x or c.col), tonumber(c.y or c.row)
+  if x and y then return x, y end
+  return nil
+end
+
 function CoopManager.drawWorld(ow)
   if not ow or not ow.camera then return end
   local partner = CoopManager.partner
@@ -3253,9 +3324,25 @@ function CoopManager.drawWorld(ow)
       elseif partner.emote then
         require("src.coop.CoopEmotes").draw(getGame(ow), partner.emote, sx, sy + (partner.hopY or 0),
                                             2.5 - (partner.emoteTimer or 0))
+      elseif partner.readyAt and t - partner.readyAt < 4 then
+        local word = require("src.coop.CoopI18n").t(partner.ready and "READY!" or "WAIT")
+        local rw = MicroFont.width(word) + 6
+        drawPill(math.floor(sx - rw / 2), ballY - 4, rw, 9)
+        love.graphics.setColor(0, 0, 0, 1)
+        MicroFont.draw(word, math.floor(sx - rw / 2) + 3, ballY - 2)
+        love.graphics.setColor(1, 1, 1, 1)
       end
     else
       drawOffscreenArrow(sx, sy - 8, vw, vh)
+    end
+  elseif CoopManager.connected and partner.map and ow.map and not mapsMatch(partner.map, ow.map.id) then
+    -- ON ANOTHER MAP: the arrow points their way across the town map (the
+    -- HUD's pill names the place); inside the same town there is none
+    local game = getGame(ow)
+    local mx, my = CoopManager.mapPoint(game, ow.map.id)
+    local px, py = CoopManager.mapPoint(game, partner.map)
+    if mx and px and (mx ~= px or my ~= py) then
+      drawOffscreenArrow(vw / 2 + (px - mx) * 1000, vh / 2 + (py - my) * 1000, vw, vh)
     end
   end
 
@@ -3351,6 +3438,7 @@ local function drawHud(ow)
   else
     label = string.upper(partner.name or "P2")
     if #label > 8 then label = label:sub(1, 8) end
+    if partner.ready then label = label .. " OK" end
   end
   local net = CoopManager.net
   local bars = (net and net.linkQuality) and net:linkQuality() or 0
@@ -3379,8 +3467,19 @@ function CoopManager.drawUI(ow)
   local hasTextBox = top and (top.isTextBox or (top.lines ~= nil and top.page ~= nil))
   local isTypingChat = top and top.isChatBox
 
+  -- the last co-op double's result, while nothing else is on the line
+  local CoopSummary = package.loaded["src.coop.CoopSummary"]
+  local summary = not (CoopManager.statusMessage and CoopManager.statusTimer > 0) and not hasTextBox
+                  and CoopSummary and CoopSummary.current(now())
   -- status first, at the top, so it never sits on the dialogue box
-  if CoopManager.statusMessage and CoopManager.statusTimer > 0 then
+  if summary then
+    local I18n = require("src.coop.CoopI18n")
+    love.graphics.setColor(1, 1, 1, 1)
+    Font.drawBox(0, 0, 20, #summary + 2)
+    love.graphics.setColor(0, 0, 0, 1)
+    for i, l in ipairs(summary) do Font.draw(I18n.fit(l, 18), 8, 8 * i) end
+    love.graphics.setColor(1, 1, 1, 1)
+  elseif CoopManager.statusMessage and CoopManager.statusTimer > 0 then
     local lines = wrap(CoopManager.statusMessage, 18, 2)
     love.graphics.setColor(1, 1, 1, 1)
     Font.drawBox(0, 0, 20, #lines + 2)

@@ -23,11 +23,17 @@ releases de GitHub).
 
 ## Cómo conectarse
 
-- **Misma red (LAN):** uno pulsa START → **CO-OP ONLINE** → **HOST**. El otro
-  entra en **JOIN** y escribe la IP que le aparece al host.
+- **Misma red (LAN):** uno pulsa START → **CO-OP ONLINE** → **HOST**. Al host
+  le aparece un **código** corto (por ejemplo `30AG-0B4`) y su IP. El otro
+  entra en **JOIN** → **TYPE A CODE** y escribe el código (o lo pega con
+  **Ctrl+V**), o **TYPE THE IP** para marcar la IP con la cruceta.
 - **Por internet:** usad [ZeroTier](https://www.zerotier.com/) (una red
-  virtual gratuita). Uníos los dos a la misma red y usad la IP de ZeroTier
-  del host. El puerto es el **7777**.
+  virtual gratuita). Uníos los dos a la misma red: el código del host ya
+  lleva su IP de ZeroTier. El puerto es el **7777**; se cambia en la fila
+  **PORT** (por ejemplo, para dos juegos en el mismo PC).
+- **JOIN** recuerda los tres últimos hosts a los que te uniste: elige uno y listo.
+- Si algo falla, el menú dice el motivo completo y qué hacer (abrir el puerto
+  UDP en el firewall, la misma versión del mod, etc.).
 - Desde el título también podéis elegir **NEW CO-OP GAME** o **CONTINUE CO-OP**
   para empezar o seguir una partida juntos.
 
@@ -63,7 +69,10 @@ no incluye nada del ROM.
 | Chat | tecla **T** (también durante un combate doble); en móvil, ver arriba |
 | Emotes | tecla **Y** |
 | Combates dobles | contra entrenadores, en lockstep, con las reglas de dobles de HeartGold/SoulSilver y una IA rival pensada para dobles |
-| Historia compartida | los eventos que vive uno los vive el otro; las batallas importantes se preguntan antes |
+| Historia compartida | los eventos que vive uno los vive el otro; las batallas importantes se preguntan antes. También en Rojo/Azul/Amarillo: medallas y MT de los líderes, el fósil de Mt. Moon (uno para cada uno), regalos. Entre Oro/Plata y Cristal la historia no se comparte (numeran sus eventos distinto); el resto del co-op sí |
+| Listo / No listo | tecla **R** (o **READY** en el menú): tu compañero ve **OK** junto a tu nombre antes de un combate grande |
+| Resultado co-op | tras cada doble co-op, unos segundos arriba: los K.O. y la EXP de cada uno y el Pokémon que más hizo |
+| Dónde está | si tu compañero está en otro mapa, una flecha en el borde de la pantalla apunta hacia él y arriba sale el nombre del sitio |
 | Extras | intercambios por el Cable Club, P1 vs P2, objetos para los Pokémon del compañero, Concurso de Bichos y Salón de la Fama compartidos, reloj compartido |
 | Warp | solo a pueblos que ya visitaste (como VUELO), tu compañero tiene que aceptar, y se recarga en 10 minutos |
 | Salvajes en pareja | regla **TEAM UP WILD**: un salvaje que te sale al caminar con tu compañero cerca (8 pasos, mismo mapa) le pregunta si se une, y pelean un doble contra el salvaje y su gemelo. Juntos no hay Poké Balls; **RUN** os saca a los dos |
@@ -77,13 +86,15 @@ no incluye nada del ROM.
 | Pokégear | tu compañero encabeza la agenda (llamarlo abre el chat y le suena el Pokégear) y su marca parpadea en el mapa |
 | Reconexión | la partida recuerda el último enlace: el anfitrión vuelve a escuchar y el invitado vuelve a llamar solo (opción **AUTO RECONNECT**); fila **RECONNECT** en el menú. Tras un corte, lo que se envió en esos segundos llega al volver, una sola vez, y el sitio del compañero solo lo puede ocupar su misma partida |
 
-Menú co-op (START → CO-OP ONLINE estando conectado), siete filas sin scroll:
-CHAT, EMOTE, WARP TO PARTNER, **PARTNER ▶** (ITEM FOR PARTNER, WATCH, TRADE,
-BATTLE P1 VS P2, MYSTERY GIFT), POKéDEX, **RULES ▶** (STORY SYNC, TEAM UP WILD,
-SHARE DEX, LINK DAYCARE, PARTNER HEAL, SOUL LINK, SOUL LINKS; el recuadro de
-arriba explica la regla marcada), VERSION (tu versión, el protocolo y la de tu
-compañero) y DISCONNECT. B vuelve de una página a la anterior. Sin conectar:
-RECONNECT, HOST, JOIN, VISIT, STORY SYNC, EMOTE, VERSION, EXIT.
+Menú co-op (START → CO-OP ONLINE estando conectado), nueve filas sin scroll:
+CHAT, EMOTE, READY, WARP TO PARTNER, **PARTNER ▶** (ITEM FOR PARTNER, WATCH,
+TRADE, BATTLE P1 VS P2, MYSTERY GIFT), POKéDEX, **RULES ▶** (STORY SYNC, TEAM UP
+WILD, SHARE DEX, LINK DAYCARE, PARTNER HEAL, SOUL LINK, SOUL LINKS; el recuadro
+de arriba explica la regla marcada), VERSION y DISCONNECT. B vuelve de una
+página a la anterior. **VERSION** abre el estado del enlace: ping, pérdida,
+mensajes reenviados, reconexiones, desfases de combate corregidos y las
+versiones de los dos. Sin conectar: RECONNECT, HOST, JOIN, VISIT, PORT, STORY
+SYNC, EMOTE, VERSION, EXIT. Las reglas se guardan en la partida.
 
 Los **ataques** caen sobre el Pokémon que hay de verdad, también en combates
 individuales: el cartucho apunta al centro de la caja de 56×56, y contra un
@@ -139,8 +150,9 @@ It is a mod for the official [Gen2Recomped](https://github.com/UNDERdecoded/Gen2
 
 **Install:** download the zip from Releases. In the launcher open **MODS** →
 **Import mod .zip**, or drop the zip on the window. Both players need it.
-**Play:** START → **CO-OP ONLINE** → HOST, or JOIN with the host's IP. Over the
-internet, use ZeroTier. The port is 7777.
+**Play:** START → **CO-OP ONLINE** → HOST, or JOIN with the host's short code
+(type or paste it) or IP; JOIN remembers the last three hosts. Over the
+internet, use ZeroTier. The port is 7777 (PORT row to change it).
 
 ## How it works (for developers)
 
@@ -179,7 +191,11 @@ PKM_EAGER=1 PKM_PRE=<mod>/tests/foreign_wrapper_pre.lua \
 127.0.0.1 (`PKM_ROLE=host|guest`, see the file).  So do `wild_together.lua`,
 `watch_smoke.lua` and `tower_smoke.lua` (Crystal); `visit_smoke.lua` runs
 three (`PKM_ROLE=host|guest|visitor`).  `tests/coop_features.lua` covers the
-1.4 extras and `tests/anim_fit.lua` the move-animation fit.
+1.4 extras, `tests/anim_fit.lua` the move-animation fit,
+`tests/coop_gen1_story.lua` Red/Blue/Yellow's shared story and
+`tests/coop_ux.lua` the invite codes, menus and 1.6 extras.
+`tools/run_tests.sh` runs every suite; `tools/i18n_check.py` lists on-screen
+lines the Spanish catalog does not cover.
 
 ### Regenerating the patches
 

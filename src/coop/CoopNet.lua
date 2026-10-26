@@ -59,7 +59,11 @@ CoopNet.DEFAULT_PORT = 7777
 -- 15: the co-op difficulty, a screen covering the whole side and the turn's
 -- full state in the host's sync -- a v14 copy would build another foe team
 -- and resolve the same turn differently
-CoopNet.PROTOCOL = 15
+-- 16: Red/Blue/Yellow's story events (objects shown or hidden, items taken),
+-- Gold/Silver kept apart from Crystal's numbering on BOTH sides, READY --
+-- a v15 copy would set the toggles' flags without the objects, and copy
+-- Crystal's events into Gold
+CoopNet.PROTOCOL = 16
 CoopNet.CHANNELS = 2
 CoopNet.CH_RELIABLE = 0
 CoopNet.CH_FAST = 1
@@ -519,6 +523,7 @@ function CoopNet:resetSession()
   self.recvSeq = 0
   self.outbox = {}
   self.ackDirty = false
+  self.pingLog = {}
 end
 
 local function configurePeer(peer)
@@ -695,9 +700,18 @@ function CoopNet:acknowledged(upTo)
   self.outbox = keep
 end
 
+-- THE LOSS THE DIAGNOSTICS SHOW: pings go unsequenced (no resend), so the
+-- share of the last PING_WINDOW that never came back is the line's loss.
+CoopNet.PING_WINDOW = 30
+
 function CoopNet:sendPing()
   if not self.peer or not self.resumed then return end
-  local text = Json.encode({ type = "coop_ping", t = now(), a = self.recvSeq })
+  local t = now()
+  local log = self.pingLog or {}
+  self.pingLog = log
+  log[#log + 1] = { t = t }
+  while #log > CoopNet.PING_WINDOW do table.remove(log, 1) end
+  local text = Json.encode({ type = "coop_ping", t = t, a = self.recvSeq })
   rawSend(self.peer, text, CoopNet.CH_RELIABLE, "unsequenced")
   self.ackDirty = false
 end
@@ -706,6 +720,21 @@ function CoopNet:sendPong(t)
   if not self.peer then return end
   local text = Json.encode({ type = "coop_pong", t = t })
   rawSend(self.peer, text, CoopNet.CH_RELIABLE, "unsequenced")
+end
+
+-- percent of the recent pings that never came back; pings younger than
+-- two seconds may still be on their way and are not counted yet
+function CoopNet:lossPercent()
+  local sent, lost = 0, 0
+  local cutoff = now() - 2
+  for _, p in ipairs(self.pingLog or {}) do
+    if p.t <= cutoff then
+      sent = sent + 1
+      if not p.back then lost = lost + 1 end
+    end
+  end
+  if sent == 0 then return 0 end
+  return math.floor(lost * 100 / sent + 0.5)
 end
 
 -- 0..3 signal bars for the HUD
@@ -905,6 +934,9 @@ function CoopNet:onReceive(peer, data, t)
   elseif kind == "coop_pong" then
     if tonumber(msg.t) then
       self.rttMs = math.max(0, math.floor((t - msg.t) * 1000 + 0.5))
+      for _, p in ipairs(self.pingLog or {}) do
+        if p.t == tonumber(msg.t) then p.back = true end
+      end
     end
   elseif kind == "coop_ack" then
     self:acknowledged(msg.a)

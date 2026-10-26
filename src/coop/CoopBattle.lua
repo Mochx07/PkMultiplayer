@@ -446,6 +446,12 @@ local function cloneMon(m)
 end
 
 function CoopBattle.initBattle(battle, localChosenMons, partnerChosenMons, partnerInfo, seed, inviteId)
+  -- READY / NOT READY was about this battle: both start over
+  local CM = package.loaded["src.coop.CoopManager"]
+  if CM and CM.clearReady then CM.clearReady() end
+  -- the result screen's tally (src/coop/CoopSummary.lua)
+  local okS, CoopSummary = pcall(require, "src.coop.CoopSummary")
+  if okS and CoopSummary.begin then pcall(CoopSummary.begin, battle) end
   if not battle then return end
 
   CoopLog.battle("INIT", "Co-op double with " .. tostring(partnerInfo and partnerInfo.name)

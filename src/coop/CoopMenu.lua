@@ -82,17 +82,19 @@ CoopMenu.wrap = wrap
 -- THE REASON, AND WHAT TO DO ABOUT IT.  The menu used to print the error cut
 -- to 18 letters ("PARTNER PLAYS OTHE") with nothing after it; most of them
 -- come down to the same few causes.
+-- (with its reason, three lines at most in either language: a reason that
+-- takes two has a one-line tip)
 local ADVICE = {
-  { "NOT FOUND", "CHECK IP AND PORT; FIREWALL: ALLOW UDP %d" },
-  { "UNREACHABLE", "CHECK IP AND PORT; FIREWALL: ALLOW UDP %d" },
-  { "IN USE", "ANOTHER GAME HOSTS HERE: JOIN OR VISIT IT" },
+  { "NOT FOUND", "FIREWALL: OPEN UDP %d, CHECK THE IP" },
+  { "UNREACHABLE", "FIREWALL: OPEN UDP %d, CHECK THE IP" },
+  { "IN USE", "A GAME HOSTS HERE: JOIN OR VISIT IT" },
   { "BUSY", "IT HAS A PARTNER: VISIT IT INSTEAD" },
-  { "HAS V", "BOTH PLAYERS NEED THE SAME MOD VERSION" },
-  { "OTHER GAME", "PLAY THE SAME GENERATION AS THE HOST" },
+  { "HAS V", "BOTH NEED THE SAME MOD VERSION" },
+  { "OTHER GAME", "USE THE HOST'S GEN" },
   { "LOST", "RECONNECT FROM THIS MENU" },
-  { "UNAVAILABLE", "NO NETWORK: IS ZEROTIER ON?" },
+  { "UNAVAILABLE", "IS ZEROTIER ON?" },
   { "BAD ADDRESS", "CHECK THE IP" },
-  { "CODE", "ASK THE HOST FOR THEIR CODE AGAIN" },
+  { "CODE", "ASK FOR IT AGAIN" },
 }
 
 function CoopMenu.errorLines(err, port, maxLines)
@@ -216,7 +218,31 @@ local function versionRow()
     local v = CoopManager.partner and CoopManager.partner.version
     info[3] = (v and ("P2 V" .. tostring(v):upper()) or "P2 V? (OLDER MOD)"):sub(1, 18)
   end
-  return { label = "VERSION", info = info, run = function() end }
+  return { label = "VERSION", info = info, run = function(menu) menu.stage = "diag" end }
+end
+
+-- THE LINK, IN NUMBERS (A on VERSION): what the player asks about when the
+-- co-op feels off -- the round trip, the pings lost, the messages sent
+-- again after a drop, and the co-op turns that drifted and were put right.
+function CoopMenu.diagnostics()
+  local net = CoopManager.net
+  local linked = CoopManager.isConnected()
+  local stats = net and net.stats or {}
+  local okB, CoopBattle = pcall(require, "src.coop.CoopBattle")
+  local desyncs = okB and tonumber(CoopBattle.desyncs) or 0
+  local partnerV = CoopManager.partner and CoopManager.partner.version
+  local rows = {
+    { "PING", linked and ((tonumber(net.rttMs) or 0) .. " MS") or "-" },
+    { "LOSS", linked and net.lossPercent and (net:lossPercent() .. "%") or "-" },
+    { "RESENT", tostring(tonumber(stats.resent) or 0) },
+    { "REPEATS DROPPED", tostring(tonumber(stats.dupes) or 0) },
+    { "RECONNECTS", tostring(tonumber(stats.reconnects) or 0) },
+    { "DESYNCS FIXED", tostring(desyncs) },
+    { "MOD", "V" .. CoopManager.modVersion():upper() },
+    { "P2 MOD", linked and (partnerV and ("V" .. tostring(partnerV):upper()) or "?") or "-" },
+    { "PROTOCOL", tostring(CoopNet.PROTOCOL) },
+  }
+  return rows
 end
 
 -- THE LINKED MENU, as data: what it says and what A does.
@@ -309,6 +335,9 @@ function CoopMenu:connectedRows(ow, page)
       menu:close()
       require("src.coop.CoopEmotes").openPicker(menu.game)
     end },
+    { label = ruleLabel("READY (R)", CoopManager.localReady),
+      info = { "TELL YOUR PARTNER", "YOU ARE SET FOR", "THE NEXT BATTLE." },
+      run = function() CoopManager.setReady(not CoopManager.localReady) end },
     { label = warpLabel(), run = function()
       menu:close()
       if ow then CoopManager.warpToPartner(ow) end
@@ -378,7 +407,7 @@ function CoopMenu:offlineRows()
     rows[#rows + 1] = { label = "PORT " .. tostring(menu.port),
                         info = { "THE UDP PORT YOU", "HOST ON AND JOIN.", "USUALLY 7777." },
                         run = function()
-      menu.portEdit, menu.portPos = portDigits(menu.port), 5
+      menu.portEdit, menu.portPos, menu.errorMsg = portDigits(menu.port), 5, nil
       menu.stage = "portEntry"
     end }
   end
@@ -413,7 +442,7 @@ function CoopMenu:joinRows()
   end
   rows[#rows + 1] = { label = "TYPE THE IP", info = { "TURN THE DIGITS", "WITH THE D-PAD." },
                       run = function() menu.stage = "addrEntry" end }
-  rows[#rows + 1] = { label = "TYPE A CODE", info = { "THE HOST'S CODE,", "LIKE 30AG-0B4.", "CTRL+V PASTES IT." },
+  rows[#rows + 1] = { label = "TYPE A CODE", info = { "THE HOST'S CODE,", "LIKE 30AG-0B4.", "CTRL-V PASTES IT." },
                       run = function() menu:openCode() end }
   return rows
 end
@@ -453,7 +482,7 @@ end
 function CoopMenu:submitCode()
   local ip, port = CoopNet.parseInviteCode(self.code)
   if not ip then
-    self.errorMsg = "THAT CODE IS NOT RIGHT"
+    self.errorMsg = "WRONG CODE"
     return
   end
   if isPhone() then setKeyboard(false) end
@@ -526,8 +555,11 @@ function CoopMenu:update(dt)
       end
     elseif input:wasPressed("a") then
       local row = rows[self.index]
-      if row and row.run then row.run() end
+      if row and row.run then row.run(self) end
     end
+
+  elseif self.stage == "diag" then
+    if input:wasPressed("b") or input:wasPressed("a") then self.stage = "main" end
 
   elseif self.stage == "hosting" then
     if input:wasPressed("b") then
@@ -713,6 +745,21 @@ function CoopMenu:draw()
     Font.draw("VISITORS: " .. visitorCount(), 8, 104)
     Font.draw("B:PLAY ON", 8, 128)
 
+  elseif self.stage == "diag" then
+    Font.drawBox(0, 0, 20, 3)
+    Font.draw("LINK DIAGNOSTICS", 8, 8)
+    Font.drawBox(0, 3, 20, 15)
+    local I18n = require("src.coop.CoopI18n")
+    local len = function(t) return select(2, t:gsub("[^\128-\191]", "")) end
+    for i, row in ipairs(CoopMenu.diagnostics()) do
+      local name, value = I18n.t(row[1]), I18n.t(row[2])
+      value = I18n.fit(value, 8)
+      local room = 18 - len(value) - 1
+      Font.draw(I18n.fit(name, room), 8, 32 + (i - 1) * 10)
+      Font.draw(value, 152 - len(value) * 8, 32 + (i - 1) * 10)
+    end
+    Font.draw("B:BACK", 8, 128)
+
   elseif self.stage == "joinPick" then
     local rows = self:joinRows()
     local current = rows[self.pickIndex] or rows[1]
@@ -738,7 +785,7 @@ function CoopMenu:draw()
     local blink = math.floor((love.timer and love.timer.getTime() or 0) * 2) % 2 == 0
     Font.draw((self.code or "") .. (blink and "_" or ""), 16, 52)
     Font.draw("TYPE THE CODE,", 8, 72)
-    Font.draw("CTRL+V PASTES IT.", 8, 80)
+    Font.draw("CTRL-V PASTES IT.", 8, 80)
     if self.errorMsg then drawError(self.errorMsg, self.port, 8, 96, 2) end
     Font.draw("ENTER:OK  ESC:BACK", 8, 128)
 

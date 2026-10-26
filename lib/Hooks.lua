@@ -130,6 +130,17 @@ Hooks.modules["src.core.Game"] = function(Game)
           if okE and CoopEmotes and CoopEmotes.openPicker(self) then return end
         end
       end
+      -- R: READY / NOT READY for the partner to see (idle overworld, linked)
+      if not delegated and key == "r" and not ctrlDown(true) then
+        local ow = self.overworld
+        local CM = coopManager()
+        if CM and CM.isConnected and CM.isConnected() and top == ow and ow and not ow.transitioning
+           and not ow.engaging and not ow.inBattle
+           and not (ow.runner and ow.runner.isRunning and ow.runner:isRunning()) then
+          CM.setReady(not CM.localReady)
+          return
+        end
+      end
       return keypressed(self, key, ...)
     end
   end)
@@ -712,6 +723,9 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
       end
       self.engaging = false
       self.emote = nil
+      -- a co-op double's result, shown once the overworld is back
+      local CoopSummary = package.loaded["src.coop.CoopSummary"]
+      if CoopSummary and CoopSummary.finish then pcall(CoopSummary.finish, battle, result) end
       return afterBattle(self, result, battle, ...)
     end
   end)

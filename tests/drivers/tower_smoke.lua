@@ -70,7 +70,8 @@ return function(game)
     U.tap(game, "start"); waitReal(0.5) -- the team
   else
     check(waitReal(20, function() return CoopManager.activeInviteModal ~= nil end), "asked on another map")
-    waitReal(0.6)
+    -- A counts once the invite has been up 0.8 s (CoopBattleInviteModal.ARM_TIME)
+    waitReal(1.0)
     U.tap(game, "a"); waitReal(0.6)
     local sel = game.stack:top()
     local over = false

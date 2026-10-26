@@ -75,7 +75,7 @@ local MODULES = {
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
   "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance",
-  "src.coop.CoopI18n", "src.coop.CoopLangES",
+  "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
@@ -346,6 +346,18 @@ if mod.hooks and mod.hooks.wrap then
   mod.hooks:wrap("battle.enemy_action", function(next, battle, who)
     return require("src.battle.SinglesAI").enemyAction(next, battle, who)
   end)
+end
+-- the co-op result's tally: the engine's own battle events
+-- (src/coop/CoopSummary.lua)
+if mod.events and mod.events.on then
+  local function relay(name)
+    return function(payload)
+      local ok, CoopSummary = pcall(require, "src.coop.CoopSummary")
+      if ok and CoopSummary[name] then pcall(CoopSummary[name], payload) end
+    end
+  end
+  mod.events:on("battle.fainted", relay("onFainted"))
+  mod.events:on("battle.exp_gained", relay("onExpGained"))
 end
 Hooks.installQuit()
 

@@ -213,6 +213,18 @@ CoopStory.wrapTalk(function(game, _, _, done)
 end)(gifter, ow, {}, function() end)
 check(lastRewards() == nil, "a legendary met in the wild is the player's own")
 
+-- a handler that never says it is done does not hold the story for good
+local stuck = newGame("MOCHX")
+CoopStory.wrapTalk(function() end)(stuck, ow, {}, function() end)
+check(CoopStory.current and CoopStory.current.lua, "a handler still running holds its context")
+CoopStory.current.at = CoopStory.current.at - CoopStory.LUA_MAX - 1
+sent = {}
+CoopStory.wrapTalk(function(game, _, _, done)
+  game.save.flags.EVENT_GOT_OAKS_PARCEL = true
+  done()
+end)(stuck, ow, {}, function() end)
+check(lastRewards() ~= nil, "but not past LUA_MAX: the next handler is recorded")
+
 -- ---------------------------------------------------------------------
 -- Gold/Silver with Crystal: the story is kept apart
 -- ---------------------------------------------------------------------

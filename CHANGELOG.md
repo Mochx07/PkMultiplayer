@@ -3,9 +3,46 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
-## 1.5.2 (en desarrollo)
+## 1.6.0
+
+**Los dos jugadores necesitan esta versión** (protocolo 16). Incluye lo que
+iba a ser 1.5.2.
 
 ### Añadido
+
+- **Entrar con un código.** El host ve un código corto (`30AG-0B4`: su IP y,
+  si no es el 7777, su puerto). JOIN → **TYPE A CODE**: se escribe o se pega
+  con Ctrl+V; también desde NEW CO-OP GAME / CONTINUE CO-OP (SELECT). El dial
+  de la IP sigue para el mando.
+- **JOIN recuerda los tres últimos hosts.** Y una fila **PORT** para cambiar el
+  puerto (dos juegos en el mismo PC). La pantalla de host dice también el
+  puerto de las visitas.
+- **Los errores, enteros y con qué hacer**: "HOST NOT FOUND" dice que abras el
+  puerto UDP en el firewall y revises la IP; "PORT IN USE", que te unas o
+  visites; otra versión, que los dos necesitáis la misma. Antes se cortaban a
+  18 letras. Con el mismo protocolo pero otra versión, un aviso suave al
+  enlazar.
+- **Rojo, Azul y Amarillo comparten la historia.** Sus eventos son Lua, no
+  scripts, y el compañero no recibía nada. Ahora cada uno se compara antes y
+  después: flags, objetos que desaparecen del mapa, objetos recogidos,
+  mochila y dinero. Medalla y MT de los líderes, OAK'S PARCEL, el fósil de
+  Mt. Moon (uno cada uno, nunca los dos) y los regalos llegan al compañero;
+  un Pokémon regalado, una compra o un legendario siguen siendo de cada uno.
+- **Los líderes de Rojo/Azul/Amarillo preguntan CO-OP o SOLO antes de
+  hablar**, como en Oro: el compañero elige equipo mientras lee. KOGA tiene su
+  SOULBADGE, GIOVANNI solo da la EARTHBADGE en su gimnasio, y LORELEI, BRUNO,
+  AGATHA y LANCE cuentan como combates grandes.
+- **LISTO / NO LISTO** (tecla **R**, o READY en el menú): el compañero lo ve
+  sobre tu cabeza y como **OK** junto a tu nombre; si un líder pregunta CO-OP
+  y tu compañero no está listo, te lo dice. Se borra al empezar el combate.
+- **Resultado co-op** tras cada doble: unos segundos arriba, los K.O. y la EXP
+  de cada uno y el Pokémon que más hizo.
+- **Dónde está tu compañero**: en otro mapa, una flecha en el borde apunta
+  hacia él (por el mapa de la región; Kanto queda al este de Johto) y arriba
+  sale el nombre del sitio.
+- **Estado del enlace** (VERSION): ping, pérdida, mensajes reenviados,
+  repetidos descartados, reconexiones, desfases de combate corregidos y las
+  versiones de los dos.
 
 - **El mod en español.** Nueva opción en MODS → PkMultiplayer → OPTIONS →
   **LANGUAGE / IDIOMA**:
@@ -22,10 +59,29 @@ Version headings match `manifest.json`'s `version`.
 - La fila del menú START se llama ahora **CO-OP ONLINE**: funciona por
   internet (ZeroTier), no solo en la red local.
 
+### Cambiado
+
+- **Oro/Plata y Cristal no comparten la historia.** Numeran sus eventos de
+  forma distinta (Cristal añadió flags por en medio), y copiarlos marcaba
+  eventos equivocados. Al enlazar sale el aviso; combates, intercambios y
+  chat siguen igual.
+- Las reglas se guardan en la partida, también STORY SYNC sin conectar.
+- Rojo/Azul/Amarillo no preguntan por el reloj ni enseñan LINK DAYCARE.
+- Una invitación ya no se acepta con la A que venías pulsando: hace falta
+  soltarla y pulsar otra vez (tras 0,8 s). Si caduca, lo dice. La etiqueta de
+  B se ve siempre mientras esperas.
+- Un salvaje en pareja se anuncia como tal ("¿LUCHAR JUNTOS?").
+- En NEW CO-OP GAME, cada uno ve su propia hora primero, y salir pide B dos
+  veces.
+
 ### Corregido
 
 - El aviso de arriba partía mal las palabras con acentos (contaba bytes, no
   letras), y la fuente pequeña dibujaba cada letra acentuada como dos "?".
+- Una victoria co-op contra GIOVANNI en el Escondite Rocket ya no da la
+  EARTHBADGE al invitado.
+- La bandera de entrenador de un compañero de Cristal ya no se escribe en una
+  partida de Oro/Plata (marcaba otro evento).
 
 ## 1.5.1
 

@@ -48,9 +48,11 @@ end
 CoopBattleInviteModal.ARM_TIME = 0.8
 
 function CoopBattleInviteModal:update(dt)
+  if self.expired then return end
   self.timer = self.timer + (dt or 0.016)
   -- unanswered invites decline themselves just before the inviter gives up
   if self.timeout and self.timer >= self.timeout then
+    self.expired = true
     self:close()
     local CM = package.loaded["src.coop.CoopManager"]
     if CM and CM.showStatus then CM.showStatus("The invite ran out", 2.5) end

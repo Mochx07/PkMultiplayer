@@ -109,7 +109,7 @@ end
 function CoopNewGame:submitCode()
   local ip, port = CoopNet.parseInviteCode(self.code)
   if not ip then
-    self.errorMsg = "THAT CODE IS NOT RIGHT"
+    self.errorMsg = "WRONG CODE"
     return
   end
   self.ip, self.port, self.errorMsg = ip, port, nil
@@ -410,7 +410,7 @@ function CoopNewGame:draw()
     Font.draw("HOST'S CODE:", 8, 32)
     Font.draw((self.code or "") .. (blink and "_" or ""), 16, 48)
     Font.draw("TYPE THE CODE,", 8, 72)
-    Font.draw("CTRL+V PASTES IT.", 8, 80)
+    Font.draw("CTRL-V PASTES IT.", 8, 80)
     footer = "ENTER:OK  ESC:BACK"
 
   elseif self.stage == "connecting" then

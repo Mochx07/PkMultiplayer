@@ -481,12 +481,28 @@ local function luaChanges(save, before, battled)
 end
 CoopStory.luaChanges = luaChanges
 
+-- a handler that never called its `done` would hold the context open for
+-- good; past this many seconds it no longer counts
+CoopStory.LUA_MAX = 600
+
+local function luaCurrent()
+  local st = CoopStory.current
+  if not (st and st.lua) then return nil end
+  local t = (love and love.timer and love.timer.getTime and love.timer.getTime()) or os.clock()
+  if t - (st.at or t) > CoopStory.LUA_MAX then
+    CoopStory.current = nil
+    return nil
+  end
+  return st
+end
+
 function CoopStory.beginLua(game, ow)
   local okV, V = pcall(require, "src.core.GameVersion")
   if not (okV and V.isGen1 and V.isGen1()) then return nil end
   local save = game and game.save
   if type(save) ~= "table" or not sharing(save) then return nil end
   -- a handler inside a story already being recorded adds nothing to it
+  luaCurrent()
   if CoopStory.current then return nil end
   local CM = manager()
   local ctx = { game = game, save = save, overworld = ow }
@@ -496,6 +512,7 @@ function CoopStory.beginLua(game, ow)
     rewards = {},
     personal = false,
     lua = true,
+    at = (love and love.timer and love.timer.getTime and love.timer.getTime()) or os.clock(),
     duo = shortName(CM.getLocalPlayerName(game)) .. " & " .. shortName(CM.partner.name or "PARTNER"),
     lines = 0,
     before = luaSnapshot(save),
@@ -546,16 +563,16 @@ end
 -- OverworldState:pushBattle, inside a handler: a trainer battle's money and
 -- items stay out of the event, a wild one makes it personal
 function CoopStory.onBattle(battle)
-  local st = CoopStory.current
-  if not (st and st.lua and type(battle) == "table") then return end
+  local st = luaCurrent()
+  if not (st and type(battle) == "table") then return end
   st.battled = true
   if battle.kind == "wild" then st.personal = true end
 end
 
 -- TextBox.new, inside a handler: the partner standing here reads along
 function CoopStory.onLuaText(game, text)
-  local st = CoopStory.current
-  if not (st and st.lua and st.here) then return end
+  local st = luaCurrent()
+  if not (st and st.here) then return end
   CoopStory.onText({ game = game, coopStory = st }, text)
 end
 
@@ -875,7 +892,12 @@ function CoopStory.onPartnerRewards(game, msg)
   -- an item ball the partner picked up leaves this screen too
   if resync and ow.syncObjectVisibility then pcall(ow.syncObjectVisibility, ow) end
   if #got > 0 then
-    CM.showStatus("You got " .. got[1] .. (#got > 1 and " +" .. (#got - 1) or "") .. " too!", 3)
+    -- (the font has no "+": "TM34 +1" read "TM34 1", like a count)
+    if #got > 1 then
+      CM.showStatus(string.format("You got %s and %d more too!", got[1], #got - 1), 3)
+    else
+      CM.showStatus(string.format("You got %s too!", got[1]), 3)
+    end
     pcall(function() require("src.core.Sound").play(game.data, "Get_Item1") end)
   elseif changed and not here and not skipGoods then
     CM.showStatus("Story shared by " .. tostring(msg.speaker or CM.partner.name or "partner"), 2.5)
