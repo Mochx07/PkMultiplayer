@@ -3,7 +3,10 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
-## 1.5.1 (en desarrollo)
+## 1.5.1
+
+**Los dos jugadores necesitan esta versión** (protocolo 15): con 1.5.0 el
+equipo del rival y el daño de un turno saldrían distintos en cada juego.
 
 ### Añadido
 
@@ -34,6 +37,11 @@ Version headings match `manifest.json`'s `version`.
   compañero quedaba al descubierto. Ahora, como en HeartGold/SoulSilver,
   cubren a los dos Pokémon de su lado (también los de los rivales). La IA lo
   tiene en cuenta y no la repite si el compañero ya la tiene.
+- **Animaciones de Rojo, Azul y Amarillo en los dobles co-op** sobre los
+  Pokémon que de verdad luchan: antes se dibujaban en los dos puntos del
+  combate individual, así que el ataque del Pokémon del compañero salía del
+  tuyo y caía entre los dos rivales. Los combates individuales de Gen 1 se ven
+  igual que siempre.
 - **Ataques en área animados en cada rival:** en un doble co-op de Gen 1 o
   Gen 2, ROCK SLIDE, SURF, BLIZZARD y compañía mostraban su animación solo
   sobre el primer objetivo, y el segundo recibía el golpe sin ver nada. Ahora

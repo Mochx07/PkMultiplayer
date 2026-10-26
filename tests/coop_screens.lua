@@ -76,4 +76,15 @@ T.check(Hooks.animateEachTarget({ coopDouble = true }, true) == true,
         "later generations keep their one field-wide animation")
 V.isGen2, V.isGen1 = realGen2, realGen1
 
+-- Gen 1 animations: an object at a single-battle pic's centre lands on the
+-- centre of the Pokemon actually there (OAM = screen + 8, + 16)
+local so = {
+  player = { to = { 36 - 24 - 30, 68 - 24 + 4 }, size = 48, k = 1 },   -- the partner's slot, 30 px left
+  enemy = { to = { 124 - 28 + 20, 28 - 28 + 10 }, size = 56, k = 1 },  -- the right-hand foe
+}
+local dx, dy = Hooks.gen1Offset(so, 124 + 8, 28 + 16)
+T.check(dx == 20 and dy == 10, ("a hit on the foe's pic lands on the foe really hit (%d,%d)"):format(dx, dy))
+dx, dy = Hooks.gen1Offset(so, 36 + 8, 68 + 16)
+T.check(dx == -30 and dy == 4, ("an attack leaves from the Pokemon really attacking (%d,%d)"):format(dx, dy))
+
 T.finish("co-op shared screens")

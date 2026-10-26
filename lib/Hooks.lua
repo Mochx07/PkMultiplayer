@@ -332,6 +332,64 @@ end
 local PLAYER_PIC_OAM = { 40, 88 }
 local ENEMY_PIC_OAM = { 132, 44 }
 
+-- RED, BLUE AND YELLOW'S ANIMATIONS ON THE POKEMON ACTUALLY FIGHTING.  The
+-- battle tells the animation player where each side's Pokemon really stands
+-- (`sideOffsets`, BattleState's animPicBox) and Gen2AnimPlayer moves every
+-- object there; Gen 1's AnimPlayer never read it, so in a co-op double every
+-- Gen 1 animation played at the single battle's two spots -- an EMBER from
+-- the partner's Pokemon started from yours and landed between the foes.
+-- Each sprite is now moved the same way: by the side whose half of the line
+-- between the two single-battle pics it is in, blended across the middle,
+-- scaled about the pic's centre.  Co-op doubles only: a Gen 1 single battle
+-- draws exactly as before.
+local G1_PLAYER_CENTRE = { 36, 68 }  -- the 56x56 back pic at hlcoord 1,5 (screen)
+local G1_ENEMY_CENTRE = { 124, 28 }  -- the 56x56 front pic at hlcoord 12,0
+
+local function gen1Side(side, from, sx, sy)
+  if not (side and side.to) then return 0, 0 end
+  local k = side.k or 1
+  local size = side.size or 48
+  local cx, cy = side.to[1] + size * k / 2, side.to[2] + size * k / 2
+  return cx + (sx - from[1]) * k - sx, cy + (sy - from[2]) * k - sy
+end
+
+function Hooks.gen1Offset(so, x, y)
+  -- OAM is the screen + (8, 16)
+  local sx, sy = x - 8, y - 16
+  local px, py = G1_PLAYER_CENTRE[1], G1_PLAYER_CENTRE[2]
+  local vx, vy = G1_ENEMY_CENTRE[1] - px, G1_ENEMY_CENTRE[2] - py
+  local t = ((sx - px) * vx + (sy - py) * vy) / (vx * vx + vy * vy)
+  local u = (t - 0.4) / 0.2
+  if u < 0 then u = 0 elseif u > 1 then u = 1 end
+  u = u * u * (3 - 2 * u)
+  local pdx, pdy = gen1Side(so.player, G1_PLAYER_CENTRE, sx, sy)
+  local edx, edy = gen1Side(so.enemy, G1_ENEMY_CENTRE, sx, sy)
+  return math.floor(pdx + (edx - pdx) * u + 0.5), math.floor(pdy + (edy - pdy) * u + 0.5)
+end
+
+Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
+  wrap(AnimPlayer, "AnimPlayer", "drawSprites", function(drawSprites)
+    return function(self, sprites, colorFn, ...)
+      local so = self.sideOffsets
+      local CB = package.loaded["src.coop.CoopBattle"]
+      local battle = CB and CB.currentBattle
+      if not (so and type(sprites) == "table" and type(battle) == "table"
+              and (battle.coopDouble or battle.coopWild)) then
+        return drawSprites(self, sprites, colorFn, ...)
+      end
+      local moved = {}
+      for i, sp in ipairs(sprites) do
+        local dx, dy = Hooks.gen1Offset(so, sp.x, sp.y)
+        local c = {}
+        for k, v in pairs(sp) do c[k] = v end
+        c.x, c.y = sp.x + dx, sp.y + dy
+        moved[i] = c
+      end
+      return drawSprites(self, moved, colorFn, ...)
+    end
+  end)
+end
+
 Hooks.modules["src.battle.Gen2AnimPlayer"] = function(Gen2AnimPlayer)
   wrap(Gen2AnimPlayer, "Gen2AnimPlayer", "objectOffset", function(objectOffset)
     return function(self, x, y, ...)

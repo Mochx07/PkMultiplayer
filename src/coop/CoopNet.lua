@@ -56,7 +56,10 @@ CoopNet.DEFAULT_PORT = 7777
 -- resolve those turns differently
 -- 14: the session layer (sequence numbers, acks, coop_resume) -- a v13 copy
 -- sends none of it
-CoopNet.PROTOCOL = 14
+-- 15: the co-op difficulty, a screen covering the whole side and the turn's
+-- full state in the host's sync -- a v14 copy would build another foe team
+-- and resolve the same turn differently
+CoopNet.PROTOCOL = 15
 CoopNet.CHANNELS = 2
 CoopNet.CH_RELIABLE = 0
 CoopNet.CH_FAST = 1
