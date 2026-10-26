@@ -213,7 +213,29 @@ Hooks.modules["src.ui.Menu"] = function(Menu)
   end)
 end
 
+-- A SPREAD MOVE LANDS WHERE YOU CAN SEE IT, ON EACH FOE.  The engine plays
+-- a spread move's animation once, on the first target (FireRed's rule: its
+-- animations are drawn for the whole field).  Red/Blue/Yellow's and
+-- Gold/Silver/Crystal's are drawn for one target, so in a co-op double the
+-- second foe of a ROCK SLIDE or a SURF took the hit with nothing shown on
+-- it.  There, the animation plays again on each target it hits.
+function Hooks.animateEachTarget(battle, suppress)
+  if not suppress or type(battle) ~= "table" then return suppress end
+  if not (battle.coopDouble or battle.coopWild) then return suppress end
+  local ok, V = pcall(require, "src.core.GameVersion")
+  if not ok then return suppress end
+  local classic = (V.isGen1 and V.isGen1()) or (V.isGen2 and V.isGen2())
+  if classic then return false end
+  return suppress
+end
+
 Hooks.modules["src.battle.BattleState"] = function(BattleState)
+  wrap(BattleState, "BattleState", "performMove", function(performMove)
+    return function(self, user, target, moveInst, isCalled, suppressAnimation, ...)
+      return performMove(self, user, target, moveInst, isCalled,
+                         Hooks.animateEachTarget(self, suppressAnimation), ...)
+    end
+  end)
   -- SELECT opens the chat in a co-op double, on the FIGHT / PKMN / ITEM /
   -- RUN menu or while waiting on the partner: the touch layout has no T key.
   -- (SELECT keeps its own job in the move list, where it reorders moves.)

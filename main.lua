@@ -182,6 +182,7 @@ end
 -- ------------------------------------------------------- 2. the patches
 local Transplant = chunkFor("lib/Transplant.lua")()
 local Hooks = chunkFor("lib/Hooks.lua")()
+STATE.hooks = Hooks -- for the tests
 -- every change this load makes to the engine, written down for the next one
 local function record(fn) undo[#undo + 1] = fn end
 Transplant.record, Hooks.record = record, record

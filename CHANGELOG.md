@@ -34,6 +34,10 @@ Version headings match `manifest.json`'s `version`.
   compañero quedaba al descubierto. Ahora, como en HeartGold/SoulSilver,
   cubren a los dos Pokémon de su lado (también los de los rivales). La IA lo
   tiene en cuenta y no la repite si el compañero ya la tiene.
+- **Ataques en área animados en cada rival:** en un doble co-op de Gen 1 o
+  Gen 2, ROCK SLIDE, SURF, BLIZZARD y compañía mostraban su animación solo
+  sobre el primer objetivo, y el segundo recibía el golpe sin ver nada. Ahora
+  la animación se repite en cada uno.
 
 ### Corregido
 
