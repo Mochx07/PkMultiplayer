@@ -79,6 +79,48 @@ function CoopNewGame.new(game, onStartGame, mode)
   return self
 end
 
+-- THE HOST'S INVITE CODE, typed or pasted instead of the twelve digits
+-- (CoopNet.inviteCode).  While one is typed, the keyboard is the code's.
+function CoopNewGame:onTextInput(text)
+  if self.stage ~= "codeEntry" or type(text) ~= "string" then return end
+  local clean = text:upper():gsub("[^%w%-]", "")
+  if #self.code + #clean <= 12 then self.code = self.code .. clean end
+end
+
+function CoopNewGame:onKeyPressed(key)
+  if self.stage ~= "codeEntry" then
+    require("src.core.Input"):keypressed(key)
+    return
+  end
+  local k = love and love.keyboard
+  local ctrl = k and k.isDown and (k.isDown("lctrl") or k.isDown("rctrl") or k.isDown("lgui") or k.isDown("rgui"))
+  if key == "backspace" then
+    self.code = self.code:sub(1, -2)
+  elseif key == "return" or key == "kpenter" then
+    self:submitCode()
+  elseif key == "escape" then
+    self.stage = "ipEntry"
+  elseif key == "v" and ctrl then
+    local ok, clip = pcall(function() return love.system.getClipboardText() end)
+    if ok and type(clip) == "string" then self.code = clip:upper():gsub("[^%w%-]", ""):sub(1, 12) end
+  end
+end
+
+function CoopNewGame:submitCode()
+  local ip, port = CoopNet.parseInviteCode(self.code)
+  if not ip then
+    self.errorMsg = "THAT CODE IS NOT RIGHT"
+    return
+  end
+  self.ip, self.port, self.errorMsg = ip, port, nil
+  if CoopManager.join(ip, port) then
+    self.stage = "connecting"
+  else
+    self.errorMsg = (CoopManager.net and CoopManager.net.error) or "FAILED TO CONNECT"
+    self.stage = "ipEntry"
+  end
+end
+
 function CoopNewGame:leave()
   if CoopManager.lobby == self then CoopManager.lobby = nil end
 end
@@ -135,18 +177,19 @@ function CoopNewGame:enterConfirm()
 
   local localTz = (CoopManager.net and CoopManager.net.timezone) or CoopNet.detectTimezone()
   local partnerTz = CoopManager.partner.timezone
+  -- Red / Blue / Yellow have no clock to share
+  local okV, GameVersion = pcall(require, "src.core.GameVersion")
+  if okV and GameVersion.isGen1() then partnerTz = nil end
   if partnerTz then
     local diffSec = (partnerTz.offsetSec or 0) - (localTz.offsetSec or 0)
     if math.abs(diffSec) >= 1800 then
       self.tzDiff = diffSec
       self.timeSyncAsked = true
-      if CoopManager.isHost then
-        self.localTimeStr, self.partnerTimeStr = localTz.timeStr or "12:00", partnerTz.timeStr or "12:00"
-        -- default: everyone plays on the host's clock
-        CoopManager.chooseTimeMode("host")
-      else
-        self.localTimeStr, self.partnerTimeStr = partnerTz.timeStr or "12:00", localTz.timeStr or "12:00"
-      end
+      -- each side reads its own time first: the guest's line used to put
+      -- the host's clock under "H" and their own under "P2"
+      self.localTimeStr, self.partnerTimeStr = localTz.timeStr or "12:00", partnerTz.timeStr or "12:00"
+      -- default: everyone plays on the host's clock
+      if CoopManager.isHost then CoopManager.chooseTimeMode("host") end
     end
   end
 
@@ -201,10 +244,21 @@ function CoopNewGame:update(dt)
       self.game.stack:pop()
     end
 
+  elseif self.stage == "codeEntry" then
+    if input:wasPressed("b") then
+      self.stage = "ipEntry"
+    elseif input:wasPressed("a") or input:wasPressed("start") then
+      self:submitCode()
+    end
+
   elseif self.stage == "ipEntry" then
     if input:wasPressed("b") then
       pcall(Sound.play, self.game.data, "Menu")
       self.stage = "role"
+    elseif input:wasPressed("select") then
+      pcall(Sound.play, self.game.data, "Menu")
+      self.code, self.errorMsg = "", nil
+      self.stage = "codeEntry"
     elseif input:wasPressed("up") then
       self.addr[self.addrPos] = (self.addr[self.addrPos] + 1) % 10
       pcall(Sound.play, self.game.data, "Menu")
@@ -259,10 +313,17 @@ function CoopNewGame:update(dt)
       end
     elseif input:wasPressed("b") then
       pcall(Sound.play, self.game.data, "Menu")
+      -- a link is not dropped by one stray B: the second one, within 3 s
+      if not (self.quitAsk and self.timer - self.quitAsk <= 3) then
+        self.quitAsk = self.timer
+        return
+      end
+      self.quitAsk = nil
       CoopManager.net:send({ type = "coop_newgame_cancel" })
       CoopManager.disconnect()
       self:resetToRole(nil)
     end
+    if self.quitAsk and self.timer - self.quitAsk > 3 then self.quitAsk = nil end
   end
 end
 
@@ -323,7 +384,7 @@ function CoopNewGame:draw()
     Font.draw("JOIN GAME", 24, 64)
     Font.drawCode(CURSOR, 12, (self.roleCursor == 1) and 48 or 64)
     Font.draw("HOST: SHARE IP", 8, 80)
-    Font.draw("GUEST: TYPE IP", 8, 96)
+    Font.draw("GUEST: IP OR CODE", 8, 96)
     footer = "A:SELECT  B:BACK"
 
   elseif self.stage == "ipEntry" then
@@ -341,8 +402,16 @@ function CoopNewGame:draw()
     end
     Font.draw("PORT: " .. self.port, 8, 72)
     Font.draw("UP/DOWN: DIGIT", 8, 88)
-    Font.draw("LEFT/RIGHT: MOVE", 8, 96)
+    Font.draw("SELECT: A CODE", 8, 96)
     footer = "A:JOIN  B:BACK"
+
+  elseif self.stage == "codeEntry" then
+    local blink = math.floor(self.timer * 2) % 2 == 0
+    Font.draw("HOST'S CODE:", 8, 32)
+    Font.draw((self.code or "") .. (blink and "_" or ""), 16, 48)
+    Font.draw("TYPE THE CODE,", 8, 72)
+    Font.draw("CTRL+V PASTES IT.", 8, 80)
+    footer = "ENTER:OK  ESC:BACK"
 
   elseif self.stage == "connecting" then
     local dots = string.rep(".", math.floor(self.timer * 2) % 4)
@@ -358,7 +427,8 @@ function CoopNewGame:draw()
         Font.draw("TELL YOUR GUEST:", 8, 48)
         Font.draw(fit(CoopNet.lanIP(), 18), 8, 64)
       end
-      Font.draw("PORT: " .. self.port, 8, 96)
+      Font.draw("CODE: " .. tostring(CoopNet.inviteCode(zt or CoopNet.lanIP(), self.port) or "?"), 8, 96)
+      Font.draw("PORT: " .. self.port, 8, 104)
     else
       Font.draw("CONNECTING" .. dots, 8, 32)
       Font.draw("TO:", 8, 48)
@@ -374,22 +444,21 @@ function CoopNewGame:draw()
     Font.draw("LINKED:", 8, 32)
     Font.draw(myName .. " & " .. pName, 8, 40)
     if self.timeSyncAsked then
-      Font.draw(string.format("H %s  P2 %s", self.localTimeStr or "12:00", self.partnerTimeStr or "12:00"), 8, 56)
-      Font.draw("SEL: SYNC " .. (self.timeSynced and "ON" or "OFF"), 8, 64)
+      Font.draw(fit(string.format("YOU %s P2 %s", self.localTimeStr or "12:00", self.partnerTimeStr or "12:00"), 18), 8, 56)
+      Font.draw(fit("SELECT: CLOCK " .. (self.timeSynced and "ONE" or "OWN"), 18), 8, 64)
     else
       Font.draw("SAVE LINKED TO", 8, 56)
       Font.draw("THIS PARTNER", 8, 64)
     end
     Font.draw("YOU: " .. (self.localReady and "READY!" or "PRESS A"), 8, 80)
     Font.draw("P2:  " .. (self.partnerReady and "READY!" or "WAITING"), 8, 96)
-    footer = "A:READY  B:QUIT"
+    footer = self.quitAsk and "B AGAIN: QUIT" or "A:READY  B:QUIT"
   end
 
   if footer then Font.draw(footer, 8, 120) end
   if self.errorMsg then
-    love.graphics.setColor(0.8, 0.1, 0.1, 1)
-    Font.draw(fit(self.errorMsg, 18), 8, 128)
-    love.graphics.setColor(0, 0, 0, 1)
+    -- the reason in full, and what to do about it
+    require("src.coop.CoopMenu").drawError(self.errorMsg, self.port, 8, 128, 2)
   end
   love.graphics.setColor(1, 1, 1, 1)
 end

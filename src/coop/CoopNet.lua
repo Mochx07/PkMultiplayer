@@ -243,6 +243,111 @@ function CoopNet.bestIP()
   return CoopNet.lanIP(), false
 end
 
+-- ---------------------------------------------------------------------
+-- invite codes and the hosts you joined lately
+-- ---------------------------------------------------------------------
+
+-- AN INVITE CODE IS THE HOST'S ADDRESS, SHORT ENOUGH TO READ OUT.  Typing
+-- twelve digits on a dial was the hard part of joining; the code is the
+-- four octets (and the port, when it is not 7777) in base 32, with the
+-- letters that look like digits left out -- 7 letters, "K7Q4-2M9", or 10
+-- with a port of its own.  O reads as 0, I and L as 1; dashes, spaces and
+-- case do not matter.
+local CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+local CODE_VALUE = {}
+for i = 1, #CODE_ALPHABET do CODE_VALUE[CODE_ALPHABET:sub(i, i)] = i - 1 end
+CODE_VALUE.O, CODE_VALUE.I, CODE_VALUE.L = 0, 1, 1
+
+local function ipNumber(ip)
+  local a, b, c, d = tostring(ip or ""):match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+  a, b, c, d = tonumber(a), tonumber(b), tonumber(c), tonumber(d)
+  if not (a and b and c and d) or a > 255 or b > 255 or c > 255 or d > 255 then return nil end
+  return ((a * 256 + b) * 256 + c) * 256 + d
+end
+
+function CoopNet.inviteCode(ip, port)
+  local n = ipNumber(ip)
+  if not n then return nil end
+  port = tonumber(port) or CoopNet.DEFAULT_PORT
+  local digits = 7
+  if port ~= CoopNet.DEFAULT_PORT then
+    n = n * 65536 + port
+    digits = 10
+  end
+  local out = {}
+  for i = digits, 1, -1 do
+    local v = n % 32
+    out[i] = CODE_ALPHABET:sub(v + 1, v + 1)
+    n = (n - v) / 32
+  end
+  local code = table.concat(out)
+  return code:sub(1, 4) .. "-" .. code:sub(5)
+end
+
+-- "k7q4-2m9" -> "a.b.c.d", port; nil for anything else
+function CoopNet.parseInviteCode(code)
+  local clean = tostring(code or ""):upper():gsub("[%s%-]", "")
+  if #clean ~= 7 and #clean ~= 10 then return nil end
+  local n = 0
+  for ch in clean:gmatch(".") do
+    local v = CODE_VALUE[ch]
+    if not v then return nil end
+    n = n * 32 + v
+  end
+  local port = CoopNet.DEFAULT_PORT
+  if #clean == 10 then
+    port = n % 65536
+    n = (n - port) / 65536
+    if port == 0 then return nil end
+  end
+  if n >= 2 ^ 32 then return nil end
+  local octets = {}
+  for i = 4, 1, -1 do
+    octets[i] = n % 256
+    n = (n - octets[i]) / 256
+  end
+  return table.concat(octets, "."), port
+end
+
+-- The hosts this game joined, newest first, kept across saves and games in
+-- the mod's own storage folder.
+CoopNet.RECENT_MAX = 3
+CoopNet.RECENT_FILE = "modstorage/PkMultiplayer/recent_hosts.txt"
+
+function CoopNet.recentHosts()
+  local fs = love and love.filesystem
+  local out = {}
+  if not (fs and fs.getInfo and fs.read) then return out end
+  local ok, text = pcall(function()
+    if not fs.getInfo(CoopNet.RECENT_FILE) then return nil end
+    return fs.read(CoopNet.RECENT_FILE)
+  end)
+  if not (ok and type(text) == "string") then return out end
+  for line in text:gmatch("[^\r\n]+") do
+    local ip, port = line:match("^(%d+%.%d+%.%d+%.%d+)%s+(%d+)")
+    if ip and ipNumber(ip) and #out < CoopNet.RECENT_MAX then
+      out[#out + 1] = { ip = ip, port = tonumber(port) }
+    end
+  end
+  return out
+end
+
+function CoopNet.rememberHost(ip, port)
+  if not ipNumber(ip) then return end
+  port = tonumber(port) or CoopNet.DEFAULT_PORT
+  local list = { { ip = ip, port = port } }
+  for _, h in ipairs(CoopNet.recentHosts()) do
+    if not (h.ip == ip and h.port == port) and #list < CoopNet.RECENT_MAX then list[#list + 1] = h end
+  end
+  local lines = {}
+  for _, h in ipairs(list) do lines[#lines + 1] = h.ip .. " " .. h.port end
+  pcall(function()
+    local fs = love.filesystem
+    fs.createDirectory("modstorage/PkMultiplayer")
+    fs.write(CoopNet.RECENT_FILE, table.concat(lines, "\n") .. "\n")
+  end)
+end
+
 -- Detect system country code or locale
 function CoopNet.detectCountry()
   local ok, country = pcall(function()

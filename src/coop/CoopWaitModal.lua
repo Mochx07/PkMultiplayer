@@ -63,15 +63,18 @@ end
 
 function CoopWaitModal:draw()
   if self.compact then
-    love.graphics.setColor(1, 1, 1, 1)
-    Font.drawBox(0, 0, 20, 4)
-    love.graphics.setColor(0, 0, 0, 1)
+    -- what B does is always on show, under the lines
     local left = math.max(0, math.ceil(self.timeout - self.timer))
     local l1 = (self.lines and self.lines[1]) or ("WAITING " .. self.partnerName)
-    local l2 = (self.lines and self.lines[2]) or self.cancelLabel
-    Font.draw(require("src.coop.CoopI18n").fit(l1, 15), 8, 8)
+    local l2 = self.lines and self.lines[2]
+    local fit = require("src.coop.CoopI18n").fit
+    love.graphics.setColor(1, 1, 1, 1)
+    Font.drawBox(0, 0, 20, l2 and 5 or 4)
+    love.graphics.setColor(0, 0, 0, 1)
+    Font.draw(fit(l1, 15), 8, 8)
     Font.draw(string.format("%3d", left), 128, 8)
-    Font.draw(require("src.coop.CoopI18n").fit(l2, 18), 8, 16)
+    if l2 then Font.draw(fit(l2, 18), 8, 16) end
+    Font.draw(fit(self.cancelLabel, 18), 8, l2 and 24 or 16)
     love.graphics.setColor(1, 1, 1, 1)
     return
   end
@@ -82,13 +85,14 @@ function CoopWaitModal:draw()
   love.graphics.setColor(0, 0, 0, 1)
   local name = self.partnerName
   if #name > 12 then name = name:sub(1, 12) end
-  Font.draw("WAITING FOR", (tx + 1) * 8, (ty + 1) * 8)
-  Font.draw(name .. "...", (tx + 1) * 8, (ty + 2) * 8)
+  local fit = require("src.coop.CoopI18n").fit
+  Font.draw(fit((self.lines and self.lines[1]) or "WAITING FOR", 16), (tx + 1) * 8, (ty + 1) * 8)
+  Font.draw(fit((self.lines and self.lines[2]) or (name .. "..."), 16), (tx + 1) * 8, (ty + 2) * 8)
 
   local dots = string.rep(".", math.floor(self.timer * 2) % 4)
   local left = math.max(0, math.ceil(self.timeout - self.timer))
   Font.draw(string.format("TIME %2d%s", left, dots), (tx + 1) * 8, (ty + 3) * 8)
-  Font.draw(self.cancelLabel, (tx + 1) * 8, (ty + 5) * 8)
+  Font.draw(fit(self.cancelLabel, 16), (tx + 1) * 8, (ty + 5) * 8)
   love.graphics.setColor(1, 1, 1, 1)
 end
 

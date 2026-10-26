@@ -40,9 +40,31 @@ local SHARED_RULES = { storySync = true, partnerHeals = true }
 local RULE_LABELS = { storySync = "STORY SYNC", partnerHeals = "PARTNER HEALS" }
 -- rule name -> function(value, fromPartner) run after it changes
 local ruleChanged = {}
+-- THE RULES ARE KEPT IN THE SAVE (save.coopRules): set here or by the
+-- partner, they are what this game starts with the next time it loads.
+local function keepRule(name)
+  local ok, G = pcall(require, "src.core.Game")
+  local save = ok and type(G) == "table" and G.save
+  if type(save) ~= "table" then return end
+  save.coopRules = type(save.coopRules) == "table" and save.coopRules or {}
+  save.coopRules[name] = CoopManager[name]
+end
+
+-- called once a save is up (Game.restoreSave); a guest who is linked
+-- already plays by the host's rules
+function CoopManager.loadRules(save)
+  local kept = type(save) == "table" and save.coopRules
+  if type(kept) ~= "table" then return end
+  if CoopManager.connected and not CoopManager.isHost then return end
+  for name in pairs(SHARED_RULES) do
+    if type(kept[name]) == "boolean" then CoopManager[name] = kept[name] end
+  end
+end
+
 function CoopManager.setRule(name, value, fromPartner)
   if not SHARED_RULES[name] then return end
   CoopManager[name] = value and true or false
+  pcall(keepRule, name)
   if not fromPartner and CoopManager.connected and CoopManager.net then
     CoopManager.net:send({ type = "coop_rules", name = name, value = CoopManager[name] })
   end
@@ -155,6 +177,16 @@ local LEADER_BADGES = {
   CHUCK = "STORMBADGE", JASMINE = "MINERALBADGE", PRYCE = "GLACIERBADGE", CLAIR = "RISINGBADGE",
   BROCK = "BOULDERBADGE", MISTY = "CASCADEBADGE", LT_SURGE = "THUNDERBADGE", ERIKA = "RAINBOWBADGE",
   JANINE = "SOULBADGE", SABRINA = "MARSHBADGE", BLAINE = "VOLCANOBADGE", BLUE = "EARTHBADGE",
+}
+
+-- RED / BLUE / YELLOW'S OWN LEADERS.  KOGA held the SOULBADGE before Janine
+-- (in Gold he is OPP_ELITE_FOUR_KOGA, so the key never meets him there), and
+-- GIOVANNI is three battles of which only the third -- Viridian's gym,
+-- data/scripts/victories.lua OPP_GIOVANNI#3 -- is a leader's: a guest who
+-- beat him in the Rocket Hideout must not walk out with the EARTHBADGE.
+local GEN1_LEADER_BADGES = {
+  KOGA = "SOULBADGE",
+  GIOVANNI = { [3] = "EARTHBADGE" },
 }
 
 -- Gym / League maps that wait for the partner (ids as the Gen 2 data spells them)
@@ -466,8 +498,24 @@ function CoopManager.syncTrainerName(game)
   end
 end
 
+-- GOLD / SILVER AND CRYSTAL NUMBER THEIR EVENT FLAGS APART.  The engine
+-- keeps a Gen 2 event flag as the cartridge's own bit (EVENT_G2_%04d,
+-- src/script/Gen2Flags.lua), and Crystal's list is Gold's with rows
+-- inserted all through it: the same bit is another event on the other
+-- cartridge, and nothing in the engine maps one onto the other.  Between
+-- the two the story is not shared -- copied across, it set the wrong
+-- events -- while the rest of the co-op (battles, trades, chat) carries on.
+-- `theirGame` defaults to the linked partner's.
+function CoopManager.storyCompatible(theirGame)
+  theirGame = theirGame or (CoopManager.partner and CoopManager.partner.game)
+  if type(theirGame) ~= "string" or not GameVersion.isGen2() then return true end
+  if not GameVersion.isGen2(theirGame) then return true end
+  return GameVersion.isCrystal() == GameVersion.isCrystal(theirGame)
+end
+
 function CoopManager.syncTrainerDefeated(npcId, headerEvent, trainerIndex, mapId, oppClass, partyIndex)
   if not CoopManager.storySync then return end
+  if CoopManager.isConnected() and not CoopManager.storyCompatible() then return end
   if not CoopManager.isConnected() then
     -- the partner is owed it all the same: kept for the next link-up
     local game = getGame()
@@ -609,6 +657,23 @@ local function incompatible(msg)
   return nil
 end
 
+-- What a fresh link should know, after "Linked with ...!": the story kept
+-- apart between Gold/Silver and Crystal, and a partner on another release
+-- of the mod that still speaks this protocol (it works; the two may differ).
+function CoopManager.linkNotices()
+  local notices = {}
+  if CoopManager.storySync and not CoopManager.storyCompatible() then
+    notices[#notices + 1] = "Story not shared: Gold/Silver and Crystal"
+  end
+  local theirs = CoopManager.partner.version
+  if theirs and tostring(theirs) ~= CoopManager.modVersion() then
+    notices[#notices + 1] = string.format("Partner has v%s, you v%s", tostring(theirs), CoopManager.modVersion())
+  end
+  CoopManager.pendingNotices = notices
+  CoopManager.noticeTimer = 3
+  return notices
+end
+
 local function completeHandshake(ow)
   local wasConnected = CoopManager.connected
   CoopManager.connected = true
@@ -626,6 +691,12 @@ local function completeHandshake(ow)
   if not wasConnected then
     CoopManager.showStatus(string.format("Linked with %s!", CoopManager.partner.name or "PARTNER"), 3)
     playSound(getGame(ow), "Menu")
+    CoopManager.linkNotices()
+    -- the guest keeps the host on its JOIN list
+    if not CoopManager.isHost and CoopManager.net then
+      local ip, port = tostring(CoopManager.net.address or ""):match("^(%d+%.%d+%.%d+%.%d+):(%d+)$")
+      if ip then pcall(CoopNet.rememberHost, ip, tonumber(port)) end
+    end
   end
   CoopManager.lastSyncedName = CoopManager.getLocalPlayerName(getGame(ow))
   -- medicine handed over whose answer never came
@@ -640,7 +711,9 @@ local function completeHandshake(ow)
   -- Host proposes the clock once per session when the two disagree
   local partnerTz = CoopManager.partner.timezone
   local localTz = CoopManager.net.timezone
+  -- Red / Blue / Yellow have no clock to share
   if CoopManager.isHost and not CoopManager.timeMode and partnerTz and localTz
+     and not GameVersion.isGen1()
      and math.abs((partnerTz.offsetSec or 0) - (localTz.offsetSec or 0)) >= 1800
      and not CoopManager.timePrompted then
     CoopManager.pendingTimePrompt = true
@@ -1196,7 +1269,8 @@ local function waitForPartner(game, req, line2)
         CoopManager.showStatus(pName .. " didn't answer", 2.5)
       end
     end
-  end, CoopManager.ITEM_REPLY_WAIT, { lines = { "WAITING " .. pName, line2 }, compact = true })
+  end, CoopManager.ITEM_REPLY_WAIT, { lines = { "WAITING " .. pName, line2 }, compact = true,
+                                       cancelLabel = "B: STOP WAITING" })
   game.stack:push(req.modal)
 end
 
@@ -1648,15 +1722,20 @@ end
 -- import's OPP_LEADER_BUGSY, and plain OPP_LEADER for Falkner (the first
 -- class in the group).  The table above only knew the first, so a guest who
 -- won a co-op gym battle never got the badge.
-function CoopManager.leaderBadgeFor(oppClass)
+function CoopManager.leaderBadgeFor(oppClass, partyIndex)
   if type(oppClass) ~= "string" then return nil end
   local key = oppClass:upper():gsub("^OPP_", ""):gsub("^LEADER_", "")
   if key == "LEADER" then key = "FALKNER" end
+  if GameVersion.isGen1() and GEN1_LEADER_BADGES[key] then
+    local badge = GEN1_LEADER_BADGES[key]
+    if type(badge) == "table" then return badge[tonumber(partyIndex) or 0] end
+    return badge
+  end
   return LEADER_BADGES[key]
 end
 
-local function awardLeaderBadge(game, oppClass)
-  local badge = CoopManager.leaderBadgeFor(oppClass)
+local function awardLeaderBadge(game, oppClass, partyIndex)
+  local badge = CoopManager.leaderBadgeFor(oppClass, partyIndex)
   if not (badge and game and game.save) then return end
   local Badges = require("src.inventory.Badges")
   if Badges.has(game.save, { id = badge }) then return end
@@ -1670,7 +1749,8 @@ local function markTrainerBeaten(game, ow, msg)
   save.defeatedTrainers = save.defeatedTrainers or {}
   save.flags = save.flags or {}
   if msg.npcId then save.defeatedTrainers[msg.npcId] = true end
-  if msg.headerEvent then save.flags[msg.headerEvent] = true end
+  -- the header's flag is a bit of the sender's cartridge (storyCompatible)
+  if msg.headerEvent and CoopManager.storyCompatible() then save.flags[msg.headerEvent] = true end
   local cur = (game and game.overworld) or ow
   if cur and cur.map and mapsMatch(cur.map.id, msg.mapId) and cur.map.npcs then
     for _, n in ipairs(cur.map.npcs) do
@@ -1720,7 +1800,7 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
       end
       if result == "win" then
         markTrainerBeaten(game, cOw, msg)
-        awardLeaderBadge(game, msg.oppClass)
+        awardLeaderBadge(game, msg.oppClass, msg.partyIndex)
         if cOw and cOw.checkVictoryRewards and msg.oppClass then
           pcall(cOw.checkVictoryRewards, cOw, msg.oppClass, msg.partyIndex)
         end
@@ -1829,6 +1909,10 @@ function CoopManager.onBattleInviteReceived(ow, msg)
   end)
   inviteModal.inviteId = msg.inviteId
   inviteModal.timeout = INVITE_TIMEOUT
+  -- a wild Pokemon reads as one, not as "VS WILD PIDGEY"
+  if msg.battleKind == "wild" then
+    inviteModal.lines = { pName, ("MET " .. tName):sub(1, 16), "FIGHT TOGETHER?" }
+  end
 
   CoopManager.activeInviteModal = inviteModal
   game.stack:push(inviteModal)
@@ -1943,19 +2027,22 @@ end
 --      battle starts the moment both are.  A timeout or B is a solo battle.
 -- ---------------------------------------------------------------------
 
+-- Red / Blue / Yellow name their Elite Four by name (OPP_LORELEI); Gold
+-- and Crystal file them under OPP_ELITE_FOUR_*.
 local BIG_PATTERNS = { "^OPP_LEADER", "ELITE_FOUR", "^OPP_CHAMPION$", "RIVAL",
-                       "PKMN_TRAINER_RED", "ROCKET_EXECUTIVE", "GIOVANNI" }
+                       "PKMN_TRAINER_RED", "ROCKET_EXECUTIVE", "GIOVANNI",
+                       "^OPP_LORELEI$", "^OPP_BRUNO$", "^OPP_AGATHA$", "^OPP_LANCE$" }
 
-function CoopManager.isBigBattleClass(oppClass, save)
+function CoopManager.isBigBattleClass(oppClass, save, partyIndex)
   if type(oppClass) ~= "string" then return false end
   local c = oppClass:upper()
-  local big = CoopManager.leaderBadgeFor(c) ~= nil
+  local badge = CoopManager.leaderBadgeFor(c, partyIndex)
+  local big = badge ~= nil
   for _, pat in ipairs(BIG_PATTERNS) do
     if c:find(pat) then big = true end
   end
   if not big then return false end
   -- a leader whose badge you already hold is not fought again
-  local badge = CoopManager.leaderBadgeFor(c)
   if badge and save then
     local ok, Badges = pcall(require, "src.inventory.Badges")
     if ok and Badges.has(save, { id = badge }) then return false end
@@ -2002,6 +2089,51 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   else
     CoopManager.bigBattle = { solo = true, oppClass = oppClass, partyIndex = partyIndex }
   end
+end
+
+-- RED / BLUE / YELLOW'S LEADERS ARE ASKED ABOUT FIRST TOO.  Their talk
+-- handlers are Lua (data/scripts/gyms.lua: BROCK -> ow:engageTrainer), not
+-- script rows, so CoopStory.begin never saw them coming and the partner was
+-- only invited after the leader's speech, with no time to pick a team.
+-- OverworldState:engageTrainer calls this before the first line; with the
+-- answer in, it calls engageTrainer again, and this lets it through.
+CoopManager.BIG_ANSWER_TTL = 120   -- seconds an answer waits for its battle
+
+function CoopManager.askBigBattle(ow, npc, onDone)
+  if not (GameVersion.isGen1() and CoopManager.storySync) then return false end
+  local d = type(npc) == "table" and npc.def
+  local class, party = d and d.trainerClass, d and d.trainerParty
+  if type(class) ~= "string" or not (ow and ow.engageTrainer and ow.map) then return false end
+  local game = getGame(ow)
+  if not (game and game.stack and game.save) then return false end
+  local big = CoopManager.bigBattle
+  if big and big.oppClass == class and now() - (big.at or 0) < CoopManager.BIG_ANSWER_TTL then
+    return false
+  end
+  if not CoopManager.isBigBattleClass(class, game.save, party) then return false end
+  if not CoopManager.partnerAvailable(ow) then return false end
+  if not mapsMatch(CoopManager.partner.map, ow.map.id) then return false end
+  local name = CoopManager.trainerDisplayName(game, class, party)
+  local function answer(choice)
+    if choice == "coop" and CoopManager.isConnected() then
+      local inviteId = newInviteId()
+      CoopManager.bigBattle = { inviteId = inviteId, oppClass = class, partyIndex = party,
+                                name = name, at = now() }
+      CoopManager.net:send({ type = "coop_bigbattle_invite", inviteId = inviteId, oppClass = class,
+                             partyIndex = party, trainerName = name, mapId = ow.map.id })
+      CoopManager.showStatus("Asked " .. (CoopManager.partner.name or "partner") .. " to join!", 2.5)
+    else
+      CoopManager.bigBattle = { solo = true, oppClass = class, partyIndex = party, at = now() }
+    end
+    ow:engageTrainer(npc, onDone)
+  end
+  local Menu = require("src.coop.CoopI18n").menu()
+  game.stack:push(Menu.new(game, {
+    { label = Strings("CO-OP"), onSelect = function() answer("coop") end },
+    { label = Strings("SOLO"), onSelect = function() answer("solo") end },
+  }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,
+       onCancel = function() answer("solo") end }))
+  return true
 end
 
 local function bigBattleGo(pending)
@@ -2116,7 +2248,7 @@ function CoopManager.onBigBattleInvite(ow, msg)
           CoopManager.guestBig = nil
           decline("declined")
         end
-      end, 150, { compact = true, lines = { "READ ALONG...", "B: LEAVE BATTLE" } })
+      end, 150, { compact = true, lines = { "READ ALONG..." }, cancelLabel = "B: LEAVE BATTLE" })
       CoopManager.guestBig = gb
       game.stack:push(gb.modal)
     end, function()
@@ -2948,6 +3080,15 @@ function CoopManager.update(ow, dt)
   end
 
   CoopManager.tickWarpAsk()
+  -- the link's notices, one after another on the status line
+  local notices = CoopManager.pendingNotices
+  if notices and #notices > 0 then
+    CoopManager.noticeTimer = (CoopManager.noticeTimer or 0) - dt
+    if CoopManager.noticeTimer <= 0 then
+      CoopManager.showStatus(table.remove(notices, 1), 3.5)
+      CoopManager.noticeTimer = 3.5
+    end
+  end
   local game = getGame(ow)
   pcall(function() require("src.coop.CoopStory").tick(dt, game) end)
   pcall(CoopManager.bindStoryPartner, game, ow)

@@ -166,7 +166,13 @@ Hooks.modules["src.core.Game"] = function(Game)
           end
         end
       end
-      return restoreSave(self, loaded, ...)
+      local a, b, c = restoreSave(self, loaded, ...)
+      -- the co-op rules this save was last played with
+      pcall(function()
+        local CM = require("src.coop.CoopManager")
+        if CM.loadRules then CM.loadRules(self.save or loaded) end
+      end)
+      return a, b, c
     end
   end)
 end
@@ -195,8 +201,29 @@ Hooks.modules["src.render.TextBox"] = function(TextBox)
           local CM = coopManager()
           if CM and CM.setInDialogue then CM.setInDialogue(true) end
         end)
+        -- a Red/Blue/Yellow story handler's lines, read along by the partner
+        local game, text = ...
+        local CoopStory = package.loaded["src.coop.CoopStory"]
+        if CoopStory and CoopStory.current and type(text) == "string" then
+          pcall(CoopStory.onLuaText, game, text)
+        end
       end
       return self
+    end
+  end)
+end
+
+-- RED / BLUE / YELLOW'S STORY IS LUA: a talk handler is a function, not
+-- script rows, so ScriptRunner never told CoopStory about it.  Each one is
+-- handed out inside a story context of its own (CoopStory.wrapTalk).
+Hooks.modules["src.script.MapScripts"] = function(MapScripts)
+  wrap(MapScripts, "MapScripts", "talkScript", function(talkScript)
+    return function(...)
+      local script = talkScript(...)
+      if type(script) ~= "function" then return script end
+      local ok, CoopStory = pcall(require, "src.coop.CoopStory")
+      if not (ok and CoopStory.wrapTalk) then return script end
+      return CoopStory.wrapTalk(script)
     end
   end)
 end
@@ -638,6 +665,8 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
 
   wrap(OverworldState, "OverworldState", "pushBattle", function(pushBattle)
     return function(self, battle, opts, ...)
+      local CoopStory = package.loaded["src.coop.CoopStory"]
+      if CoopStory and CoopStory.onBattle then pcall(CoopStory.onBattle, battle) end
       local CM = coopManager()
       if CM and CM.promptCoopBattle and CM.promptCoopBattle(self, battle, opts) then
         return

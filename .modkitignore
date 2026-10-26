@@ -37,3 +37,5 @@ tests/singles_ai.lua
 tests/coop_screens.lua
 tests/coop_i18n.lua
 tools/run_tests.sh
+tests/coop_gen1_story.lua
+tools/i18n_check.py

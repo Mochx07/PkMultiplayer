@@ -71,6 +71,7 @@ end
 local function partnerHere(ow)
   local CM = manager()
   if not (CM and CM.isConnected and CM.isConnected() and CM.storySync) then return false end
+  if CM.storyCompatible and not CM.storyCompatible() then return false end
   local map = ow and ow.map and ow.map.id
   return map ~= nil and CM.mapsMatch(CM.partner.map, map)
 end
@@ -83,7 +84,10 @@ CoopStory.OUTBOX_MAX = 300
 local function sharing(save)
   local CM = manager()
   if not (CM and CM.storySync) then return false end
-  if CM.isConnected and CM.isConnected() then return true end
+  if CM.isConnected and CM.isConnected() then
+    -- Gold/Silver with Crystal: their event flags are other bits
+    return not CM.storyCompatible or CM.storyCompatible()
+  end
   return type(save) == "table" and type(save.coopPartner) == "string"
 end
 
@@ -364,16 +368,195 @@ function CoopStory.finish(ctx)
   for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
   -- the scene walks the partner along only if they were in it
   if st.warp and st.here then st.rewards[#st.rewards + 1] = st.warp end
-  if #st.rewards == 0 then return done() end
+  CoopStory.deliver(ctx, st)
+  done()
+end
+
+-- the event goes out now, or waits in the save for the next link
+function CoopStory.deliver(ctx, st)
+  if #st.rewards == 0 then return end
   local CM = manager()
   local eid = CoopStory.stamp(ctx.save)
   if not (CM and CM.net and CM.isConnected and CM.isConnected()) then
     CoopStory.queue(ctx.save, st.rewards, eid)
-    return done()
+    return
   end
   CM.net:send({ type = "coop_story_rewards", map = st.map, rewards = st.rewards, eid = eid,
                 speaker = CM.getLocalPlayerName(ctx.game) })
-  done()
+end
+
+-- ---------------------------------------------------------------------
+-- Red / Blue / Yellow's story: Lua talk handlers
+-- ---------------------------------------------------------------------
+--
+-- Gen 1's story is hand-ported Lua (data/scripts/story*.lua, gyms.lua): a
+-- talk handler is a function (game, ow, npc, done), not script rows, so
+-- ScriptRunner -- and begin/finish above -- never saw OAK's PARCEL, the
+-- Mt. Moon fossil or a leader's badge and TM, and the partner was left to
+-- do it all again.  Each handler now runs inside a story context of its
+-- own (lib/Hooks.lua wraps MapScripts.talkScript): the save is compared
+-- before and after, as for Gen 2, plus what Gen 1 keeps outside the flags
+-- -- objects shown or hidden, item balls and hidden items taken -- and the
+-- bag and the wallet, since its gifts are Bag.add calls, not rows.
+--
+-- PERSONAL, as in Gen 2: a Pokemon given, traded or met in a wild battle
+-- (the Celadon EEVEE, ZAPDOS), or anything paid for.  A trainer battle
+-- inside the handler (BROCK) keeps its badge, TM and flags, but its prize
+-- money and the potions used in it are the player's own.
+
+local function monKeys(save)
+  local keys, n = {}, 0
+  for _, m in ipairs(type(save.party) == "table" and save.party or {}) do
+    keys[tostring(m)] = true
+    n = n + 1
+  end
+  for _, box in pairs(type(save.boxes) == "table" and save.boxes or {}) do
+    if type(box) == "table" then n = n + #box end
+  end
+  return keys, n
+end
+
+local function luaSnapshot(save)
+  local s = snapshot(save)
+  s.toggles = {}
+  for map, objs in pairs(type(save.objectToggles) == "table" and save.objectToggles or {}) do
+    s.toggles[map] = copyTable(objs)
+  end
+  s.taken = copyTable(save.itemsTaken)
+  s.hidden = copyTable(save.hiddenTaken)
+  s.bag = copyTable(save.inventory)
+  s.money = tonumber(save.money) or 0
+  s.monKeys, s.monCount = monKeys(save)
+  return s
+end
+CoopStory.luaSnapshot = luaSnapshot
+
+-- what a handler changed beyond the flags, and whether it was personal
+local function luaChanges(save, before, battled)
+  local out = {}
+  local keys, count = monKeys(save)
+  if count ~= before.monCount then return out, true end
+  for k in pairs(before.monKeys) do
+    if not keys[k] then return out, true end
+  end
+  local bag = type(save.inventory) == "table" and save.inventory or {}
+  local spent = false
+  for id, n in pairs(before.bag) do
+    local left = tonumber(bag[id]) or 0
+    if left < (tonumber(n) or 0) then
+      spent = true
+      if not battled then out[#out + 1] = { kind = "take_item", id = id, count = n - left } end
+    end
+  end
+  for id, n in pairs(bag) do
+    local had = tonumber(before.bag[id]) or 0
+    if (tonumber(n) or 0) > had then out[#out + 1] = { kind = "item", id = id, count = n - had } end
+  end
+  local money = tonumber(save.money) or 0
+  if not battled then
+    -- money that left is a purchase; money that came with goods gone, a sale
+    if money < before.money then return out, true end
+    if money > before.money then
+      if spent then return out, true end
+      out[#out + 1] = { kind = "money", amount = money - before.money }
+    end
+  end
+  for map, objs in pairs(type(save.objectToggles) == "table" and save.objectToggles or {}) do
+    if type(objs) == "table" then
+      local was = before.toggles[map] or {}
+      for obj, visible in pairs(objs) do
+        if was[obj] ~= visible then
+          out[#out + 1] = { kind = "toggle", map = map, obj = obj, visible = visible }
+        end
+      end
+    end
+  end
+  for k, v in pairs(type(save.itemsTaken) == "table" and save.itemsTaken or {}) do
+    if v and not before.taken[k] then out[#out + 1] = { kind = "taken", key = k } end
+  end
+  for k, v in pairs(type(save.hiddenTaken) == "table" and save.hiddenTaken or {}) do
+    if v and not before.hidden[k] then out[#out + 1] = { kind = "hidden_taken", key = k } end
+  end
+  return out, false
+end
+CoopStory.luaChanges = luaChanges
+
+function CoopStory.beginLua(game, ow)
+  local okV, V = pcall(require, "src.core.GameVersion")
+  if not (okV and V.isGen1 and V.isGen1()) then return nil end
+  local save = game and game.save
+  if type(save) ~= "table" or not sharing(save) then return nil end
+  -- a handler inside a story already being recorded adds nothing to it
+  if CoopStory.current then return nil end
+  local CM = manager()
+  local ctx = { game = game, save = save, overworld = ow }
+  ctx.coopStory = {
+    map = ow and ow.map and ow.map.id,
+    here = partnerHere(ow),
+    rewards = {},
+    personal = false,
+    lua = true,
+    duo = shortName(CM.getLocalPlayerName(game)) .. " & " .. shortName(CM.partner.name or "PARTNER"),
+    lines = 0,
+    before = luaSnapshot(save),
+  }
+  CoopStory.current = ctx.coopStory
+  return ctx
+end
+
+function CoopStory.finishLua(ctx)
+  local st = ctx and ctx.coopStory
+  if not st then return end
+  if CoopStory.current == st then CoopStory.current = nil end
+  if st.personal then return end
+  local more, personal = luaChanges(ctx.save, st.before, st.battled)
+  if personal then return end
+  for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
+  for _, r in ipairs(more) do st.rewards[#st.rewards + 1] = r end
+  CoopStory.deliver(ctx, st)
+end
+
+-- the handler, run inside its story context; `done` closes it (once)
+local wrapped = setmetatable({}, { __mode = "k" })
+
+function CoopStory.wrapTalk(handler)
+  if type(handler) ~= "function" then return handler end
+  local w = wrapped[handler]
+  if w then return w end
+  w = function(game, ow, npc, done, ...)
+    local ok, ctx = pcall(CoopStory.beginLua, game, ow)
+    if not ok then ctx = nil end
+    local closed = false
+    local function close(...)
+      if not closed then
+        closed = true
+        if ctx then
+          local okF, err = pcall(CoopStory.finishLua, ctx)
+          if not okF then require("src.coop.CoopLog").warn("STORY", "lua story: " .. tostring(err)) end
+        end
+      end
+      if done then return done(...) end
+    end
+    return handler(game, ow, npc, close, ...)
+  end
+  wrapped[handler] = w
+  return w
+end
+
+-- OverworldState:pushBattle, inside a handler: a trainer battle's money and
+-- items stay out of the event, a wild one makes it personal
+function CoopStory.onBattle(battle)
+  local st = CoopStory.current
+  if not (st and st.lua and type(battle) == "table") then return end
+  st.battled = true
+  if battle.kind == "wild" then st.personal = true end
+end
+
+-- TextBox.new, inside a handler: the partner standing here reads along
+function CoopStory.onLuaText(game, text)
+  local st = CoopStory.current
+  if not (st and st.lua and st.here) then return end
+  CoopStory.onText({ game = game, coopStory = st }, text)
 end
 
 -- ---------------------------------------------------------------------
@@ -502,6 +685,7 @@ function CoopStory.flushOutbox(game)
   if save.coopPartner and partner and partner ~= save.coopPartner then return 0 end
   local pid = CM.partner and CM.partner.id
   if save.coopPartnerId and pid and pid ~= save.coopPartnerId then return 0 end
+  if CM.storyCompatible and not CM.storyCompatible() then return 0 end
   local speaker = CM.getLocalPlayerName(game)
   for _, entry in ipairs(box) do
     -- saves from before 1.5 kept the bare reward list
@@ -571,6 +755,12 @@ local function alreadyLived(save, rewards)
     elseif r.kind == "scene_key" then
       state = true
       if (save.g2Scenes or {})[r.map] ~= r.scene then differs = true end
+    elseif r.kind == "toggle" then
+      state = true
+      if ((save.objectToggles or {})[r.map] or {})[r.obj] ~= r.visible then differs = true end
+    elseif r.kind == "taken" then
+      state = true
+      if not (save.itemsTaken or {})[r.key] then differs = true end
     end
   end
   return state and not differs
@@ -583,6 +773,10 @@ function CoopStory.onPartnerRewards(game, msg)
   local CM = manager()
   if not (CM and CM.storySync) then return end
   if type(msg.rewards) ~= "table" then return end
+  if CM.storyCompatible and not CM.storyCompatible() then
+    require("src.coop.CoopLog").info("STORY", "event from the other cartridge's numbering ignored")
+    return
+  end
   if not (game and game.save and game.overworld) then
     -- still on the title screen / loading: applied once the save is up
     if #CoopStory.inbox < CoopStory.OUTBOX_MAX then CoopStory.inbox[#CoopStory.inbox + 1] = msg end
@@ -613,7 +807,7 @@ function CoopStory.onPartnerRewards(game, msg)
   -- NPC the scene sent away leaves the partner's screen too)
   local ctx = { game = game, overworld = game.overworld, save = save, coopRemote = true,
                 mapCallback = true }
-  local got, changed = {}, false
+  local got, changed, resync = {}, false, false
   for _, r in ipairs(msg.rewards) do
     local ok, err = pcall(function()
       if skipGoods and MONEY_KINDS[r.kind] then return end
@@ -658,6 +852,16 @@ function CoopStory.onPartnerRewards(game, msg)
         if not save.g2RoamReleased then Commands.g2_init_roam_mons(ctx) end
       elseif r.kind == "trainer" then
         if CM.markTrainerBeaten then CM.markTrainerBeaten(game, game.overworld, r) end
+      elseif r.kind == "toggle" and type(r.map) == "string" and type(r.obj) == "string" then
+        local cmd = r.visible and Commands.show_object or Commands.hide_object
+        if cmd then cmd(ctx, r.map, r.obj) end
+      elseif r.kind == "taken" and type(r.key) == "string" then
+        save.itemsTaken = save.itemsTaken or {}
+        save.itemsTaken[r.key] = true
+        resync = true
+      elseif r.kind == "hidden_taken" and type(r.key) == "string" then
+        save.hiddenTaken = save.hiddenTaken or {}
+        save.hiddenTaken[r.key] = true
       elseif r.kind == "warp" then
         -- applied when this player is free to move (not mid-dialogue), and
         -- only to a partner who was in the scene
@@ -668,6 +872,8 @@ function CoopStory.onPartnerRewards(game, msg)
       require("src.coop.CoopLog").warn("STORY", "reward " .. tostring(r.kind) .. " failed: " .. tostring(err))
     end
   end
+  -- an item ball the partner picked up leaves this screen too
+  if resync and ow.syncObjectVisibility then pcall(ow.syncObjectVisibility, ow) end
   if #got > 0 then
     CM.showStatus("You got " .. got[1] .. (#got > 1 and " +" .. (#got - 1) or "") .. " too!", 3)
     pcall(function() require("src.core.Sound").play(game.data, "Get_Item1") end)

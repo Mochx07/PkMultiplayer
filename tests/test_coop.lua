@@ -285,11 +285,22 @@ do
   net = freshManager(true)
   CoopManager.connected = true
   CoopManager.partner.timezone = { offsetSec = 3600, timeStr = "17:00" }
+  -- a Gen 2 game: Red / Blue / Yellow have no clock to share
+  local GV = require("src.core.GameVersion")
+  local wasGame = GV.get()
+  GV.set("gold")
   local lobby3 = CoopNewGame.new(game, function() end)
   game.stack:push(lobby3)
   lobby3:enterConfirm()
   check(lobby3.timeSyncAsked and CoopManager.timeMode == "host", "host clock shared by default when zones differ")
   check(net:lastOf("coop_time_sync") and net:lastOf("coop_time_sync").mode == "host", "clock choice sent to partner")
+  GV.set("yellow")
+  CoopManager.chooseTimeMode("off")
+  local lobbyY = CoopNewGame.new(game, function() end)
+  lobbyY:enterConfirm()
+  check(not lobbyY.timeSyncAsked and CoopManager.timeMode ~= "host", "Red/Blue/Yellow ask about no clock")
+  lobbyY:leave()
+  GV.set(wasGame)
   lobby3:leave()
 end
 

@@ -42,11 +42,18 @@ function CoopBattleInviteModal:close()
   end
 end
 
+-- A IS A NEW PRESS.  The invite lands while the player is mashing A
+-- through a text box, and the next A joined a battle nobody chose: A only
+-- counts once the box has been up this long AND the button has been let go.
+CoopBattleInviteModal.ARM_TIME = 0.8
+
 function CoopBattleInviteModal:update(dt)
   self.timer = self.timer + (dt or 0.016)
   -- unanswered invites decline themselves just before the inviter gives up
   if self.timeout and self.timer >= self.timeout then
     self:close()
+    local CM = package.loaded["src.coop.CoopManager"]
+    if CM and CM.showStatus then CM.showStatus("The invite ran out", 2.5) end
     if self.onDecline then self.onDecline() end
     return
   end
@@ -54,6 +61,10 @@ function CoopBattleInviteModal:update(dt)
 
   local input = self.game and self.game.input
   if not input then return end
+  if not self.armed then
+    local held = input.isDown and input:isDown("a")
+    if self.timer >= CoopBattleInviteModal.ARM_TIME and not held then self.armed = true end
+  end
 
   if input:wasPressed("up") then
     self.index = self.index == 1 and 2 or 1
@@ -61,7 +72,7 @@ function CoopBattleInviteModal:update(dt)
   elseif input:wasPressed("down") then
     self.index = self.index == 2 and 1 or 2
     pcall(Sound.play, self.game.data, "Press_AB")
-  elseif input:wasPressed("a") then
+  elseif input:wasPressed("a") and self.armed then
     pcall(Sound.play, self.game.data, "Press_AB")
     if self.game and self.game.stack then
       local top = type(self.game.stack.top) == "function" and self.game.stack:top() or self.game.stack.top
