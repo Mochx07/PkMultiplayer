@@ -25,6 +25,13 @@ con 1.4.1-alpha.6 o anterior se le dice que actualice.
 
 ### Corregido
 
+- **Todo duplicado en una copia del juego que ya trae co-op** (el fork de
+  Gen2Recomped con el co-op incorporado, del que salen los parches): NEW
+  CO-OP GAME y CONTINUE CO-OP salían dos veces en el título, y la
+  actualización co-op corría dos veces por fotograma, así que eventos,
+  objetos y mensajes podían aplicarse dos veces. En un juego así, el mod
+  ahora no hace nada (lo dice en `log.txt`) y solo funciona el co-op del
+  juego.
 - **Objetos duplicados al usar medicina en el Pokémon del compañero.** Si la
   respuesta llegaba tarde, la curación era gratis.
   - Ahora el objeto se aparta al enviarlo y solo vuelve a la mochila si no

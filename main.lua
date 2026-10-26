@@ -94,6 +94,32 @@ if not undo then
   undo = {}
   rawset(package, "__pkmultiplayer_undo", undo)
 end
+-- A GAME THAT ALREADY HAS CO-OP.  The co-op fork of Gen2Recomped (the tree
+-- these patches are cut from) carries its own src/coop and its own title
+-- rows, START row and per-frame co-op update.  Patched on top, everything
+-- ran twice: NEW CO-OP GAME and CONTINUE CO-OP twice on the title screen,
+-- two co-op updates a frame -- the same story event, item or message
+-- applied twice.  On such a game the mod stands aside; the game's own co-op
+-- is the one that runs.
+local function engineHasCoop()
+  local fs = love and love.filesystem
+  if not (fs and fs.getInfo) then return false end
+  local ok, info = pcall(fs.getInfo, "src/coop/CoopManager.lua", "file")
+  return ok and info ~= nil
+end
+if engineHasCoop() then
+  -- only what an earlier load of this mod changed is put back: the game's
+  -- own co-op modules and link stay as they are
+  for i = #undo, 1, -1 do
+    pcall(undo[i])
+    undo[i] = nil
+  end
+  log("error", "this copy of the game already includes co-op (a co-op build of Gen2Recomped): "
+      .. "PkMultiplayer does nothing here, so nothing runs twice. Play the official Gen2Recomped "
+      .. "with the mod, or this build without it")
+  return
+end
+
 if fresh then
   local oldCM = package.loaded["src.coop.CoopManager"]
   if oldCM and oldCM.disconnect then
