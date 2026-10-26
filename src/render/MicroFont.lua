@@ -108,9 +108,28 @@ function MicroFont.init()
   end
 end
 
+-- The tiny font has 26 letters and no accents: a line is put in the
+-- player's language first (src/coop/CoopI18n.lua), then each accented or
+-- foreign letter is written as its plain one (Ñ as N, ¿ and ¡ dropped) --
+-- one glyph per letter, never the two "?" its two UTF-8 bytes used to make.
+local PLAIN = {
+  ["á"] = "A", ["é"] = "E", ["í"] = "I", ["ó"] = "O", ["ú"] = "U", ["ü"] = "U", ["ñ"] = "N",
+  ["Á"] = "A", ["É"] = "E", ["Í"] = "I", ["Ó"] = "O", ["Ú"] = "U", ["Ü"] = "U", ["Ñ"] = "N",
+  ["¿"] = "", ["¡"] = "",
+}
+
+local function prepare(text)
+  text = tostring(text)
+  local ok, I18n = pcall(require, "src.coop.CoopI18n")
+  if ok then text = I18n.t(text) end
+  text = text:gsub("[\192-\255][\128-\191]*", function(ch) return PLAIN[ch] or "?" end)
+  return text:upper()
+end
+MicroFont.prepare = prepare
+
 function MicroFont.width(text)
   if not text then return 0 end
-  text = tostring(text):upper()
+  text = prepare(text)
   local w = 0
   for i = 1, #text do
     local ch = text:sub(i, i)
@@ -126,7 +145,7 @@ end
 
 function MicroFont.draw(text, x, y)
   if not text then return 0 end
-  text = tostring(text):upper()
+  text = prepare(text)
   if not initialized then MicroFont.init() end
 
   x = math.floor(x or 0)

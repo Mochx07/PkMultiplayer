@@ -75,6 +75,7 @@ local MODULES = {
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
   "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance",
+  "src.coop.CoopI18n", "src.coop.CoopLangES",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
@@ -160,6 +161,10 @@ if mod.options and mod.options.define then
     { key = "follower", type = "toggle", label = "POKEMON FOLLOWS YOU", default = true },
     { key = "autoReconnect", type = "toggle", label = "AUTO RECONNECT", default = true },
     { key = "smartTrainers", type = "toggle", label = "SMARTER TRAINERS", default = true },
+    -- the mod's own menus and messages (src/coop/CoopI18n.lua); AUTO follows
+    -- the language the launcher translates the game to
+    { key = "language", type = "choice", label = "LANGUAGE / IDIOMA", default = "auto",
+      choices = { { "AUTO", "auto" }, { "ENGLISH", "en" }, { "ESPANOL", "es" } } },
   })
 end
 -- a switch in the MODS panel, read each time (true when the panel is absent);
@@ -170,7 +175,14 @@ local function option(key)
   local ok, on = pcall(mod.options.get, mod.options, key)
   return not ok or on ~= false
 end
-package.loaded["pkmultiplayer.options"] = { on = option, version = tostring(mod.version or "?") }
+-- a choice's value, or nil
+local function optionValue(key)
+  if not (mod.options and mod.options.get) then return nil end
+  local ok, v = pcall(mod.options.get, mod.options, key)
+  if ok then return v end
+  return nil
+end
+package.loaded["pkmultiplayer.options"] = { on = option, get = optionValue, version = tostring(mod.version or "?") }
 do
   local FollowMon = require("src.follow.FollowMon")
   FollowMon.enabled = function()
@@ -323,6 +335,13 @@ end
 -- ------------------------------------------------- 3. menu and goodbye
 if mod.hooks and mod.hooks.wrap then
   mod.hooks:wrap("ui.start_menu.items", Hooks.startMenuItems)
+  -- the title screen's co-op rows go through the engine's own Strings()
+  local function overrides()
+    local okI, I18n = pcall(require, "src.coop.CoopI18n")
+    if okI and mod.content and mod.content.strings then I18n.engineOverrides(mod.content.strings) end
+  end
+  overrides()
+  if mod.events and mod.events.on then mod.events:on("game.ready", overrides) end
   -- Gold / Silver / Crystal trainers pick their move (src/battle/SinglesAI.lua)
   mod.hooks:wrap("battle.enemy_action", function(next, battle, who)
     return require("src.battle.SinglesAI").enemyAction(next, battle, who)

@@ -6,7 +6,7 @@
 -- and never pops itself: the answer, B, or the timeout all go through
 -- onCancel/CoopManager, which removes it from wherever it sits.
 
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local Sound = require("src.core.Sound")
 
 local CoopWaitModal = {}
@@ -69,9 +69,9 @@ function CoopWaitModal:draw()
     local left = math.max(0, math.ceil(self.timeout - self.timer))
     local l1 = (self.lines and self.lines[1]) or ("WAITING " .. self.partnerName)
     local l2 = (self.lines and self.lines[2]) or self.cancelLabel
-    Font.draw(l1:sub(1, 15), 8, 8)
+    Font.draw(require("src.coop.CoopI18n").fit(l1, 15), 8, 8)
     Font.draw(string.format("%3d", left), 128, 8)
-    Font.draw(l2:sub(1, 18), 8, 16)
+    Font.draw(require("src.coop.CoopI18n").fit(l2, 18), 8, 16)
     love.graphics.setColor(1, 1, 1, 1)
     return
   end

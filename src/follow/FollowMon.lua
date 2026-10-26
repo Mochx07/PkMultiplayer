@@ -377,7 +377,7 @@ function FollowMon.talk(game, ow, npc)
   if game.save.pkmFollowerFind then
     local found = giveFind(game, name)
     if found then
-      local TextBox = require("src.render.TextBox")
+      local TextBox = require("src.coop.CoopI18n").textBox()
       game.stack:push(TextBox.new(game, found))
       return true
     end
@@ -392,7 +392,7 @@ function FollowMon.talk(game, ow, npc)
   elseif h >= 100 then line = Strings("%s is\nhappily following.")
   elseif h >= 50 then line = Strings("%s is\nfollowing you.")
   else line = Strings("%s keeps\nits distance...") end
-  local TextBox = require("src.render.TextBox")
+  local TextBox = require("src.coop.CoopI18n").textBox()
   game.stack:push(TextBox.new(game, line:format(name)))
   return true
 end

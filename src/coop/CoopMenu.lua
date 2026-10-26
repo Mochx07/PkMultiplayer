@@ -4,7 +4,7 @@
 
 local CoopManager = require("src.coop.CoopManager")
 local CoopNet = require("src.coop.CoopNet")
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local Strings = require("src.core.Strings")
 
 local CoopMenu = {}
@@ -111,8 +111,10 @@ end
 -- A rule row: the name on the left, ON/OFF lined up on the right edge of
 -- the 16 columns a label has.
 local function ruleLabel(name, on)
-  local v = onOff(on)
-  return name .. string.rep(" ", math.max(1, 16 - #name - #v)) .. v
+  local I18n = require("src.coop.CoopI18n")
+  name, on = I18n.t(name), I18n.t(onOff(on))
+  local len = function(t) return select(2, t:gsub("[^\128-\191]", "")) end
+  return name .. string.rep(" ", math.max(1, 16 - len(name) - len(on))) .. on
 end
 
 -- THE VERSION ROW: highlighted, the box above says which PkMultiplayer this
@@ -387,9 +389,8 @@ local function clearGB()
 end
 
 local function fit(text, n)
-  text = tostring(text or "")
-  if #text > n then return text:sub(1, n) end
-  return text
+  -- translated, then cut to n letters (not bytes: an accent is two)
+  return require("src.coop.CoopI18n").fit(text, n)
 end
 
 -- All lines fit the 18 columns inside a full-width box (x 8..152).
@@ -404,7 +405,8 @@ function CoopMenu:draw()
     local current = rows[self.index]
     if type(current) == "table" and current.info then
       -- what the highlighted row is about (a rule, the versions), above
-      for i, line in ipairs(current.info) do Font.draw(line, 8, i * 8) end
+      local info = require("src.coop.CoopI18n").lines(current.info)
+      for i, line in ipairs(info) do Font.draw(line, 8, i * 8) end
     elseif not isConn and self.errorMsg then
       -- up here, where nothing else is drawn: at the foot of the list it
       -- landed on top of the last row (EXIT)

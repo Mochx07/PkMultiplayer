@@ -9,7 +9,7 @@
 -- and on linking), coop_dex_add { owned } (each new catch, as it happens).
 
 local CoopManager = require("src.coop.CoopManager")
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 
 local CoopDex = {}
 
@@ -216,8 +216,8 @@ function Screen:update()
 end
 
 local function fit(text, n)
-  text = tostring(text or "")
-  return #text > n and text:sub(1, n) or text
+  -- translated, then cut to n letters (not bytes: an accent is two)
+  return require("src.coop.CoopI18n").fit(text, n)
 end
 
 function Screen:draw()

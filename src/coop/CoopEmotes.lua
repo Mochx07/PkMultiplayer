@@ -308,7 +308,7 @@ function Picker:update(dt)
 end
 
 function Picker:draw()
-  local Font = require("src.render.Font")
+  local Font = require("src.coop.CoopI18n").font()
   local n = #CoopEmotes.LIST
   love.graphics.setColor(1, 1, 1, 1)
   Font.drawBox(0, 0, 20, 6)

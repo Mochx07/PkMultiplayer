@@ -35,3 +35,4 @@ tests/coop_battle_link.lua
 tests/coop_balance.lua
 tests/singles_ai.lua
 tests/coop_screens.lua
+tests/coop_i18n.lua

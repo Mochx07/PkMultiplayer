@@ -23,7 +23,7 @@ releases de GitHub).
 
 ## Cómo conectarse
 
-- **Misma red (LAN):** uno pulsa START → **CO-OP (LAN)** → **HOST**. El otro
+- **Misma red (LAN):** uno pulsa START → **CO-OP ONLINE** → **HOST**. El otro
   entra en **JOIN** y escribe la IP que le aparece al host.
 - **Por internet:** usad [ZeroTier](https://www.zerotier.com/) (una red
   virtual gratuita). Uníos los dos a la misma red y usad la IP de ZeroTier
@@ -35,9 +35,16 @@ releases de GitHub).
 
 | | |
 |---|---|
-| Chat | START → CO-OP (LAN) → **CHAT**; en un combate doble, **SELECT**. Se abre el teclado del teléfono, la tecla de retorno envía y **A** vuelve a sacar el teclado si lo cerraste. |
-| Emotes | START → CO-OP (LAN) → **EMOTE** |
+| Chat | START → CO-OP ONLINE → **CHAT**; en un combate doble, **SELECT**. Se abre el teclado del teléfono, la tecla de retorno envía y **A** vuelve a sacar el teclado si lo cerraste. |
+| Emotes | START → CO-OP ONLINE → **EMOTE** |
 | IP de ZeroTier | se muestra sola si la app de ZeroTier está conectada (redes con los rangos automáticos de ZeroTier Central) |
+
+## Idioma
+
+El mod habla español: MODS → PkMultiplayer → OPTIONS → **LANGUAGE / IDIOMA**
+(**AUTO** sigue el idioma al que traduces el juego en el launcher; **ESPANOL**
+lo fija). Para ver las tildes y la ñ en píxeles, instala también un mod de
+glifos españoles; sin él, el texto sale sin tildes.
 
 ## Emotes originales (opcional)
 
@@ -70,7 +77,7 @@ no incluye nada del ROM.
 | Pokégear | tu compañero encabeza la agenda (llamarlo abre el chat y le suena el Pokégear) y su marca parpadea en el mapa |
 | Reconexión | la partida recuerda el último enlace: el anfitrión vuelve a escuchar y el invitado vuelve a llamar solo (opción **AUTO RECONNECT**); fila **RECONNECT** en el menú. Tras un corte, lo que se envió en esos segundos llega al volver, una sola vez, y el sitio del compañero solo lo puede ocupar su misma partida |
 
-Menú co-op (START → CO-OP (LAN) estando conectado), siete filas sin scroll:
+Menú co-op (START → CO-OP ONLINE estando conectado), siete filas sin scroll:
 CHAT, EMOTE, WARP TO PARTNER, **PARTNER ▶** (ITEM FOR PARTNER, WATCH, TRADE,
 BATTLE P1 VS P2, MYSTERY GIFT), POKéDEX, **RULES ▶** (STORY SYNC, TEAM UP WILD,
 SHARE DEX, LINK DAYCARE, PARTNER HEAL, SOUL LINK, SOUL LINKS; el recuadro de
@@ -132,7 +139,7 @@ It is a mod for the official [Gen2Recomped](https://github.com/UNDERdecoded/Gen2
 
 **Install:** download the zip from Releases. In the launcher open **MODS** →
 **Import mod .zip**, or drop the zip on the window. Both players need it.
-**Play:** START → **CO-OP (LAN)** → HOST, or JOIN with the host's IP. Over the
+**Play:** START → **CO-OP ONLINE** → HOST, or JOIN with the host's IP. Over the
 internet, use ZeroTier. The port is 7777.
 
 ## How it works (for developers)

@@ -447,12 +447,12 @@ function WaitHere:update(dt)
 end
 
 function WaitHere:draw()
-  Font = Font or require("src.render.Font")
+  Font = Font or require("src.coop.CoopI18n").font()
   love.graphics.setColor(1, 1, 1, 1)
   Font.drawBox(0, 0, 20, 5)
   love.graphics.setColor(0, 0, 0, 1)
   local left = math.max(0, math.ceil(self.timeout - self.timer))
-  Font.draw(("WAITING " .. self.name):sub(1, 15), 8, 8)
+  Font.draw(require("src.coop.CoopI18n").fit("WAITING " .. self.name, 15), 8, 8)
   Font.draw(string.format("%3d", left), 128, 8)
   Font.draw("TO COME HERE" .. string.rep(".", math.floor(self.timer * 2) % 4), 8, 16)
   Font.draw("B: BATTLE SOLO", 8, 24)
@@ -472,7 +472,7 @@ function CoopStory.waitForPartner(ctx, class, party)
   if #pname > 8 then pname = pname:sub(1, 8) end
   local name = CM.trainerDisplayName and CM.trainerDisplayName(game, class, party) or "TRAINER"
   local choice = "solo"
-  game.stack:push(require("src.ui.Menu").new(game, {
+  game.stack:push(require("src.coop.CoopI18n").menu().new(game, {
     { label = "WAIT " .. pname, onSelect = function() choice = "wait" runner:resume() end },
     { label = "SOLO", onSelect = function() choice = "solo" runner:resume() end },
   }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,

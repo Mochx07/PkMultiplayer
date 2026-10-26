@@ -2,7 +2,7 @@
 -- Authentic Game Boy 3-Pokémon Selection Menu for Co-op Double Battles.
 -- Fits strictly within 160x144 (20x18 tiles), 100% English.
 
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local Sound = require("src.core.Sound")
 local Strings = require("src.core.Strings")
 

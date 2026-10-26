@@ -14,7 +14,7 @@
 
 local CoopNet = require("src.coop.CoopNet")
 local CoopLog = require("src.coop.CoopLog")
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local GameVersion = require("src.core.GameVersion")
 local NPC = require("src.world.NPC")
 local Pokemon = require("src.pokemon.Pokemon")
@@ -732,7 +732,7 @@ local function promptTimezoneChoice(game)
       CoopManager.chooseTimeMode("off")
     end },
   }
-  game.stack:push(require("src.ui.Menu").new(game, items, {
+  game.stack:push(require("src.coop.CoopI18n").menu().new(game, items, {
     tx = 2, ty = 3, tw = 16,
     header = "SHARE CLOCK?",
     cancelable = true,
@@ -995,6 +995,9 @@ CoopManager.ensurePartnerNpc = ensurePartnerNpc
 -- ---------------------------------------------------------------------
 
 function CoopManager.showStatus(text, duration)
+  -- in the player's language (src/coop/CoopI18n.lua)
+  local okI, I18n = pcall(require, "src.coop.CoopI18n")
+  if okI then text = I18n.t(text) end
   CoopManager.statusMessage = text
   CoopManager.statusTimer = duration or 2.5
 end
@@ -1141,7 +1144,7 @@ local function showLines(game, lines, onDone)
     if onDone then onDone() end
     return
   end
-  game.stack:push(require("src.render.TextBox").new(game, text, onDone))
+  game.stack:push(require("src.coop.CoopI18n").textBox().new(game, text, onDone))
 end
 
 CoopManager.ITEM_DONE_MAX = 64
@@ -1238,7 +1241,7 @@ function CoopManager.useItemOnPartner(game, ow)
     playSound(game, "Collision")
     return
   end
-  local Menu = require("src.ui.Menu")
+  local Menu = require("src.coop.CoopI18n").menu()
   local rows = {}
   for _, id in ipairs(ids) do
     local def = game.data.items[id]
@@ -1276,7 +1279,7 @@ function CoopManager.onPartnerParty(ow, msg)
     CoopManager.showStatus((CoopManager.partner.name or "Partner") .. " is busy", 2.5)
     return
   end
-  local Menu = require("src.ui.Menu")
+  local Menu = require("src.coop.CoopI18n").menu()
   local rows = {}
   for _, m in ipairs(msg.mons or {}) do
     if type(m) == "table" and tonumber(m.slot) then
@@ -1547,7 +1550,7 @@ function CoopManager.onWarpRequest(ow, msg)
   local idle = game and game.stack and stackTop(game) == ow and ow and not ow.transitioning
                and not CoopManager.isLocalInBattle(ow) and not CoopManager.isLocalInDialogue(ow)
   if not idle then return reply(false, "busy") end
-  local TextBox = require("src.render.TextBox")
+  local TextBox = require("src.coop.CoopI18n").textBox()
   local name = CoopManager.partner.name or "Your partner"
   game.stack:push(TextBox.new(game, name .. " wants to\nwarp to you. OK?", nil, {
     defaultNo = true,
@@ -1981,7 +1984,7 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   if not ok then return end
   local name = CoopManager.trainerDisplayName(game, oppClass, partyIndex)
   local choice = "solo"
-  local Menu = require("src.ui.Menu")
+  local Menu = require("src.coop.CoopI18n").menu()
   game.stack:push(Menu.new(game, {
     { label = Strings("CO-OP"), onSelect = function() choice = "coop" runner:resume() end },
     { label = Strings("SOLO"), onSelect = function() choice = "solo" runner:resume() end },
@@ -2242,7 +2245,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
     { label = Strings("SOLO BATTLE"), onSelect = solo },
   }
 
-  game.stack:push(require("src.ui.Menu").new(game, items, {
+  game.stack:push(require("src.coop.CoopI18n").menu().new(game, items, {
     tx = 3,
     ty = 4,
     tw = 14,
@@ -2414,7 +2417,7 @@ end
 function CoopManager.interact(game, ow)
   local partner = CoopManager.partner
   local pName = partner.name or "PARTNER"
-  local Menu = require("src.ui.Menu")
+  local Menu = require("src.coop.CoopI18n").menu()
   local items = {
     { label = Strings("HIGH FIVE!"), onSelect = function()
       CoopManager.sendEmote("heart")
@@ -3136,16 +3139,27 @@ CoopManager.worldDrawers = {}
 
 -- word-wrap to `width` characters, at most `maxLines` lines
 local function wrap(text, width, maxLines)
+  -- counted in letters, not bytes: "compañero" is nine, not ten
+  local function len(t) return select(2, t:gsub("[^\128-\191]", "")) end
+  local function head(t, n)
+    local count = 0
+    for pos in t:gmatch("()[^\128-\191]") do
+      count = count + 1
+      if count > n then return t:sub(1, pos - 1), t:sub(pos) end
+    end
+    return t, ""
+  end
   local lines, line = {}, ""
   for word in tostring(text):gmatch("%S+") do
-    while #word > width do
+    while len(word) > width do
       if line ~= "" then lines[#lines + 1] = line; line = "" end
-      lines[#lines + 1] = word:sub(1, width)
-      word = word:sub(width + 1)
+      local first, rest = head(word, width)
+      lines[#lines + 1] = first
+      word = rest
     end
     if line == "" then
       line = word
-    elseif #line + 1 + #word <= width then
+    elseif len(line) + 1 + len(word) <= width then
       line = line .. " " .. word
     else
       lines[#lines + 1] = line
@@ -3245,8 +3259,9 @@ function CoopManager.drawUI(ow)
     love.graphics.setColor(1, 1, 1, 1)
     Font.drawBox(0, 12, 20, 6)
     love.graphics.setColor(0, 0, 0, 1)
-    Font.draw(page[1] or "", 8, 112)
-    Font.draw(page[2] or "", 8, 128)
+    -- the partner's game's own words: shown as they are
+    Font.raw.draw(page[1] or "", 8, 112)
+    Font.raw.draw(page[2] or "", 8, 128)
     -- whose scene this is, on the frame: a small blue tab
     local MicroFont = require("src.render.MicroFont")
     local who = string.upper(CoopManager.partner.name or "P2")
@@ -3294,13 +3309,14 @@ function CoopManager.drawChatBubble(ty)
     local lines = wrap(text, 18, 2)
     Font.drawBox(0, 12, 20, 6)
     love.graphics.setColor(0, 0, 0, 1)
-    Font.draw(sender .. ":", 8, 104)
-    for i, l in ipairs(lines) do Font.draw(l, 8, 104 + i * 12) end
+    -- chat is what the players typed: never translated
+    Font.raw.draw(sender .. ":", 8, 104)
+    for i, l in ipairs(lines) do Font.raw.draw(l, 8, 104 + i * 12) end
   else
     local lines = wrap(sender .. ": " .. text, 18, 3)
     Font.drawBox(0, ty, 20, #lines + 2)
     love.graphics.setColor(0, 0, 0, 1)
-    for i, l in ipairs(lines) do Font.draw(l, 8, (ty + i) * 8) end
+    for i, l in ipairs(lines) do Font.raw.draw(l, 8, (ty + i) * 8) end
   end
   love.graphics.setColor(1, 1, 1, 1)
   return true

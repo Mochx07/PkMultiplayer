@@ -22,7 +22,7 @@
 -- way the AI takes a partner's place: an emergency, never a menu choice --
 -- a partner who is still connected and thinking is waited for.
 
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local CoopLog = require("src.coop.CoopLog")
 local Strings = require("src.core.Strings")
 

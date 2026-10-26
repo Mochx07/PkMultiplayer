@@ -815,12 +815,13 @@ Hooks.modules["src.world.PikachuFollower"] = function(PikachuFollower)
   end)
 end
 
--- ui.start_menu.items: the CO-OP (LAN) row, ahead of MODS / QUIT
+-- ui.start_menu.items: the CO-OP ONLINE row, ahead of MODS / QUIT
 function Hooks.startMenuItems(next, game, items)
   items = next(game, items)
   if type(items) ~= "table" then return items end
   local Strings = require("src.core.Strings")
-  local row = { label = Strings("CO-OP (LAN)"), onSelect = function()
+  -- it works over the internet too (ZeroTier), not only on a LAN
+  local row = { label = require("src.coop.CoopI18n").t(Strings("CO-OP ONLINE")), onSelect = function()
     local CoopMenu = require("src.coop.CoopMenu")
     game.stack:push(CoopMenu.new(game))
   end }

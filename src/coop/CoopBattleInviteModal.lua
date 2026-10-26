@@ -2,7 +2,7 @@
 -- Retro 2D Game Boy modal displayed when receiving a Co-op battle invitation.
 -- Fits strictly within 160x144 (20x18 tiles), 100% English.
 
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local Sound = require("src.core.Sound")
 local Theme = require("src.ui.Theme")
 
@@ -96,7 +96,7 @@ function CoopBattleInviteModal:draw()
   if #tLabel > 13 then tLabel = tLabel:sub(1, 13) end
   local lines = self.lines or { pLabel, "WANTS TO TEAM UP", "VS " .. tLabel }
   for i = 1, 3 do
-    Font.draw(tostring(lines[i] or ""):sub(1, 16), x, y + (i - 1) * 8)
+    Font.draw(require("src.coop.CoopI18n").fit(lines[i] or "", 16), x, y + (i - 1) * 8)
   end
 
   local row1Y, row2Y = y + 32, y + 40

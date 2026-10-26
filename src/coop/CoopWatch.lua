@@ -10,7 +10,7 @@
 -- { idle = true } once a second when it is not in a battle.
 
 local CoopManager = require("src.coop.CoopManager")
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 
 local CoopWatch = {}
 

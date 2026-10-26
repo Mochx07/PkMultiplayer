@@ -3,6 +3,30 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.5.2 (en desarrollo)
+
+### Añadido
+
+- **El mod en español.** Nueva opción en MODS → PkMultiplayer → OPTIONS →
+  **LANGUAGE / IDIOMA**:
+  - **AUTO** (por defecto) sigue el idioma al que el launcher traduce el
+    juego;
+  - **ENGLISH** o **ESPANOL** lo fijan.
+  - Se traducen los menús co-op, las reglas y sus explicaciones, los avisos,
+    las invitaciones, la elección de equipo, la Pokédex co-op, WATCH, los
+    emotes, el Pokémon que te sigue y la fila del título y del menú START.
+  - El chat y los nombres de los jugadores nunca se traducen.
+  - Con el mod de glifos españoles (letras del cartucho Edición Oro) se
+    dibujan á é í ó ú ñ ¿ ¡. Sin él, se escriben sin tilde en vez de salir
+    como huecos.
+- La fila del menú START se llama ahora **CO-OP ONLINE**: funciona por
+  internet (ZeroTier), no solo en la red local.
+
+### Corregido
+
+- El aviso de arriba partía mal las palabras con acentos (contaba bytes, no
+  letras), y la fuente pequeña dibujaba cada letra acentuada como dos "?".
+
 ## 1.5.1
 
 **Los dos jugadores necesitan esta versión** (protocolo 15): con 1.5.0 el

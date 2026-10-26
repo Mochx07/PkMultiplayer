@@ -94,7 +94,7 @@ return function(game)
   for _, item in ipairs(top and top.items or {}) do
     if tostring(item.label):find("CO%-OP") then hasRow = true end
   end
-  check(hasRow, "the start menu offers CO-OP (LAN)")
+  check(hasRow, "the start menu offers CO-OP ONLINE")
   U.shot(game, DIR .. "/2_start_menu.png")
   U.tap(game, "b")
   U.wait(10)

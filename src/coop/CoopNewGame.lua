@@ -2,7 +2,7 @@
 -- Dedicated lobby and mutual confirmation screen for "NEW CO-OP GAME".
 -- Strictly fits 160x144 (20x18 tiles) in English with authentic Game Boy font and borders.
 
-local Font = require("src.render.Font")
+local Font = require("src.coop.CoopI18n").font()
 local Sound = require("src.core.Sound")
 local Strings = require("src.core.Strings")
 local CoopManager = require("src.coop.CoopManager")
@@ -301,9 +301,8 @@ end
 -- Every line here fits the 18 text columns inside a full-width box
 -- (x 8..152); the old layout ran past the border and over the footer.
 local function fit(text, n)
-  text = tostring(text or "")
-  if #text > n then return text:sub(1, n) end
-  return text
+  -- translated, then cut to n letters (not bytes: an accent is two)
+  return require("src.coop.CoopI18n").fit(text, n)
 end
 
 function CoopNewGame:draw()

@@ -36,7 +36,7 @@ function CoopGear.call(menu, entry)
   if CoopManager.net then
     CoopManager.net:send({ type = "coop_call", name = CoopManager.getLocalPlayerName(game) })
   end
-  local TextBox = require("src.render.TextBox")
+  local TextBox = require("src.coop.CoopI18n").textBox()
   game.stack:push(TextBox.new(game, "Calling " .. partnerName() .. "...", function()
     CoopManager.openChat(game, game.overworld)
   end))

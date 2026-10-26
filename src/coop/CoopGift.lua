@@ -102,7 +102,7 @@ local function itemName(game, key)
 end
 
 local function say(game, text, onDone)
-  game.stack:push(require("src.render.TextBox").new(game, text, onDone))
+  game.stack:push(require("src.coop.CoopI18n").textBox().new(game, text, onDone))
 end
 
 -- a gift this cartridge has no item for: another one of the same rarity
@@ -172,7 +172,7 @@ H.coop_gift_req = function(ow, msg)
   local idle = ow and CoopManager.overworldIdle(game, ow)
   if not idle then return reply(false, "busy") end
   local name = partnerName()
-  local TextBox = require("src.render.TextBox")
+  local TextBox = require("src.coop.CoopI18n").textBox()
   game.stack:push(TextBox.new(game, name .. " wants to\nswap GIFTS. OK?", nil, {
     defaultNo = false,
     choice = function(yes)
