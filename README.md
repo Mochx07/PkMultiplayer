@@ -351,5 +351,14 @@ is rebuilt byte for byte, and still is when upstream has changed it.
 ## License
 
 PkMultiplayer's own files are MIT (see `LICENSE`). Gen2Recomped belongs to
-its authors and is under its own license. No ROM data is included. Pokémon
-is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc.
+its authors and is under its own license; this mod ships none of its code (the
+patches in `lib/patches` carry only the co-op's own lines, anchored by hashes of
+the engine's). No ROM data is included.
+
+The screenshots and the GIF in `docs/img` show Pokémon art, which belongs to
+Nintendo, Creatures Inc. and GAME FREAK Inc.: they are not covered by the MIT
+license. Pokémon is a trademark of Nintendo, Creatures Inc. and GAME FREAK Inc.
+
+PkMultiplayer is a free, non-commercial fan project. It is not affiliated with or
+endorsed by Nintendo, The Pokémon Company, GAME FREAK, Creatures Inc. or the
+author of Gen2Recomped.
