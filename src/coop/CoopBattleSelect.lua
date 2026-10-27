@@ -215,7 +215,7 @@ function CoopBattleSelect:draw()
   else
     local countStr = string.format("SELECTED: %d/3", #self.selected)
     Font.draw(countStr, 10, 118)
-    Font.draw("[A] PICK/CONFIRM  [B] BACK", 10, 128)
+    Font.draw("A:PICK  B:BACK", 10, 128)
   end
 
   love.graphics.setColor(1, 1, 1, 1)

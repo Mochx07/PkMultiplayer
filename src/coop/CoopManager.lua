@@ -3426,6 +3426,9 @@ local function drawHud(ow)
   local game = getGame(ow)
   local renderer = game and game.renderer
   local vw = (renderer and renderer.uiSize and select(1, renderer:uiSize())) or 160
+  -- the mod's Font proxy cuts what would run past this edge (CoopI18n.font)
+  local okW, I18nW = pcall(require, "src.coop.CoopI18n")
+  if okW then I18nW.screenW = vw end
   local partner = CoopManager.partner
 
   local label
@@ -3480,7 +3483,8 @@ function CoopManager.drawUI(ow)
     for i, l in ipairs(summary) do Font.draw(I18n.fit(l, 18), 8, 8 * i) end
     love.graphics.setColor(1, 1, 1, 1)
   elseif CoopManager.statusMessage and CoopManager.statusTimer > 0 then
-    local lines = wrap(CoopManager.statusMessage, 18, 2)
+    -- three rows: a Spanish notice is often longer than its English one
+    local lines = wrap(CoopManager.statusMessage, 18, 3)
     love.graphics.setColor(1, 1, 1, 1)
     Font.drawBox(0, 0, 20, #lines + 2)
     love.graphics.setColor(0, 0, 0, 1)

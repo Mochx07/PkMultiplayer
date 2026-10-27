@@ -232,7 +232,18 @@ local fontProxy
 function I18n.font()
   if fontProxy then return fontProxy end
   fontProxy = setmetatable({
-    draw = function(text, ...) return require("src.render.Font").draw(I18n.t(text), ...) end,
+    -- never past the screen's right edge: a line too long for where it
+    -- starts (a Spanish line is often longer than the English one) is cut
+    -- with a dot, the way the engine's own Font.fit cuts a name
+    draw = function(text, x, ...)
+      local F = require("src.render.Font")
+      text = I18n.t(text)
+      local w = I18n.screenW or 160
+      if type(text) == "string" and type(x) == "number" and x < w and F.width(text) > w - x then
+        text = F.fit(text, w - x)
+      end
+      return F.draw(text, x, ...)
+    end,
     width = function(text, ...) return require("src.render.Font").width(I18n.t(text), ...) end,
     fit = function(text, ...) return require("src.render.Font").fit(I18n.t(text), ...) end,
   }, { __index = function(_, k)

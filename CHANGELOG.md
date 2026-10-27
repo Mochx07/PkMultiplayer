@@ -13,7 +13,21 @@ Compatible con 1.6.0 (mismo protocolo 16): no hace falta que el compañero actua
   `BattleState`, `TrainerAI`, `BagMenu` y `OverworldController`; con 1.6.0 el mod ponía
   encima sus versiones de la 0.8.46 y se perdían los arreglos nuevos del motor (y el
   `interact` del mundo nuevo usa `GEN4_SIGN_FACING`, que la versión vieja no conocía).
-  Ahora los 120 cambios del co-op se colocan sobre el código de la 0.8.47.
+  Ahora los cambios del co-op se colocan sobre el código de la 0.8.47.
+
+### Arreglado
+
+- Dobles: cada rival se coloca según **sus propios píxeles**. Un Pokémon alto (Pidgeotto,
+  Tyranitar, Onix) sube lo justo para no pisar el nombre de tu Pokémon y uno pequeño se queda
+  donde estaba; si es muy ancho se corre para no salirse por la derecha. Las animaciones de
+  ataque apuntan a ese mismo sitio.
+- Dobles: el nombre y nivel de tus Pokémon van sobre una franja blanca, legibles aunque un
+  rival gigante (Lugia, Gyarados) llegue hasta ahí.
+- Ningún texto del mod se sale ya de la pantalla: lo que no cabe desde donde empieza se corta
+  con un punto. Los avisos de arriba tienen 3 líneas en vez de 2 (en español se cortaban).
+- La ayuda de la selección de equipo ("[A] PICK/CONFIRM [B] BACK") se salía de la pantalla
+  también en inglés: ahora "A:PICK  B:BACK".
+- 10 textos que salían en inglés con el mod en español.
 
 ## 1.6.0
 

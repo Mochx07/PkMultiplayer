@@ -8,6 +8,17 @@
 return {
   -- ---------------------------------------------------------- the menus
   ["CO-OP ONLINE"] = "CO-OP",
+  -- ------------------------------------------------- 1.6.1: lo que faltaba
+  ["FNT"] = "DEB",
+  ["Waiting for %s%s%s"] = "Esperando a %s%s%s",
+  ["Asking %s%s%s"] = "Preguntando a %s%s%s",
+  ["Asked %s"] = "Pedido a %s",
+  ["VS %s"] = "VS %s",
+  ["FACES "] = "CARAS ",
+  ["%s OK"] = "%s LISTO",
+  ["YOU: %s"] = "TÚ: %s",
+  ["Looking for %s%s%s"] = "Buscando a %s%s%s",
+  ["The host has PkMultiplayer v%s"] = "El anfitrión tiene v%s",
   ["CO-OP (LAN)"] = "CO-OP",
   ["CONTINUE CO-OP"] = "CONTINUAR CO-OP",
   ["NEW CO-OP GAME"] = "EMPEZAR CO-OP",
@@ -189,10 +200,10 @@ return {
   -- picking the team for a double
   ["CHOOSE 3 POKéMON"] = "ELIGE 3 POKéMON",
   ["[CONFIRM TEAM]"] = "[CONFIRMAR]",
-  ["[A] PICK/CONFIRM  [B] BACK"] = "[A] ELEGIR  [B] ATRÁS",
+  ["A:PICK  B:BACK"] = "A:ELEGIR B:ATRÁS",
   ["SELECTED: %d/3"] = "ELEGIDOS: %d/3",
   ["CAN ONLY PICK 3!"] = "¡SOLO PUEDES 3!",
-  ["AN EGG CAN'T BATTLE!"] = "¡UN HUEVO NO LUCHA!",
+  ["AN EGG CAN'T BATTLE!"] = "¡HUEVO NO PELEA!",
   ["POKéMON HAS NO HP!"] = "¡ESTÁ DEBILITADO!",
   ["NO HEALTHY POKéMON!"] = "¡NINGUNO PUEDE!",
 
