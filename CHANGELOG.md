@@ -29,6 +29,17 @@ Compatible con 1.6.0 (mismo protocolo 16): no hace falta que el compañero actua
   también en inglés: ahora "A:PICK  B:BACK".
 - 10 textos que salían en inglés con el mod en español.
 
+### Compatible con el 3D de DramaticShapes
+
+- Con el mundo en 3D (DramaticShapes, incluido en Gen2Recomped) las capas del co-op se dibujaban
+  sobre una imagen que el 3D reemplaza: no se veían o salían corridas. Ahora entran por el mismo
+  camino que los efectos del juego (`ctx.drawFx`) y se colocan con la cámara 3D: el nombre del
+  compañero, sus emotes y los tuyos, los puntitos de "hablando", la Poké Ball de "en combate",
+  "¡LISTO!", los nombres de los visitantes y la flecha al borde cuando no está en cuadro. Lo que va
+  sobre la cabeza sube con la altura de los personajes en 3D, también cerca de la cámara.
+- Los combates dobles co-op siguen en la pantalla clásica: DramaticShapes todavía no escenifica
+  dobles.
+
 ## 1.6.0
 
 **Los dos jugadores necesitan esta versión** (protocolo 16). Incluye lo que

@@ -778,10 +778,47 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
     return function(self, ...)
       local a, b, c = drawWorld(self, ...)
       local CM = coopManager()
-      if CM and CM.drawWorld then CM.drawWorld(self) end
+      if CM and CM.drawWorld then
+        -- already drawn through a render pipeline's camera (below)
+        if CM.pipelineDrew then CM.pipelineDrew = false else CM.drawWorld(self) end
+      end
       return a, b, c
     end
   end)
+
+  -- WITH A RENDER PIPELINE (DramaticShapes' 3D diorama) the world is the
+  -- pipeline's own canvas, so co-op layers drawn after drawWorld land on a
+  -- picture nobody is shown: the partner's name, emotes and chat bubble, a
+  -- visitor's tag.  They ride ctx.drawFx instead -- the seam the engine's own
+  -- field FX (the "!" bubble, the fishing rod) use -- each anchored through
+  -- the pipeline's camera.  When the pipeline declines a frame the flat
+  -- path above draws them as before.
+  local okP, Pipelines = pcall(require, "src.render.Pipelines")
+  if okP and type(Pipelines) == "table" and Pipelines.drawWorld then
+    wrap(Pipelines, "Pipelines", "drawWorld", function(drawWorldP)
+      return function(id, ctx, ...)
+        local CM = coopManager()
+        local fx = type(ctx) == "table" and ctx.drawFx or nil
+        local projected = false
+        if fx and CM and CM.drawWorldProjected then
+          ctx.drawFx = function(project, scale, ...)
+            local r = fx(project, scale, ...)
+            local ok, err = pcall(CM.drawWorldProjected, ctx.state, project, scale)
+            projected = ok
+            if not ok and CM.projectErr ~= err then
+              CM.projectErr = err
+              require("src.coop.CoopLog").error("MANAGER", "3D co-op layer failed: " .. tostring(err))
+            end
+            return r
+          end
+        end
+        local out = drawWorldP(id, ctx, ...)
+        if fx then ctx.drawFx = fx end
+        if CM then CM.pipelineDrew = out ~= nil and projected end
+        return out
+      end
+    end)
+  end
 
   wrap(OverworldState, "OverworldState", "drawUI", function(drawUI)
     return function(self, ...)

@@ -3216,7 +3216,13 @@ local function drawPill(bx, by, bw, bh)
 end
 CoopManager.drawPill = drawPill
 
+-- how tall a character card stands in a render pipeline's 3D scene, in
+-- world px at the camera's focus (DramaticShapes; measured from its frames)
+local HEAD_3D = 30
+
 local function screenPoint(ow, wx, wy)
+  -- through a render pipeline's camera (drawWorldProjected)
+  if CoopManager.projectPoint then return CoopManager.projectPoint(wx, wy) end
   local cam = ow.camera
   local vw, vh = (ow.viewW or 160), (ow.viewH or 144)
   local fx = wx - cam.x + 8
@@ -3289,12 +3295,17 @@ function CoopManager.drawWorld(ow)
   if not ow or not ow.camera then return end
   local partner = CoopManager.partner
   local npc = CoopManager.partnerNpc
-  local vw, vh = (ow.viewW or 160), (ow.viewH or 144)
+  local view = CoopManager.projectView
+  local vw, vh = view and view[1] or (ow.viewW or 160), view and view[2] or (ow.viewH or 144)
   local MicroFont = require("src.render.MicroFont")
   local t = now()
 
   if CoopManager.connected and npc and CoopManager.render then
-    local sx, sy = screenPoint(ow, npc.px, npc.py - (partner.hopY or 0))
+    local sx, sy, depth = screenPoint(ow, npc.px, npc.py - (partner.hopY or 0))
+    -- a 3D card stands taller than the flat 16 px (about 30 world px at
+    -- the focus, more near the camera): what hangs over the head rises with
+    -- it, what sits at the feet does not
+    local lift = CoopManager.projectPoint and math.max(0, HEAD_3D * (depth or 1) - 18) or 0
     local onScreen = sx >= -8 and sx <= vw + 8 and sy >= 0 and sy <= vh + 16
     if onScreen then
       local name = string.upper(partner.name or "PARTNER")
@@ -3307,7 +3318,7 @@ function CoopManager.drawWorld(ow)
       MicroFont.draw(name, bx + 3, by + 2)
       love.graphics.setColor(1, 1, 1, 1)
 
-      local headY = math.floor(sy - 18 + (partner.hopY or 0))
+      local headY = math.floor(sy - 18 - lift + (partner.hopY or 0))
       local ballY = headY - 5
       if partner.inBattle then
         CoopManager.drawSpinningPokeball(sx, ballY, 2.0)
@@ -3322,7 +3333,7 @@ function CoopManager.drawWorld(ow)
         end
         love.graphics.setColor(1, 1, 1, 1)
       elseif partner.emote then
-        require("src.coop.CoopEmotes").draw(getGame(ow), partner.emote, sx, sy + (partner.hopY or 0),
+        require("src.coop.CoopEmotes").draw(getGame(ow), partner.emote, sx, sy - lift + (partner.hopY or 0),
                                             2.5 - (partner.emoteTimer or 0))
       elseif partner.readyAt and t - partner.readyAt < 4 then
         local word = require("src.coop.CoopI18n").t(partner.ready and "READY!" or "WAIT")
@@ -3348,7 +3359,8 @@ function CoopManager.drawWorld(ow)
 
   if CoopManager.localEmote and ow.player then
     local p = ow.player
-    local sx, sy = screenPoint(ow, p.px, p.py)
+    local sx, sy, depth = screenPoint(ow, p.px, p.py)
+    if CoopManager.projectPoint then sy = sy - math.max(0, HEAD_3D * (depth or 1) - 18) end
     require("src.coop.CoopEmotes").draw(getGame(ow), CoopManager.localEmote, sx, sy,
                                         2.5 - (CoopManager.localEmoteTimer or 0))
   end
@@ -3364,6 +3376,32 @@ end
 
 -- name -> fn(ow): feature modules drawing on the world (visitors' names)
 CoopManager.worldDrawers = {}
+
+-- The same layers through a render pipeline's camera (lib/Hooks wraps
+-- Pipelines.drawWorld): `project(wx, wy)` maps a world point to canvas
+-- pixels and `scale` is canvas pixels per world pixel.  Everything drawWorld
+-- anchors goes through screenPoint, so while this runs screenPoint answers
+-- with the projected foot, in world-pixel units under the scaled transform.
+function CoopManager.drawWorldProjected(ow, project, scale)
+  if not (ow and ow.camera and project) then return end
+  scale = (scale and scale > 0) and scale or 1
+  local canvas = love.graphics.getCanvas()
+  local cw, ch = 160 * scale, 144 * scale
+  if canvas and canvas.getDimensions then cw, ch = canvas:getDimensions() end
+  CoopManager.projectPoint = function(wx, wy)
+    local x, y, depth = project(wx + 8, wy + 16)
+    if not x then return -1e4, -1e4, 1 end  -- behind the camera
+    -- depth: how much bigger than at the focus a card here is drawn
+    return x / scale, y / scale, depth or 1
+  end
+  CoopManager.projectView = { cw / scale, ch / scale }
+  love.graphics.push()
+  love.graphics.scale(scale, scale)
+  local ok, err = pcall(CoopManager.drawWorld, ow)
+  love.graphics.pop()
+  CoopManager.projectPoint, CoopManager.projectView = nil, nil
+  if not ok then error(err, 0) end
+end
 
 -- word-wrap to `width` characters, at most `maxLines` lines
 local function wrap(text, width, maxLines)
