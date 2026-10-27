@@ -40,3 +40,10 @@ tools/run_tests.sh
 tests/coop_gen1_story.lua
 tools/i18n_check.py
 tests/coop_ux.lua
+
+# imágenes del README (GitHub), no van en el mod
+docs/img/coop-3d.gif
+docs/img/emotes-3d.png
+docs/img/dobles.png
+docs/img/menu-coop.png
+docs/img/chat.png

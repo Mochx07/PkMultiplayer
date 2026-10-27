@@ -7,6 +7,16 @@ y peleáis contra los entrenadores en **combates dobles 2 contra 2**.
 Es un **mod** para el [Gen2Recomped](https://github.com/UNDERdecoded/Gen2Recomped)
 oficial. No hace falta descargar ningún fork del juego, solo este zip.
 
+<p align="center">
+  <img src="docs/img/coop-3d.gif" alt="Dos jugadores caminando juntos por New Bark Town en 3D, con emotes" width="512">
+</p>
+
+| Combates dobles 2 contra 2 | Emotes y nombres, también en 3D |
+|---|---|
+| <img src="docs/img/dobles.png" alt="Combate doble co-op contra Pidgey y Pidgeotto, con P1 y P2" width="360"> | <img src="docs/img/emotes-3d.png" alt="Dos jugadores con burbujas de emote sobre la cabeza en el mundo 3D" width="360"> |
+| **Menú co-op (en español)** | **Chat en vivo** |
+| <img src="docs/img/menu-coop.png" alt="Menú co-op en español con chat, emotes, ir con el compañero y reglas" width="360"> | <img src="docs/img/chat.png" alt="Caja de chat con mensajes entre MOCHI y TOBY" width="360"> |
+
 *English below.*
 
 ## Instalación
