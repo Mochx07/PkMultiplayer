@@ -418,17 +418,18 @@ function CoopNewGame:draw()
     if CoopManager.isHost then
       local zt = CoopNet.zeroTierIP()
       Font.draw("WAITING GUEST" .. dots, 8, 32)
+      -- the box's last text row is y=96 (its border starts at 104)
       if zt then
         Font.draw("ZEROTIER IP:", 8, 48)
         Font.draw(fit(zt, 18), 8, 56)
-        Font.draw("LAN IP:", 8, 72)
-        Font.draw(fit(CoopNet.lanIP(), 18), 8, 80)
+        Font.draw("LAN IP:", 8, 64)
+        Font.draw(fit(CoopNet.lanIP(), 18), 8, 72)
       else
         Font.draw("TELL YOUR GUEST:", 8, 48)
         Font.draw(fit(CoopNet.lanIP(), 18), 8, 64)
       end
-      Font.draw("CODE: " .. tostring(CoopNet.inviteCode(zt or CoopNet.lanIP(), self.port) or "?"), 8, 96)
-      Font.draw("PORT: " .. self.port, 8, 104)
+      Font.draw("CODE: " .. tostring(CoopNet.inviteCode(zt or CoopNet.lanIP(), self.port) or "?"), 8, 88)
+      Font.draw("PORT: " .. self.port, 8, 96)
     else
       Font.draw("CONNECTING" .. dots, 8, 32)
       Font.draw("TO:", 8, 48)

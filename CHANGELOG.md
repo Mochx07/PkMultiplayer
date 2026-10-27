@@ -14,6 +14,9 @@ Compatible con 1.6.0 y 1.6.1 (mismo protocolo 16).
   del seguidor (ni en la que está por pisar), y el seguidor espera si alguien ocupa su
   siguiente paso. Tú sigues pudiendo pasar a través de él, y las escenas y la vista de los
   entrenadores no cambian.
+- NEW CO-OP GAME / CONTINUE CO-OP: al esperar invitado, el código y el puerto se salían por el
+  borde inferior de la caja. Y en todo el mod los textos ya no pisan el borde derecho de las
+  cajas (antes se cortaban en el borde de la pantalla).
 
 ## 1.6.1
 

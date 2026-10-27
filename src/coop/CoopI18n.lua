@@ -238,7 +238,8 @@ function I18n.font()
     draw = function(text, x, ...)
       local F = require("src.render.Font")
       text = I18n.t(text)
-      local w = I18n.screenW or 160
+      -- 8 px short of the edge: the boxes' right border lives there
+      local w = (I18n.screenW or 160) - 8
       if type(text) == "string" and type(x) == "number" and x < w and F.width(text) > w - x then
         text = F.fit(text, w - x)
       end
