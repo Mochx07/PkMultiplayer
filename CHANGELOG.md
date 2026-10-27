@@ -3,6 +3,18 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.1
+
+Compatible con 1.6.0 (mismo protocolo 16): no hace falta que el compañero actualice.
+
+### Cambiado
+
+- Parches regenerados contra **Gen2Recomped 0.8.47** (8d5b438). En la 0.8.47 cambiaron
+  `BattleState`, `TrainerAI`, `BagMenu` y `OverworldController`; con 1.6.0 el mod ponía
+  encima sus versiones de la 0.8.46 y se perdían los arreglos nuevos del motor (y el
+  `interact` del mundo nuevo usa `GEN4_SIGN_FACING`, que la versión vieja no conocía).
+  Ahora los 120 cambios del co-op se colocan sobre el código de la 0.8.47.
+
 ## 1.6.0
 
 **Los dos jugadores necesitan esta versión** (protocolo 16). Incluye lo que
