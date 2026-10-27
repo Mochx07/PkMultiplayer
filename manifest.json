@@ -17,7 +17,7 @@
   ],
   "affects_link": false,
   "description": "Online co-op for Gold, Silver and Crystal (and Red/Blue/Yellow): two players in one Johto over LAN or ZeroTier. See each other walk, chat (T) and emote (Y), live the story's events together, trade through the Cable Club, have your lead Pokémon walk behind you (HGSS-style), and fight trainers as a 2-vs-2 double battle in lockstep, with HeartGold/SoulSilver's doubles rules. Start it from START > CO-OP (LAN), or NEW CO-OP GAME / CONTINUE CO-OP on the title screen. Patches engine code: Gen 1 and Gen 2 only.",
-  "github": "Mochx-007/PkMultiplayer",
+  "github": "Mochx07/PkMultiplayer",
   "update_check": true,
   "required_imports": [
     {

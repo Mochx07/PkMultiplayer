@@ -6,8 +6,8 @@
 Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
 
 <p align="center">
-  <a href="https://github.com/Mochx-007/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx-007/PkMultiplayer?label=release&color=39ff88"></a>
-  <a href="https://github.com/Mochx-007/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx-007/PkMultiplayer/total"></a>
+  <a href="https://github.com/Mochx07/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?label=release&color=39ff88"></a>
+  <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx07/PkMultiplayer/total"></a>
   <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Tested on Gen2Recomped 0.8.47" src="https://img.shields.io/badge/Gen2Recomped-0.8.47-blue"></a>
   <img alt="2 players" src="https://img.shields.io/badge/players-2%20(%2B4%20visitors)-orange">
   <img alt="English and Spanish" src="https://img.shields.io/badge/language-EN%20%7C%20ES-lightgrey">
@@ -48,7 +48,7 @@ no fork of the game to download, just this zip.
 
 1. Have the **official Gen2Recomped** installed, with your Gold/Silver/Crystal ROM already imported.
 2. Download `PkMultiplayer-<version>.zip` from
-   [Releases](https://github.com/Mochx-007/PkMultiplayer/releases).
+   [Releases](https://github.com/Mochx07/PkMultiplayer/releases).
 3. In the launcher, open the **MODS** tab and press **Import mod .zip**, or drop the
    zip on the window. Make sure the mod is enabled.
 4. Start the game. **Both players** need the mod, on the same version.
@@ -150,7 +150,7 @@ Natu...) the hit landed in the air.
 
 `coop.log` and `log.txt` are in the game's save folder (Linux:
 `~/.local/share/Gen2Recomp/`, Windows: `%APPDATA%\Gen2Recomp\`). If something fails,
-open an [issue](https://github.com/Mochx-007/PkMultiplayer/issues/new/choose) and attach
+open an [issue](https://github.com/Mochx07/PkMultiplayer/issues/new/choose) and attach
 both players' `coop.log`.
 
 ---
@@ -183,7 +183,7 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 
 1. Ten el **Gen2Recomped oficial** instalado, con tu ROM de Oro/Plata/Cristal ya importada.
 2. Descarga `PkMultiplayer-<versión>.zip` de
-   [Releases](https://github.com/Mochx-007/PkMultiplayer/releases).
+   [Releases](https://github.com/Mochx07/PkMultiplayer/releases).
 3. En el launcher, abre la pestaña **MODS** y pulsa **Import mod .zip**, o
    arrastra el zip a la ventana. Comprueba que el mod está activado.
 4. Abre el juego. Los **dos jugadores** necesitan el mod, y en la misma versión.
@@ -295,7 +295,7 @@ Pokémon pequeño (Pidgey, Natu...) el golpe quedaba en el aire.
 
 `coop.log` y `log.txt` están en la carpeta de guardado del juego
 (Linux: `~/.local/share/Gen2Recomp/`, Windows: `%APPDATA%\Gen2Recomp\`).
-Si algo falla, abre un [issue](https://github.com/Mochx-007/PkMultiplayer/issues/new/choose)
+Si algo falla, abre un [issue](https://github.com/Mochx07/PkMultiplayer/issues/new/choose)
 y adjunta el `coop.log` de los dos jugadores.
 
 ---
