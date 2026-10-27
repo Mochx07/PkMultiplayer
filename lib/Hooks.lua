@@ -774,6 +774,37 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
 
   -- the partner's avatar, emotes and chat bubble (world pass), and the
   -- co-op overlays (UI pass)
+  -- A WANDERING NPC DOES NOT WALK INTO THE POKEMON THAT FOLLOWS YOU.  The
+  -- follower is passable so it never blocks the player (FollowMon), and that
+  -- let a townsperson step into its cell: two pictures on one spot, taking
+  -- turns on top.  Only an NPC's own step (wander, its route) is refused;
+  -- the player, scripted scenes and a trainer's line of sight are untouched
+  -- (they do not come through here, or come through as the player).
+  local okC, Collision = pcall(require, "src.world.Collision")
+  if okC and type(Collision) == "table" and Collision.canMove and Collision.target then
+    wrap(Collision, "Collision", "canMove", function(canMove)
+      return function(map, entities, mover, dir, ...)
+        local ok, why = canMove(map, entities, mover, dir, ...)
+        if not ok or type(mover) ~= "table" or not mover.def or mover.pkmFollower or mover.pkmFollowerRemote then
+          return ok, why
+        end
+        local Game = package.loaded["src.core.Game"]
+        local ow = Game and Game.overworld
+        if ow and mover == ow.player then return ok, why end
+        local tx, ty = Collision.target(mover.cellX, mover.cellY, dir)
+        for _, e in ipairs(entities or {}) do
+          if e.pkmFollower or e.pkmFollowerRemote then
+            if (e.cellX == tx and e.cellY == ty) or (e.targetX == tx and e.targetY == ty)
+               or (e.goalX == tx and e.goalY == ty) then
+              return false, "entity"
+            end
+          end
+        end
+        return ok, why
+      end
+    end)
+  end
+
   wrap(OverworldState, "OverworldState", "drawWorld", function(drawWorld)
     return function(self, ...)
       local a, b, c = drawWorld(self, ...)

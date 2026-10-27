@@ -245,6 +245,16 @@ function FollowMon.update(game, ow)
     return
   end
   local far = math.abs(npc.cellX - gx) + math.abs(npc.cellY - gy)
+  -- someone standing on the next cell (a townsperson, the player dropped
+  -- next to one by a warp or a scene): wait rather than walk into them --
+  -- two pictures on one cell take turns on top.  A long wait snaps below.
+  if far <= FAR then
+    local okC, Collision = pcall(require, "src.world.Collision")
+    local nx = npc.cellX + (npc.cellX < gx and 1 or npc.cellX > gx and -1 or 0)
+    local ny = npc.cellY + ((npc.cellX == gx) and (npc.cellY < gy and 1 or npc.cellY > gy and -1 or 0) or 0)
+    local hit = okC and Collision.occupied and Collision.occupied(ow.entities or {}, nx, ny, npc)
+    if hit and hit ~= p and not hit.pkmFollowerRemote and not hit.coopVisitor then return end
+  end
   if far > FAR then
     -- a warp, a forced slide, a ledge chain: snap rather than walk through walls
     npc.cellX, npc.cellY = gx, gy

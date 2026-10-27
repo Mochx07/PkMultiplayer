@@ -3,6 +3,18 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.2 (sin publicar)
+
+Compatible con 1.6.0 y 1.6.1 (mismo protocolo 16).
+
+### Arreglado
+
+- El Pokémon que te sigue podía quedar encimado con un NPC del pueblo: los dos dibujos se
+  turnaban en la misma casilla. Ahora un NPC que camina por su cuenta no entra en la casilla
+  del seguidor (ni en la que está por pisar), y el seguidor espera si alguien ocupa su
+  siguiente paso. Tú sigues pudiendo pasar a través de él, y las escenas y la vista de los
+  entrenadores no cambian.
+
 ## 1.6.1
 
 Compatible con 1.6.0 (mismo protocolo 16): no hace falta que el compañero actualice.
