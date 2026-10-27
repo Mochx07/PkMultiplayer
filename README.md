@@ -27,12 +27,12 @@ It is a **mod** for the official [Gen2Recomped](https://github.com/UNDERdecoded/
 no fork of the game to download, just this zip.
 
 <p align="center">
-  <img src="docs/img/coop-3d.gif" alt="Two players walking together through New Bark Town in 3D, with emotes" width="512">
+  <img src="docs/img/coop.gif" alt="Two players walk together through New Bark Town, trade emotes and a chat message, then fight a 2-vs-2 double battle" width="512">
 </p>
 
-| 2-vs-2 double battles | Emotes and names, in 3D too |
+| 2-vs-2 double battles | Emotes and your partner's name |
 |---|---|
-| <img src="docs/img/dobles.png" alt="A co-op double battle against Pidgey and Pidgeotto, with P1 and P2 tags" width="360"> | <img src="docs/img/emotes-3d.png" alt="Two players with emote bubbles over their heads in the 3D world" width="360"> |
+| <img src="docs/img/dobles.png" alt="A co-op double battle against Pidgey and Pidgeotto, with P1 and P2 tags" width="360"> | <img src="docs/img/emotes.png" alt="Two players with emote bubbles over their heads and the partner's name tag" width="360"> |
 | **Co-op menu** | **Live chat** |
 | <img src="docs/img/coop-menu-en.png" alt="The co-op menu: chat, emote, ready, warp, partner, Pokédex, rules" width="360"> | <img src="docs/img/chat.png" alt="The chat box with messages between MOCHI and TOBY" width="360"> |
 
@@ -42,7 +42,7 @@ no fork of the game to download, just this zip.
 - ⚔️ **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
 - 🔗 **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
 - 🐾 **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
-- 🌐 **English and Spanish**, and it works in DramaticShapes' **3D** world too.
+- 🌐 **English and Spanish**, switchable in the mod's options.
 
 ## Installation
 
@@ -136,7 +136,8 @@ Natu...) the hit landed in the air.
 - It only works in **Gen 1 and Gen 2** games. In the rest the mod loads but does nothing.
 - Without your ROM imported for the mod, the emotes are bubbles the mod draws (see
   "Original emotes").
-- With the voxel mod (DramaticShapes) single battles stay in 3D, but co-op doubles are
+- PkMultiplayer has no 3D of its own. If you also use **DramaticShapes** (a separate 3D
+  mod bundled with Gen2Recomped), the co-op works in its 3D world, but co-op doubles are
   played on the classic screen (its 3D only knows single battles).
 - Visitors don't share the story, battles or items: only the world, the chat and the emotes.
 - The walking Pokémon uses the party-menu icon (two frames, no back view), which is
@@ -176,7 +177,7 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 - ⚔️ **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
 - 🔗 **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
 - 🐾 **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
-- 🌐 **Español e inglés**, y funciona también con el mundo **3D** de DramaticShapes.
+- 🌐 **Español e inglés**, a elegir en las opciones del mod.
 
 ## Instalación
 
@@ -277,9 +278,10 @@ Pokémon pequeño (Pidgey, Natu...) el golpe quedaba en el aire.
   pero no hace nada.
 - Sin tu ROM importado para el mod, los emotes son globos dibujados por el
   mod (ver "Emotes originales").
-- Con el mod de vóxeles (DramaticShapes) los combates individuales siguen en
-  3D, pero los dobles co-op se juegan en la pantalla clásica (su 3D solo sabe
-  de combates individuales).
+- PkMultiplayer no tiene 3D propio. Si además usas **DramaticShapes** (otro mod,
+  de 3D, que viene con Gen2Recomped), el co-op funciona en su mundo 3D, pero los
+  dobles co-op se juegan en la pantalla clásica (su 3D solo sabe de combates
+  individuales).
 - Los visitantes no comparten historia, combates ni objetos: solo el mundo,
   el chat y los emotes.
 - El Pokémon que te sigue usa el icono del menú de equipo (dos frames, sin

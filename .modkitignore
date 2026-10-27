@@ -42,8 +42,8 @@ tools/i18n_check.py
 tests/coop_ux.lua
 
 # imágenes del README (GitHub), no van en el mod
-docs/img/coop-3d.gif
-docs/img/emotes-3d.png
+docs/img/coop.gif
+docs/img/emotes.png
 docs/img/dobles.png
 docs/img/menu-coop.png
 docs/img/chat.png
