@@ -1,8 +1,25 @@
-# PkMultiplayer — co-op online para Gen2Recomped
+<h1 align="center">PkMultiplayer</h1>
+
+<p align="center"><b>Co-op online para dos en Gen2Recomped: pásate Pokémon Oro, Plata, Cristal<br>
+(y Rojo/Azul/Amarillo) con un amigo, en el mismo mundo.</b></p>
+
+<p align="center">
+  <a href="https://github.com/Mochx-007/PkMultiplayer/releases/latest"><img alt="Última versión" src="https://img.shields.io/github/v/release/Mochx-007/PkMultiplayer?label=versi%C3%B3n&color=39ff88"></a>
+  <a href="https://github.com/Mochx-007/PkMultiplayer/releases"><img alt="Descargas" src="https://img.shields.io/github/downloads/Mochx-007/PkMultiplayer/total?label=descargas"></a>
+  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Gen2Recomped 0.8.47" src="https://img.shields.io/badge/Gen2Recomped-0.8.47-blue"></a>
+  <img alt="2 jugadores" src="https://img.shields.io/badge/jugadores-2%20(%2B4%20visitantes)-orange">
+  <img alt="Español e inglés" src="https://img.shields.io/badge/idioma-ES%20%7C%20EN-lightgrey">
+  <a href="LICENSE"><img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-green"></a>
+</p>
+
+<p align="center">🇪🇸 Español · <a href="#english">🇬🇧 English</a></p>
 
 Juega **Pokémon Oro, Plata o Cristal** (y Rojo/Azul/Amarillo) con un amigo en el
 mismo mundo: os veis caminar, chateáis, vivís los eventos de la historia juntos
 y peleáis contra los entrenadores en **combates dobles 2 contra 2**.
+
+**No es un MMO:** es tu partida de siempre, con un amigo dentro. Sin servidores
+de nadie: uno de los dos aloja la sesión desde su propio juego.
 
 Es un **mod** para el [Gen2Recomped](https://github.com/UNDERdecoded/Gen2Recomped)
 oficial. No hace falta descargar ningún fork del juego, solo este zip.
@@ -17,7 +34,15 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 | **Menú co-op (en español)** | **Chat en vivo** |
 | <img src="docs/img/menu-coop.png" alt="Menú co-op en español con chat, emotes, ir con el compañero y reglas" width="360"> | <img src="docs/img/chat.png" alt="Caja de chat con mensajes entre MOCHI y TOBY" width="360"> |
 
-*English below.*
+### Lo que lo hace distinto
+
+- 📖 **La historia, juntos**: los eventos, objetos del mundo y medallas se viven a la vez en las dos partidas.
+- ⚔️ **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
+- 🔗 **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
+- 🐾 **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
+- 🌐 **Español e inglés**, y funciona también con el mundo **3D** de DramaticShapes.
+
+*[English below](#english).*
 
 ## Instalación
 
@@ -130,12 +155,27 @@ Pokémon pequeño (Pidgey, Natu...) el golpe quedaba en el aire.
 
 ## Registro (logs)
 
-`coop.log` y `log.txt` están en la carpeta de guardado del juego. Si algo
-falla, mándalos al abrir un issue.
+`coop.log` y `log.txt` están en la carpeta de guardado del juego
+(Linux: `~/.local/share/Gen2Recomp/`, Windows: `%APPDATA%\Gen2Recomp\`).
+Si algo falla, abre un [issue](https://github.com/Mochx-007/PkMultiplayer/issues/new/choose)
+y adjunta el `coop.log` de los dos jugadores.
 
 ---
 
+<a id="english"></a>
+
 # PkMultiplayer — online co-op for Gen2Recomped
+
+**Two-player co-op, not an MMO:** your own playthrough, with a friend in it. No
+third-party servers — one of you hosts the session from inside the game.
+
+### What makes it different
+
+- 📖 **The story, together**: events, world items and badges happen in both saves at once.
+- ⚔️ **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
+- 🔗 **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
+- 🐾 **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
+- 🌐 **English and Spanish**, and it works in DramaticShapes' **3D** world too.
 
 Two players, one Johto. You see each other walk, chat (**T**) and emote
 (**Y**), live the story's events together, trade through the Cable Club and

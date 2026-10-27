@@ -1,0 +1,48 @@
+name: Bug report / Reportar un error
+description: Something went wrong in co-op / Algo falló en el co-op
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! / ¡Gracias! The **coop.log** of both players is the most useful thing you can attach.
+        El **coop.log** de los dos jugadores es lo más útil que puedes adjuntar.
+        Linux: `~/.local/share/Gen2Recomp/coop.log` · Windows: `%APPDATA%\Gen2Recomp\coop.log`
+  - type: input
+    id: mod
+    attributes:
+      label: PkMultiplayer version / versión (VERSION row in the co-op menu)
+      placeholder: "1.6.1"
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Gen2Recomped version / versión del juego
+      placeholder: "0.8.47"
+    validations:
+      required: true
+  - type: dropdown
+    id: games
+    attributes:
+      label: Games / Juegos
+      options:
+        - Gold / Oro
+        - Silver / Plata
+        - Crystal / Cristal
+        - Red/Blue/Yellow
+        - Mixed / Mezcla (e.g. Gold + Crystal)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / ¿Qué pasó?
+      description: What you did, what you expected, what you saw. / Qué hiciste, qué esperabas y qué viste.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: coop.log (host + guest / anfitrión + invitado)
+      description: Drag the files here or paste the last lines. / Arrastra los archivos o pega las últimas líneas.
