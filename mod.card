@@ -2,8 +2,8 @@
 -- never by the loader.
 return {
   summary = "Online co-op for Gold/Silver/Crystal: one Johto, two players, 2-vs-2 trainer battles.",
-  author = "MochiXLi (Mochx-007)",
-  contact = "https://github.com/Mochx-007/PkMultiplayer",
+  author = "MochiXLi (Mochx07)",
+  contact = "https://github.com/Mochx07/PkMultiplayer",
   tags = { "multiplayer", "co-op", "online", "double-battle", "gen2" },
   differences = {
     changed = {
