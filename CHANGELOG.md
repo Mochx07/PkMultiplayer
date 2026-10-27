@@ -3,7 +3,7 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
-## 1.6.2 (sin publicar)
+## 1.6.2
 
 Compatible con 1.6.0 y 1.6.1 (mismo protocolo 16).
 
