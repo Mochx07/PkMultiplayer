@@ -62,7 +62,7 @@ do
   T.check(battle.coop.partnerLost, "after the grace period the AI plays the partner's Pokemon")
   local leave = lastOf("coop_battle_leave")
   T.check(leave and leave.inviteId == "LINK1", "...and the partner is told, for when the link comes back")
-  T.check(CoopBattle.LINK_GRACE >= 20, "a short drop never hands the slot to the AI")
+  T.check(CoopBattle.LINK_GRACE >= 120, "a drop of a minute or two never hands the slot to the AI")
 end
 
 -- a turn too far ahead is not stored
@@ -76,13 +76,69 @@ do
   T.check(battle.coop.partnerActions[4] ~= nil, "the next turn's action is kept")
 end
 
--- the partner came back as a new game: our shared battle is over for them
+-- THE LINK CAME BACK AS A NEW SESSION (log 2026-10-28 22:28: a one-minute
+-- drop handed the partner's Pokemon to the AI for good).  The battle asks
+-- whether the partner is still in it before giving up on them.
 do
   local battle = newBattle()
   up = true
   CoopBattle.onNewSession()
-  T.check(battle.coop.partnerLost, "a partner who restarted no longer plays in this battle")
+  T.check(not battle.coop.partnerLost and battle.coop.awaitingResume, "a new session first asks if the partner is still in the battle")
+  sent = {}
+  CoopBattle.onLinkRestored()
+  local here = lastOf("coop_battle_here")
+  T.check(here and here.inviteId == "LINK1" and here.turn == 3, "...by saying which battle and turn we are on")
+  -- they are: the battle goes on with them, and what they missed is sent again
+  battle.coop.sentActions = { [3] = { type = "coop_battle_action", inviteId = "LINK1", turn = 3, action = { kind = "move" } } }
+  sent = {}
+  CoopBattle.onPartnerHere({ inviteId = "LINK1", turn = 3 })
+  T.check(not battle.coop.partnerLost and not battle.coop.awaitingResume, "a partner still in the battle plays on")
+  local again = lastOf("coop_battle_action")
+  T.check(again and again.turn == 3, "...and gets the action of the turn they are on again")
   up = false
+end
+
+do
+  -- they restarted: their game says so, and the AI takes their Pokemon at once
+  local battle = newBattle()
+  up = true
+  CoopBattle.onNewSession()
+  CoopBattle.onPartnerGone({ inviteId = "LINK1" })
+  T.check(battle.coop.partnerLost, "a partner whose game left the battle hands their Pokemon to the AI")
+  up = false
+end
+
+do
+  -- an older version answers nothing: the AI takes over after a short wait
+  local battle = newBattle()
+  up = true
+  CoopBattle.onNewSession()
+  CoopBattle.onLinkRestored()
+  for _ = 1, math.ceil(CoopBattle.RESUME_WAIT / 0.5) + 1 do CoopBattle.tick(0.5) end
+  T.check(battle.coop.partnerLost, "with no answer the AI takes over after RESUME_WAIT")
+  up = false
+end
+
+do
+  -- a battle we are not in (or no longer in) is answered "gone"
+  local battle = newBattle()
+  sent = {}
+  CoopBattle.onPartnerHere({ inviteId = "SOMETHING_ELSE", turn = 1 })
+  local gone = lastOf("coop_battle_gone")
+  T.check(gone and gone.inviteId == "SOMETHING_ELSE", "a battle we are not in is answered with coop_battle_gone")
+  T.check(not battle.coop.partnerLost, "...and does not touch ours")
+end
+
+do
+  -- the session's own reconnect window running out still waits for them
+  local battle = newBattle()
+  CoopBattle.onLinkLost("timeout")
+  T.check(not battle.coop.partnerLost and battle.coop.linkLostAt, "the session timing out keeps waiting (RECONNECTING...)")
+  local okDraw, err = pcall(CoopBattle.drawWaitPrompt, battle)
+  T.check(okDraw, "the RECONNECTING box draws (" .. tostring(err) .. ")")
+  T.check(CoopBattle.drawReconnecting(battle) == true, "...in place of the wait prompt while the link is down")
+  CoopBattle.onLinkLost("left")
+  T.check(battle.coop.partnerLost, "a goodbye hands their Pokemon to the AI")
 end
 
 -- early actions for battles not up yet are kept for a few battles only

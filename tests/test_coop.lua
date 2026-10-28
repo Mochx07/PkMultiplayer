@@ -653,7 +653,13 @@ do
   CoopBattle.onLocalActionSelected(c2, tackleH)
   busTo.guest = {} -- lost in flight
   CoopBattle.onLinkRestored()
-  check(#busTo.guest == 1 and busTo.guest[1].turn == 1, "pending turn re-sent after reconnect")
+  local resent, here = {}, nil
+  for _, m in ipairs(busTo.guest) do
+    if m.type == "coop_battle_action" then resent[#resent + 1] = m end
+    if m.type == "coop_battle_here" then here = m end
+  end
+  check(#resent == 1 and resent[1].turn == 1, "pending turn re-sent after reconnect")
+  check(here and here.inviteId == "RS" and here.turn == 1, "...and the partner told which battle and turn we are on")
 
   -- actions that beat the battle into existence are kept
   CoopBattle.currentBattle = nil

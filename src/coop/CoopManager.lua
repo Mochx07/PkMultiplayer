@@ -153,6 +153,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopDayCare",
   "src.coop.CoopTower",
   "src.coop.CoopBalance",
+  "src.coop.CoopLogShare",
 }
 CoopManager.render = nil
 
@@ -2795,6 +2796,8 @@ H.coop_battle_action = toBattle("onPartnerAction")
 H.coop_battle_heal = toBattle("onPartnerHealedMon")
 H.coop_battle_sync = toBattle("onPartnerBattleSync")
 H.coop_battle_leave = toBattle("onPartnerLeft")
+H.coop_battle_here = toBattle("onPartnerHere")
+H.coop_battle_gone = toBattle("onPartnerGone")
 H.coop_battle_replace = toBattle("onPartnerReplace")
 H.coop_battle_abort = toBattle("onPartnerLeft")
 

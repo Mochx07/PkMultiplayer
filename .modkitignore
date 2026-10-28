@@ -3,6 +3,7 @@ tests/anim_fit.lua
 tests/coop_cable_club.lua
 tests/coop_features.lua
 tests/coop_live_chat.lua
+tests/coop_logshare.lua
 tests/coop_lockstep.lua
 tests/coop_mobile.lua
 tests/coop_partner_items.lua

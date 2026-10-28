@@ -74,7 +74,7 @@ local MODULES = {
   "src.coop.CoopSoulLink", "src.coop.CoopGear",
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
-  "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance",
+  "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance", "src.coop.CoopLogShare",
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
@@ -160,6 +160,8 @@ if mod.options and mod.options.define then
   pcall(mod.options.define, mod.options, {
     { key = "follower", type = "toggle", label = "POKEMON FOLLOWS YOU", default = true },
     { key = "autoReconnect", type = "toggle", label = "AUTO RECONNECT", default = true },
+    -- each game's coop.log goes to the partner's coop-partner.log (src/coop/CoopLogShare.lua)
+    { key = "shareLog", type = "toggle", label = "SHARE CO-OP LOG", default = true },
     { key = "smartTrainers", type = "toggle", label = "SMARTER TRAINERS", default = true },
     -- the mod's own menus and messages (src/coop/CoopI18n.lua); AUTO follows
     -- the language the launcher translates the game to

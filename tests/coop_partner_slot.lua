@@ -118,4 +118,46 @@ do
   T.check(#battle.coop.replaceQueue == 1, "...and a pick for a later faint stays queued")
 end
 
+-- NOBODY STANDING ON OUR SIDE as a turn starts (logs 2026-10-28 22:29: the
+-- battle played hundreds of empty turns a second after the AI took over)
+local function emptyOurSide(battle)
+  for _, pos in ipairs({ P.PLAYER_LEFT, P.PLAYER_RIGHT }) do
+    local b = battle:battlerAt(pos)
+    if b then b.mon.hp = 0 battle:placeBattler(pos, nil) end
+  end
+  battle:syncSides()
+end
+
+do
+  local battle = hostCopy({ "FIXMON_C", "FIXMON_B" })
+  emptyOurSide(battle)
+  for _, m in ipairs(battle.coopChosenMons) do m.hp = 0 end
+  local partnerSecond = battle.ally.party[2]
+  T.check((partnerSecond.hp or 0) > 0, "the partner still has one healthy on the bench")
+  T.check(CoopBattle.guardEmptySide(battle) == false and battle:battlerAt(P.PLAYER_RIGHT) == nil,
+          "one empty turn is left to the engine (its replacements may still be coming)")
+  T.check(CoopBattle.guardEmptySide(battle) == false, "with somebody on a bench the turn goes on")
+  local now = battle:battlerAt(P.PLAYER_RIGHT)
+  T.check(now and now.mon == partnerSecond and now.ally, "...and that Pokemon is sent in to the partner's slot")
+  T.check(battle:battlerAt(P.PLAYER_LEFT) == nil, "our own slot stays empty: we have nobody left")
+end
+
+do
+  local battle = hostCopy({ "FIXMON_C", "FIXMON_B" })
+  emptyOurSide(battle)
+  for _, m in ipairs(battle.coopChosenMons) do m.hp = 0 end
+  for _, m in ipairs(battle.ally.party) do m.hp = 0 end
+  CoopBattle.guardEmptySide(battle)
+  T.check(CoopBattle.guardEmptySide(battle) == true, "with nobody left anywhere the turn does not run")
+  T.check(battle.result == "lose" or (battle.coop.forceResult == "lose"), "...and the battle is lost")
+end
+
+do
+  local battle = hostCopy({ "FIXMON_C", "FIXMON_B" })
+  local left, right = battle:battlerAt(P.PLAYER_LEFT), battle:battlerAt(P.PLAYER_RIGHT)
+  CoopBattle.guardEmptySide(battle)
+  T.check(CoopBattle.guardEmptySide(battle) == false, "a side with Pokemon standing is left alone")
+  T.check(battle:battlerAt(P.PLAYER_LEFT) == left and battle:battlerAt(P.PLAYER_RIGHT) == right, "...untouched")
+end
+
 T.finish("co-op double: the partner's Pokemon fell on their screen only")

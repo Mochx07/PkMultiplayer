@@ -36,7 +36,8 @@ CoopBattle.waitingForPartner = false
 CoopBattle.waitTimer = 0
 CoopBattle.fallbackAllowed = false
 
-CoopBattle.LINK_GRACE = 20.0       -- a dropped link gets this long to come back mid-battle
+CoopBattle.LINK_GRACE = 180.0      -- a dropped link gets this long to come back mid-battle
+CoopBattle.RESUME_WAIT = 10.0      -- after a reconnect, how long the partner has to say it is still in the battle
 CoopBattle.RESULT_GRACE = 6.0      -- guest finishes on its own this long after the host did
 CoopBattle.REPLACE_WAIT = 30.0     -- a fallen partner slot waits this long only once the link is gone
 -- true = every fallen slot takes the first healthy Pokemon without asking
@@ -726,6 +727,7 @@ function CoopBattle.executeTurn(battle)
     CoopBattle.applyItemBoost(battle, mineB, true) CoopBattle.applyItemBoost(battle, theirsB, false)
   end
   CoopBattle.queueRevivedSlots(battle)
+  if CoopBattle.guardEmptySide(battle) then return end
   reseed(battle, turn)
   CoopLog.battle("TURN", string.format("resolve turn %d (partner %s)", turn,
                  c.partnerLost and "AI" or tostring(wire and wire.kind)))
@@ -733,6 +735,89 @@ function CoopBattle.executeTurn(battle)
   if not ok then
     CoopLog.error("BATTLE", "resolveTurn failed on turn " .. turn .. ": " .. tostring(err))
   end
+end
+
+-- NOBODY STANDING ON OUR SIDE, AND THE TURN ABOUT TO RUN ANYWAY.  Reported
+-- from play (logs 2026-10-28 22:29, both copies): after the link dropped and
+-- the AI took over, the last Pokemon on our side fainted and neither slot was
+-- filled, while the side check still counted somebody healthy on a bench --
+-- so the battle neither sent anyone out nor ended, and played hundreds of
+-- empty turns a second.  Whatever leads there, a turn never runs with our
+-- side empty two turns running: a slot holding a fallen battler is cleared, each empty slot
+-- takes the first healthy Pokemon from its own bench (ours, or the
+-- partner's), and with nobody to send the battle is lost.
+local function standing(b)
+  return b and b.mon and (tonumber(b.mon.hp) or 0) > 0 and not b.fainted and not b.faintQueued
+end
+
+local function usable(mon, taken)
+  if type(mon) ~= "table" or taken[mon] or (tonumber(mon.hp) or 0) <= 0 then return false end
+  if mon.isEgg or (tonumber(mon.eggSteps) or 0) > 0 then return false end
+  return true
+end
+
+function CoopBattle.guardEmptySide(battle)
+  if not (battle and battle.coopDouble and battle.battlerAt and battle.placeBattler) then return false end
+  local P = BattleStatePos()
+  local c = battle.coop or {}
+  if standing(battle:battlerAt(P.PLAYER_LEFT)) or standing(battle:battlerAt(P.PLAYER_RIGHT)) then
+    c.emptyTurns = 0
+    return false
+  end
+  -- An empty side at the start of ONE turn can be the engine still sending
+  -- someone in: the replacements of the turn before are queued, or still
+  -- playing out, on this copy and not yet on the other.  Stepping in there
+  -- put a different field on each copy.  The stuck battle is empty turn
+  -- after turn with nothing pending, so only that is touched.
+  if (battle.pendingReplacements and #battle.pendingReplacements > 0)
+     or (type(battle.queue) == "table" and #battle.queue > 0) then
+    return false
+  end
+  c.emptyTurns = (c.emptyTurns or 0) + 1
+  if c.emptyTurns < 2 then return false end
+  c.emptyTurns = 0
+  local taken = {}
+  for p = 0, 3 do
+    local b = battle:battlerAt(p)
+    if b and b.mon then taken[b.mon] = true end
+  end
+  local BattleState = require("src.battle.BattleState")
+  local benches = {
+    { pos = P.PLAYER_LEFT, list = battle.coopChosenMons, own = true },
+    { pos = P.PLAYER_RIGHT, list = battle.ally and battle.ally.party, own = false },
+  }
+  local placed, seen = {}, {}
+  for _, bench in ipairs(benches) do
+    local here = battle:battlerAt(bench.pos)
+    if here and not standing(here) then battle:placeBattler(bench.pos, nil) end
+    for _, mon in ipairs(type(bench.list) == "table" and bench.list or {}) do
+      if type(mon) == "table" then
+        seen[#seen + 1] = string.format("%s:%s%s", tostring(mon.species), tostring(mon.hp),
+                                        (mon.isEgg or (tonumber(mon.eggSteps) or 0) > 0) and "(egg)" or "")
+      end
+    end
+    if not battle:battlerAt(bench.pos) and BattleState.makeBattler then
+      for _, mon in ipairs(type(bench.list) == "table" and bench.list or {}) do
+        if usable(mon, taken) then
+          local who = battle:placeBattler(bench.pos, BattleState.makeBattler(battle.data, mon, true,
+                                          bench.own and battle.game and battle.game.save or nil))
+          if who and not bench.own then who.ally = true end
+          taken[mon] = true
+          placed[#placed + 1] = tostring(mon.species)
+          break
+        end
+      end
+    end
+  end
+  if battle.syncSides then battle:syncSides() end
+  if #placed > 0 then
+    CoopLog.warn("BATTLE", "our side was empty at the start of the turn; sent in " .. table.concat(placed, ", "))
+    return false
+  end
+  CoopLog.warn("BATTLE", "our side is empty and nobody can come in (benches " .. table.concat(seen, " ")
+               .. "); the battle is lost")
+  CoopBattle.forceFinishBattle(battle, "lose")
+  return true
 end
 
 -- THE ONE DIE OF THE TURN.  Engine code that forgets to pass the battle's
@@ -785,6 +870,9 @@ function CoopBattle.submitLocal(battle, action, opts)
       action = CoopBattle.encodeAction(battle, action, opts),
       state = CoopBattle.packOwnState(battle),
     }
+    c.sentActions = c.sentActions or {}
+    c.sentActions[c.turn] = c.lastSent
+    c.sentActions[c.turn - 4] = nil
     send(c.lastSent)
     CoopLog.battle("ACTION_SENT", "turn " .. tostring(c.turn))
   end
@@ -881,7 +969,10 @@ function CoopBattle.onLinkLost(reason)
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop
   if not c or c.partnerLost then return end
-  if reason == "lost" then
+  -- a drop, and the session's own reconnect window running out, still wait
+  -- for the partner (LINK_GRACE, RECONNECTING... on screen); only a goodbye
+  -- hands their Pokemon to the AI at once
+  if reason == "lost" or reason == "timeout" then
     c.linkLostAt = c.linkLostAt or 0
   else
     CoopBattle.partnerLeft(battle, reason or "left")
@@ -890,11 +981,57 @@ end
 
 -- The link came back as a NEW session (the partner restarted their game):
 -- the battle we were in is not on their side any more.
+--
+-- RECONNECTING, NOT GIVING UP.  Reported from play: the link dropped for a
+-- minute, came back as a new session, and the partner's Pokemon stayed with
+-- the AI for the rest of the battle.  The battle now waits (both screens say
+-- RECONNECTING...), and when the link is up again each copy tells the other
+-- which battle and turn it is on (coop_battle_here): the same battle on both
+-- picks up where it stopped -- the actions the other one missed are sent
+-- again and the host's state is written over the guest's copy -- and a
+-- partner whose game has left the battle answers coop_battle_gone, which
+-- hands their Pokemon to the AI at once.  A partner on an older version says
+-- neither; after RESUME_WAIT the AI takes over, as it always did.
 function CoopBattle.onNewSession()
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop
   if not c or c.partnerLost or c.finished then return end
-  CoopBattle.partnerLeft(battle, "new_session")
+  c.awaitingResume = true
+  c.resumeWait = 0
+  CoopLog.battle("RESUME", "the link came back as a new session; asking if the partner is still in the battle")
+end
+
+function CoopBattle.onPartnerHere(msg)
+  local battle = CoopBattle.currentBattle
+  local c = battle and battle.coop
+  local inviteId = msg and msg.inviteId
+  if not c or c.finished or c.partnerLost or (inviteId and c.inviteId and inviteId ~= c.inviteId) then
+    if inviteId then send({ type = "coop_battle_gone", inviteId = inviteId }) end
+    return
+  end
+  c.awaitingResume = nil
+  c.resumeWait = nil
+  c.linkLostAt = nil
+  -- what they may have missed: every action of ours from the turn they are on
+  local theirs = tonumber(msg.turn) or c.turn
+  for t = math.max(theirs, c.turn - 3), c.turn do
+    local a = c.sentActions and c.sentActions[t]
+    if a then send(a) end
+  end
+  -- and the host's state, written over the guest's copy if the two differ
+  if not battle.isCoopGuest then pcall(CoopBattle.syncBattleHP, battle) end
+  CoopLog.battle("RESUME", string.format("partner is back in the battle (they are on turn %s, we on %d)",
+                 tostring(msg.turn), c.turn))
+  local CM = manager()
+  if CM and CM.showStatus then CM.showStatus("RECONNECTED!", 2.5) end
+end
+
+function CoopBattle.onPartnerGone(msg)
+  local battle = CoopBattle.currentBattle
+  local c = battle and battle.coop
+  if not c or (msg and msg.inviteId and c.inviteId and msg.inviteId ~= c.inviteId) then return end
+  c.awaitingResume = nil
+  CoopBattle.partnerLeft(battle, "partner_not_in_battle")
 end
 
 -- The link came back.  A turn sent just before it dropped died with the old
@@ -909,6 +1046,8 @@ function CoopBattle.onLinkRestored()
     send(c.lastSent)
     CoopLog.battle("ACTION_RESENT", "turn " .. tostring(c.turn))
   end
+  send({ type = "coop_battle_here", inviteId = c.inviteId, turn = c.turn })
+  if c.awaitingResume then c.resumeWait = 0 end
 end
 
 -- ---------------------------------------------------------------------
@@ -1452,6 +1591,17 @@ function CoopBattle.tick(dt)
     return
   end
 
+  -- after a reconnect as a new session: the partner says it is still in the
+  -- battle (onPartnerHere) or not (onPartnerGone); an older version says
+  -- nothing, and the AI takes over as before
+  if c.awaitingResume and not c.partnerLost and linked() then
+    c.resumeWait = (c.resumeWait or 0) + dt
+    if c.resumeWait >= CoopBattle.RESUME_WAIT then
+      c.awaitingResume = nil
+      CoopBattle.partnerLeft(battle, "no_resume")
+    end
+  end
+
   -- link watchdog: a drop gets a grace period, then the AI takes over
   if not c.partnerLost then
     if linked() then
@@ -1500,7 +1650,28 @@ end
 
 -- Drawn over the bottom text box, where the battle's own messages go: the
 -- top of the screen belongs to the foes' HUDs and covering them hid their HP.
+function CoopBattle.drawReconnecting(battle)
+  local c = battle and battle.coop
+  if not c or c.partnerLost or c.finished or not (c.linkLostAt or c.awaitingResume) then return false end
+  local CM = manager()
+  local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")
+  if #name > 14 then name = name:sub(1, 14) end
+  love.graphics.setColor(1, 1, 1, 1)
+  Font.drawBox(1, 5, 18, 7)
+  love.graphics.setColor(0, 0, 0, 1)
+  Font.draw("RECONNECTING...", 16, 56)
+  Font.draw(name, 16, 72)
+  if c.linkLostAt then
+    Font.draw(string.format("AI IN %ds", math.max(0, math.ceil(CoopBattle.LINK_GRACE - c.linkLostAt))), 16, 88)
+  else
+    Font.draw("RESUMING...", 16, 88)
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+  return true
+end
+
 function CoopBattle.drawWaitPrompt(battle)
+  if CoopBattle.drawReconnecting(battle) then return end
   if not CoopBattle.waitingForPartner then return end
   local CM = manager()
   local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")

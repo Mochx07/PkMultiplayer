@@ -88,6 +88,9 @@ function CoopLog.write(level, tag, message)
     end
   end)
 
+  -- shared with the partner (src/coop/CoopLogShare.lua)
+  if CoopLog.onLine then pcall(CoopLog.onLine, entry, line) end
+
   -- If error level, print to standard console too
   if level == "ERROR" then
     io.stderr:write("[COOP ERROR] " .. line)
