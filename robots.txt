@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://mochx07.github.io/PkMultiplayer/sitemap.xml
+Sitemap: https://mochx07.github.io/PkMultiplayer/sitemap.txt
