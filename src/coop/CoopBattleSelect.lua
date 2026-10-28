@@ -155,22 +155,30 @@ function CoopBattleSelect:draw()
 
   local Theme = require("src.ui.Theme")
   local cursorCode = (Theme and Theme.cursor) or 0xED
+  -- EVERY FIELD INSIDE THE BOX.  Reported from play: things ran off the
+  -- screen.  The 8x8 font gives 18 letters between the box's borders
+  -- (x 8..152), and the row used to ask for more: "[1]" ran into the name,
+  -- the level into the HP, the HP ("57/57") past the right edge, and with six
+  -- Pokemon the confirm row sat on the box's bottom border.  Now: cursor,
+  -- one character for the pick order, eight letters of name, then the level
+  -- and the HP in the small font against the right border, rows 10 px apart.
+  local MicroFont = require("src.render.MicroFont")
+  local okI, I18n = pcall(require, "src.coop.CoopI18n")
+  local RIGHT = 152
   local partyCount = math.min(6, #self.party)
   for i = 1, partyCount do
     local mon = self.party[i]
-    local y = 32 + (i - 1) * 12
-    local isSelectedOrder = self:isSelected(i)
-    local orderTag = isSelectedOrder and string.format("[%d]", isSelectedOrder) or "[ ]"
+    local y = 32 + (i - 1) * 10
+    local order = self:isSelected(i)
 
-    -- Cursor indicator (authentic Game Boy ▶ arrow)
+    -- Cursor indicator (authentic Game Boy arrow)
     if self.cursor == i then
       love.graphics.setColor(0, 0, 0, 1)
       Font.drawCode(cursorCode, 8, y)
     end
 
-    -- Order slot tag
     love.graphics.setColor(0, 0, 0, 1)
-    Font.draw(orderTag, 16, y)
+    Font.raw.draw(order and tostring(order) or "-", 16, y)
 
     -- Mon Name
     local name = mon.nickname
@@ -179,25 +187,30 @@ function CoopBattleSelect:draw()
       local def = data and data.pokemon and (data.pokemon[mon.species] or (tonumber(mon.species) and data.pokemon[tonumber(mon.species)]))
       name = (def and def.name) or mon.name or tostring(mon.species or "POKéMON")
     end
-    name = tostring(name):sub(1, 8)
-    Font.draw(name, 36, y)
+    local count, cut = 0, nil
+    for pos in tostring(name):gmatch("()[^\128-\191]") do
+      count = count + 1
+      if count > 8 then cut = pos break end
+    end
+    if cut then name = tostring(name):sub(1, cut - 1) end
+    Font.raw.draw(tostring(name), 26, y)
 
-    -- Level & HP
-    local lvl = string.format("L:%d", mon.level or 5)
-    Font.draw(lvl, 102, y)
+    -- the level in the small font too: eight letters of name, "L100" and
+    -- "278/278" do not fit the 8x8 font side by side
+    MicroFont.draw(string.format("L%d", mon.level or 5), 94, y + 2)
 
-    local hpStr = string.format("%d/%d", mon.hp or 0, (mon.stats and mon.stats.hp) or mon.maxHp or 20)
+    local hpStr
     if (mon.hp or 0) <= 0 then
       love.graphics.setColor(0.6, 0.1, 0.1, 1)
-      Font.draw("FNT", 126, y)
+      hpStr = "FNT"
     else
-      love.graphics.setColor(0, 0, 0, 1)
-      Font.draw(hpStr, 126, y)
+      hpStr = string.format("%d/%d", mon.hp or 0, (mon.stats and mon.stats.hp) or mon.maxHp or 20)
     end
+    MicroFont.draw(hpStr, RIGHT - MicroFont.width(hpStr), y + 2)
   end
 
   -- Confirm button row
-  local confirmY = 32 + partyCount * 12
+  local confirmY = 32 + partyCount * 10 + 2
   if self.cursor == (partyCount + 1) then
     love.graphics.setColor(0, 0, 0, 1)
     Font.drawCode(cursorCode, 8, confirmY)
@@ -211,11 +224,15 @@ function CoopBattleSelect:draw()
   love.graphics.setColor(0, 0, 0, 1)
 
   if self.message and self.messageTimer > 0 then
-    Font.draw(self.message, 12, 122)
+    -- in the player's language first, then wrapped: 18 letters a row, two rows
+    local text = okI and I18n.t(self.message) or self.message
+    local CM = package.loaded["src.coop.CoopManager"]
+    local lines = (CM and CM.wrap) and CM.wrap(text, 18, 2) or { text }
+    for k, l in ipairs(lines) do Font.raw.draw(l, 8, 112 + k * 8) end
   else
     local countStr = string.format("SELECTED: %d/3", #self.selected)
-    Font.draw(countStr, 10, 118)
-    Font.draw("A:PICK  B:BACK", 10, 128)
+    Font.draw(countStr, 8, 120)
+    Font.draw("A:PICK  B:BACK", 8, 128)
   end
 
   love.graphics.setColor(1, 1, 1, 1)

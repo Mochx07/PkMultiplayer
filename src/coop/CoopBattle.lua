@@ -869,6 +869,12 @@ function CoopBattle.submitLocal(battle, action, opts)
       turn = c.turn,
       action = CoopBattle.encodeAction(battle, action, opts),
       state = CoopBattle.packOwnState(battle),
+      -- which of our chosen Pokemon is in our slot: the partner's copy
+      -- waiting on a pick for a faint we never had puts it back (ReplaceWait)
+      active = (function()
+        local me = battle.battlerAt and battle:battlerAt(BattleStatePos().PLAYER_LEFT)
+        return me and indexOf(battle.coopChosenMons, me.mon) or nil
+      end)(),
     }
     c.sentActions = c.sentActions or {}
     c.sentActions[c.turn] = c.lastSent
@@ -925,6 +931,8 @@ function CoopBattle.onPartnerAction(msg)
   end
   c.partnerActions[turn] = msg.action or { kind = "spectator" }
   c.partnerStates[turn] = msg.state
+  c.partnerActives = c.partnerActives or {}
+  c.partnerActives[turn] = tonumber(msg.active)
   CoopBattle.partnerAction = msg.action
   CoopLog.battle("ACTION_RECV", "turn " .. turn)
   tryExecute(battle)
@@ -1157,7 +1165,21 @@ function ReplaceWait:update(dt)
     return
   end
   local entry = table.remove(c.replaceQueue, 1)
-  if entry then self:finish(allyPick(battle, entry)) end
+  if entry then self:finish(allyPick(battle, entry)) return end
+  -- THEIR POKEMON DID NOT FALL ON THEIR SCREEN.  Reported from play: each
+  -- screen waited on the other -- this one for the partner's pick after a
+  -- faint, theirs for this player's move -- because the faint happened on
+  -- this copy only.  Their next turn's move arriving instead of a pick says
+  -- so; their word on their own Pokemon is written in, and the one they say
+  -- is in their slot goes back in.
+  local action = c.partnerActions and c.partnerActions[c.turn]
+  if action then
+    local state = c.partnerStates and c.partnerStates[c.turn]
+    if state then pcall(CoopBattle.applyPartnerState, battle, state) end
+    local active = c.partnerActives and c.partnerActives[c.turn]
+    CoopLog.warn("BATTLE", "the partner moved on without a pick: their Pokemon did not faint on their screen")
+    self:finish(allyPick(battle, active and { index = active } or nil))
+  end
 end
 
 function ReplaceWait:draw()

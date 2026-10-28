@@ -1830,6 +1830,10 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
 
   local CoopBattle = require("src.coop.CoopBattle")
   CoopBattle.useRuleset(p2Battle, msg.ruleset)
+  if type(msg.foeRules) == "table" then
+    p2Battle.coopBalanceRules = { balancedFoes = msg.foeRules.balancedFoes == true,
+                                  hardFoes = msg.foeRules.hardFoes == true }
+  end
   CoopBattle.initBattle(p2Battle, chosenMons, msg.localMons, CoopManager.partner, msg.seed, msg.inviteId)
   local cOw = game.overworld or ow2
   if cOw and cOw.pushBattle then
@@ -2388,6 +2392,8 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
           CoopManager.cancelPendingInvite(ow, reason)
         end, INVITE_TIMEOUT + 2)
 
+        -- the difficulty this battle is fought at, on both copies (CoopBalance)
+        battle.coopBalanceRules = require("src.coop.CoopBalance").currentRules()
         CoopManager.pendingBattleInvite = {
           battle = battle,
           localChosen = chosenMons,
@@ -2415,6 +2421,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
           localMons = wired,
           tower = towerInfo,
           ruleset = require("src.coop.CoopBattle").rulesetName(battle),
+          foeRules = battle.coopBalanceRules,
         })
       end, solo))
     end },
@@ -2447,7 +2454,17 @@ end
 -- arrives while you are typing is missed, and a message's time on screen
 -- only runs while it is actually visible (not behind a dialogue box).
 
-CoopManager.CHAT_MAX = 64
+-- in LETTERS: the chat box takes 70 (src/coop/CoopChatBox.lua); a message
+-- from an older version is cut here, never in the middle of a letter
+CoopManager.CHAT_MAX = 76
+function CoopManager.clipLetters(text, n)
+  local count = 0
+  for pos in tostring(text):gmatch("()[^\128-\191]") do
+    count = count + 1
+    if count > n then return text:sub(1, pos - 1) end
+  end
+  return text
+end
 CoopManager.CHAT_LOG_MAX = 8
 CoopManager.LIVE_EVERY = 0.05
 CoopManager.LIVE_SETTLE = 0.35
@@ -2479,6 +2496,13 @@ function CoopManager.openChat(game, ow)
 
   local top = stackTop(game)
   if top and (top.isChatBox or top.isTextBox or (top.lines ~= nil and top.page ~= nil)) then
+    return
+  end
+  if CoopManager.chatOverlay then return end
+  if coopBattleOnTop(game) then
+    -- inside the battle, which keeps running (src/coop/CoopChatBox.lua)
+    CoopManager.chatOverlay = require("src.coop.CoopChatBox").new(game, { overlay = true })
+    CoopManager.sendChatLive("")
     return
   end
   if not coopBattleOnTop(game) then
@@ -2552,7 +2576,7 @@ function CoopManager.sendChat(text)
     CoopManager.sendChatLive(nil, true)
     return
   end
-  text = text:sub(1, CoopManager.CHAT_MAX)
+  text = CoopManager.clipLetters(text, CoopManager.CHAT_MAX)
 
   local game = getGame()
   local sender = CoopManager.getLocalPlayerName(game) or "ME"
@@ -2571,7 +2595,7 @@ function CoopManager.onChatReceived(sender, text, own, n)
   if type(text) ~= "string" or text == "" then return end
   sender = string.upper(tostring(sender or "PARTNER"))
   if #sender > 8 then sender = sender:sub(1, 8) end
-  text = text:sub(1, CoopManager.CHAT_MAX)
+  text = CoopManager.clipLetters(text, CoopManager.CHAT_MAX)
   if not own then
     CoopManager.partnerTyping = nil
     n = tonumber(n)
@@ -2596,7 +2620,7 @@ function CoopManager.interact(game, ow)
   local Menu = require("src.coop.CoopI18n").menu()
   local items = {
     { label = Strings("HIGH FIVE!"), onSelect = function()
-      CoopManager.sendEmote("heart")
+      CoopManager.sendEmote("highfive")
       CoopManager.showStatus("High five with " .. pName .. "!", 2.5)
     end },
     { label = Strings("USE ITEM"), onSelect = function()
@@ -3103,6 +3127,10 @@ end
 function CoopManager.update(ow, dt)
   dt = math.min(dt or 0.016, 0.25)
   tickTimers(dt)
+  -- the chat drawn inside a battle goes with the battle (or when something
+  -- else, a party screen, comes over it)
+  local overlay = CoopManager.chatOverlay
+  if overlay and not coopBattleOnTop(overlay.game) then pcall(overlay.cancel, overlay) end
   runTickers(CoopManager.idleTickers, dt, getGame(ow), ow)
   local net = CoopManager.net
   if not net or net.closed then
@@ -3593,14 +3621,16 @@ function CoopManager.drawChatBubble(ty)
   if not typing then CoopManager.chatShown = true end
   love.graphics.setColor(1, 1, 1, 1)
   if ty == nil then
-    local lines = wrap(text, 18, 2)
-    Font.drawBox(0, 12, 20, 6)
+    -- the name and up to five rows: a whole message from the chat box
+    local lines = wrap(text, 18, 5)
+    local top = 17 - (#lines + 2)
+    Font.drawBox(0, top, 20, #lines + 3)
     love.graphics.setColor(0, 0, 0, 1)
     -- chat is what the players typed: never translated
-    Font.raw.draw(sender .. ":", 8, 104)
-    for i, l in ipairs(lines) do Font.raw.draw(l, 8, 104 + i * 12) end
+    Font.raw.draw(sender .. ":", 8, (top + 1) * 8)
+    for i, l in ipairs(lines) do Font.raw.draw(l, 8, (top + 1 + i) * 8) end
   else
-    local lines = wrap(sender .. ": " .. text, 18, 3)
+    local lines = wrap(sender .. ": " .. text, 18, 6)
     Font.drawBox(0, ty, 20, #lines + 2)
     love.graphics.setColor(0, 0, 0, 1)
     for i, l in ipairs(lines) do Font.raw.draw(l, 8, (ty + i) * 8) end
@@ -3611,6 +3641,11 @@ end
 
 -- a co-op double draws the bubble across the top of the battle screen
 function CoopManager.drawBattleChat(battle)
+  local overlay = CoopManager.chatOverlay
+  if overlay and overlay.game == (battle and battle.game) then
+    overlay:draw()
+    return
+  end
   if not CoopManager.connected then return end
   local game = battle and battle.game
   local top = stackTop(game)
@@ -3623,7 +3658,7 @@ end
 function CoopManager.chatLines(width, count)
   local out = {}
   local function add(s)
-    for _, l in ipairs(wrap(s, width, 4)) do out[#out + 1] = l end
+    for _, l in ipairs(wrap(s, width, 6)) do out[#out + 1] = l end
   end
   for _, m in ipairs(CoopManager.chatLog) do add(m.sender .. ": " .. m.text) end
   local typing = CoopManager.partnerTyping

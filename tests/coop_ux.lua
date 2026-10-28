@@ -234,4 +234,30 @@ local g1 = { data = { maps = {}, field = { townMap = { locations = { PALLET_TOWN
 T.check(select(2, CoopManager.mapPoint(g1, "PALLET_TOWN")) == 11, "Red/Blue/Yellow's town map squares")
 T.check(CoopManager.mapPoint(g1, "OAKS_LAB") == nil, "a map with no square has no arrow")
 
+-- A LINK ATTEMPT THAT FAILS BACK TO THE JOIN LIST it never went through
+-- (RECONNECT, an automatic rejoin).  Reported from play after a dropped
+-- link: "CoopMenu.lua:778: attempt to perform arithmetic on field
+-- 'pickIndex' (a nil value)" -- the list had no cursor and drawing it crashed.
+do
+  local pressed = {}
+  local game = { input = { wasPressed = function(_, b) return pressed[b] == true end,
+                           isDown = function() return false end },
+                 stack = { states = {}, top = function(st) return st.states[#st.states] end,
+                           push = function(st, x) st.states[#st.states + 1] = x end,
+                           pop = function(st) return table.remove(st.states) end } }
+  local realNet, realConnected = CoopManager.net, CoopManager.isConnected
+  CoopManager.net = nil
+  CoopManager.isConnected = function() return false end
+  local menu = CoopMenu.new(game)
+  menu.stage, menu.pickIndex = "joining", nil
+  menu:update(0.016)
+  T.check(menu.stage == "joinPick", "a failed link attempt falls back to the join list")
+  local okDraw, err = pcall(menu.draw, menu)
+  T.check(okDraw, "the join list draws with no cursor set yet (" .. tostring(err) .. ")")
+  pressed.down = true
+  local okUpd, err2 = pcall(menu.update, menu, 0.016)
+  T.check(okUpd and type(menu.pickIndex) == "number", "...and its cursor moves (" .. tostring(err2) .. ")")
+  CoopManager.net, CoopManager.isConnected = realNet, realConnected
+end
+
 T.finish("co-op joining, menus and extras")

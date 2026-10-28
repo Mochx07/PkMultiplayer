@@ -106,6 +106,14 @@ Hooks.modules["src.core.Game"] = function(Game)
   -- delegation to a state that takes keys, as in the co-op build.
   wrap(Game, "Game", "keypressed", function(keypressed)
     return function(self, key, ...)
+      -- the chat open inside a co-op double takes every key but the
+      -- engine's own F-keys (src/coop/CoopChatBox.lua)
+      local CMo = coopManager()
+      local overlay = CMo and CMo.chatOverlay
+      if overlay and overlay.game == self and not tostring(key):find("^f%d") then
+        overlay:onKeyPressed(key)
+        return
+      end
       local top = self.stack and self.stack:top()
       local delegated = top and top.onKeyPressed
       if not delegated and key == "t" and not ctrlDown(true) then
@@ -142,6 +150,19 @@ Hooks.modules["src.core.Game"] = function(Game)
         end
       end
       return keypressed(self, key, ...)
+    end
+  end)
+
+  -- ...and the letters typed into it
+  wrap(Game, "Game", "textinput", function(textinput)
+    return function(self, text, ...)
+      local CMo = coopManager()
+      local overlay = CMo and CMo.chatOverlay
+      if overlay and overlay.game == self then
+        overlay:onTextInput(text)
+        return
+      end
+      return textinput(self, text, ...)
     end
   end)
 
@@ -264,6 +285,19 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
   -- (SELECT keeps its own job in the move list, where it reorders moves.)
   wrap(BattleState, "BattleState", "update", function(update)
     return function(self, dt, ...)
+      -- THE CHAT OPEN INSIDE THE BATTLE: it reads the real pad (B closes an
+      -- empty line), the battle a mute one and keeps running
+      local CMo = self.coopDouble and coopManager()
+      local overlay = CMo and CMo.chatOverlay
+      if overlay and overlay.game == self.game and self.game.input then
+        pcall(overlay.update, overlay, dt)
+        local real = self.game.input
+        self.game.input = require("src.coop.CoopChatBox").mutedInput(real)
+        local ok, a, b, c = pcall(update, self, dt, ...)
+        self.game.input = real
+        if not ok then error(a, 0) end
+        return a, b, c
+      end
       local input = self.coopDouble and self.game and self.game.input
       if input and input:wasPressed("select") then
         local CB = package.loaded["src.coop.CoopBattle"]

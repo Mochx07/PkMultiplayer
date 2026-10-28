@@ -1,6 +1,7 @@
 # development only: kept out of the release zip
 tests/anim_fit.lua
 tests/coop_cable_club.lua
+tests/coop_chat_box.lua
 tests/coop_features.lua
 tests/coop_live_chat.lua
 tests/coop_logshare.lua

@@ -160,4 +160,44 @@ do
   T.check(battle:battlerAt(P.PLAYER_LEFT) == left and battle:battlerAt(P.PLAYER_RIGHT) == right, "...untouched")
 end
 
+-- THE OTHER WAY ROUND: their Pokemon fell on THIS screen only.  Reported
+-- from play (2026-10-28 23:07): each screen waited on the other -- one for
+-- the partner's pick after a faint, the other for this player's move.  Their
+-- next move arriving instead of a pick puts their Pokemon back.
+do
+  local battle = hostCopy({ "FIXMON_C", "FIXMON_B" })
+  local c = battle.coop
+  local theirs = battle.ally.party[1]
+  local placed
+  local wait = CoopBattle.newReplaceWait(battle, P.PLAYER_RIGHT, function(mon) placed = mon end)
+  theirs.hp = 0
+  battle:placeBattler(P.PLAYER_RIGHT, nil) -- the faint took it off, on this copy
+  wait:update(0.1)
+  T.check(placed == nil, "waiting for their pick, with nothing from them yet")
+  c.partnerActions[c.turn] = { kind = "move", slot = 1 }
+  c.partnerStates[c.turn] = theirState(battle, { 30 })
+  c.partnerActives = { [c.turn] = 1 }
+  wait:update(0.1)
+  T.check(placed == theirs and theirs.hp == 30, "their move instead of a pick: the one they say is in their slot goes back in")
+end
+
+-- THE DIFFICULTY THE INVITE CARRIES.  Reported from play (2026-10-28 23:07):
+-- one copy padded a trainer to four Pokemon and a level up, the other kept
+-- its three -- each used its own BALANCED FOES.  Both copies now use the
+-- rules the invite carries.
+do
+  local CoopBalance = require("src.coop.CoopBalance")
+  local foes = { { hp = 30, level = 20 } }
+  local mine = { { hp = 40, level = 25 }, { hp = 40, level = 25 }, { hp = 40, level = 25 } }
+  local theirs = { { hp = 40, level = 25 }, { hp = 40, level = 25 }, { hp = 40, level = 25 } }
+  CoopManager.balancedFoes, CoopManager.hardFoes = false, false
+  local plan = CoopBalance.plan(foes, mine, theirs, { balancedFoes = true, hardFoes = false })
+  T.check(plan and plan.foes == 4, "the invite's BALANCED FOES pads the trainer even where this game has it off")
+  CoopManager.balancedFoes = true
+  T.check(CoopBalance.plan(foes, mine, theirs, { balancedFoes = false, hardFoes = false }) == nil,
+          "...and an invite with it off keeps the cartridge's team even where this game has it on")
+  CoopManager.balancedFoes = false
+  T.check(CoopBalance.currentRules().balancedFoes == false, "the inviter sends its own rules")
+end
+
 T.finish("co-op double: the partner's Pokemon fell on their screen only")

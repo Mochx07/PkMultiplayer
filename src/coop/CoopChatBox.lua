@@ -1,6 +1,6 @@
 -- src/coop/CoopChatBox.lua
 -- Retro 2D Game Boy chat input modal.
--- Fits strictly within 160x144 (20x18 tiles), 100% English.
+-- Fits strictly within 160x144 (20x18 tiles).
 --
 -- The upper half is the conversation -- the last few messages and, live, what
 -- the partner is typing right now -- and the bottom two rows are yours.
@@ -10,13 +10,67 @@
 local Font = require("src.render.Font")
 local Sound = require("src.core.Sound")
 
-local MAX_CHARS = 35   -- two input rows: 17 after the ">" plus 18
+-- four input rows: 17 letters after the arrow, then 18 a row, broken at the
+-- spaces.  Letters, not bytes: an accented letter is two bytes, and counting
+-- bytes both cut the message short and split a letter in two at the end of
+-- a row.  A letter is taken only while the message still fits the rows.
+local MAX_CHARS = 70
+local ROW_FIRST, ROW_NEXT, INPUT_ROWS = 17, 18, 4
 local LOG_ROWS = 4
+
+local function letters(t) return select(2, t:gsub("[^\128-\191]", "")) end
+-- the first n letters of t, and the rest
+local function headLetters(t, n)
+  local count = 0
+  for pos in t:gmatch("()[^\128-\191]") do
+    count = count + 1
+    if count > n then return t:sub(1, pos - 1), t:sub(pos) end
+  end
+  return t, ""
+end
+
+-- the message laid out on the input rows, broken at spaces (a word longer
+-- than a row is split); nil when it needs more rows than there are
+local function layout(text)
+  local rows, row = {}, ""
+  local function width() return (#rows == 0) and ROW_FIRST or ROW_NEXT end
+  local function push() rows[#rows + 1] = row row = "" end
+  local pos = 1
+  while pos <= #text do
+    local word, spaces = text:match("^(%S*)(%s*)", pos)
+    pos = pos + #word + #spaces
+    while letters(word) > width() do
+      if row ~= "" then push() end
+      local head, rest = headLetters(word, width())
+      row = head
+      push()
+      word = rest
+    end
+    if word ~= "" or spaces ~= "" then
+      local candidate = row .. word
+      if letters(candidate) > width() then
+        push()
+        candidate = word
+      end
+      row = candidate
+      -- the spaces stay on the row while they fit (a space typed at the end
+      -- of a row starts the next one)
+      for _ = 1, #spaces do
+        if letters(row) < width() then row = row .. " " else push() end
+      end
+    end
+    if #rows > INPUT_ROWS then return nil end
+  end
+  rows[#rows + 1] = row
+  if #rows > INPUT_ROWS then return nil end
+  return rows
+end
 
 local CoopChatBox = {}
 CoopChatBox.__index = CoopChatBox
 CoopChatBox.isChatBox = true
 CoopChatBox.isOpaque = false
+CoopChatBox.layout = layout
 
 -- A phone types on the on-screen keyboard, which only shows while text
 -- input is armed; a desktop has text input on all the time, and other tools
@@ -52,15 +106,22 @@ local function popUtf8Char(str)
   return str:sub(1, len - drop)
 end
 
-function CoopChatBox.new(game)
+-- opts.overlay: drawn inside a co-op double instead of pushed on top of it
+-- (CoopManager.openChat).  THE BATTLE GOES ON UNDER THE CHAT: reported from
+-- play, opening the chat in a battle froze it until the chat was closed --
+-- the state stack updates only its top.  As an overlay the battle stays the
+-- top state and keeps running, reading a mute pad (lib/Hooks.lua), while the
+-- keys and the typed text come here.
+function CoopChatBox.new(game, opts)
   local self = setmetatable({
     game = game,
+    overlay = opts and opts.overlay or nil,
     text = "",
     cursorTimer = 0,
     tx = 0,
-    ty = 9,
+    ty = 7,
     tw = 20,
-    th = 9,
+    th = 11,
     -- the T that opened the box also arrives as text input right after;
     -- it must not become the first letter of the message
     swallowOpenKey = true,
@@ -86,6 +147,11 @@ end
 
 function CoopChatBox:close()
   if isPhone() then setKeyboard(false) end
+  if self.overlay then
+    local CM = manager()
+    if CM and CM.chatOverlay == self then CM.chatOverlay = nil end
+    return
+  end
   if self.game and self.game.stack then
     local top = type(self.game.stack.top) == "function" and self.game.stack:top() or self.game.stack.top
     if top == self then self.game.stack:pop() end
@@ -102,10 +168,15 @@ function CoopChatBox:onTextInput(text)
   local clean = text:gsub("[%c]", "")
   if clean == "" then return end
 
-  if #self.text + #clean <= MAX_CHARS then
-    self.text = self.text .. clean
-    self:changed()
+  -- letter by letter, while the message still fits the rows
+  local added = false
+  for ch in clean:gmatch("[^\128-\191][\128-\191]*") do
+    local candidate = self.text .. ch
+    if letters(candidate) > MAX_CHARS or not layout(candidate) then break end
+    self.text = candidate
+    added = true
   end
+  if added then self:changed() end
 end
 
 function CoopChatBox:onKeyPressed(key)
@@ -130,6 +201,19 @@ function CoopChatBox:onKeyPressed(key)
       self:cancel()
     end
   end
+end
+
+-- A mute pad: what a battle under the open chat reads (lib/Hooks.lua), so
+-- the letters you type are not taken as A, B or a direction.
+function CoopChatBox.mutedInput(real)
+  return setmetatable({}, { __index = function(_, k)
+    local v = real[k]
+    if type(v) == "function" and type(k) == "string"
+       and (k:find("^was") or k:find("^is") or k:find("Pressed$") or k:find("Held") or k:find("Down$")) then
+      return function() return false end
+    end
+    return v
+  end })
 end
 
 function CoopChatBox:update(dt)
@@ -170,11 +254,19 @@ function CoopChatBox:draw()
   local y = top + (LOG_ROWS + 1) * 8
   -- the cartridge's own arrow; the Gen 2 font has no ">"
   Font.drawCode(0xED, 8, y)
-  if #text <= 16 then
-    Font.draw(text .. cursor, 16, y)
-  else
-    Font.draw(text:sub(1, 17), 16, y)
-    Font.draw(text:sub(18) .. cursor, 8, y + 8)
+  local rows = layout(text) or { text }
+  for i, part in ipairs(rows) do
+    local x = (i == 1) and 16 or 8
+    local width = (i == 1) and ROW_FIRST or ROW_NEXT
+    if i == #rows then
+      if letters(part) < width then
+        part = part .. cursor
+      elseif i < INPUT_ROWS then
+        -- a full row: the cursor waits at the start of the next one
+        Font.draw(cursor, 8, y + i * 8)
+      end
+    end
+    Font.draw(part, x, y + (i - 1) * 8)
   end
 
   love.graphics.setColor(1, 1, 1, 1)

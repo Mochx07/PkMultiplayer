@@ -12,7 +12,8 @@
 -- Both off is the cartridge's team.  Only trainer doubles: a wild pair, the
 -- Battle Tower (its own level rules) and P1 vs P2 are never touched.  Both
 -- copies of the battle work it out from the same two lists of chosen
--- Pokemon and the same trainer, with no dice, so they agree to the level.
+-- Pokemon and the same trainer, with no dice, so they agree to the level --
+-- and from the same rules: the invite carries the inviter's (foeRules).
 
 local CoopManager = require("src.coop.CoopManager")
 
@@ -68,9 +69,14 @@ end
 
 -- What the rules ask of a trainer facing these two teams: { foes, boost },
 -- or nil for the cartridge's own team.
-function CoopBalance.plan(enemyParty, mineList, theirsList)
-  local hard = CoopManager.hardFoes == true
-  if not (hard or CoopManager.balancedFoes) then return nil end
+-- `rules` is the battle's own copy ({ balancedFoes, hardFoes }) when the
+-- invite carried one: both copies then work from the inviter's rules, not
+-- each from its own (log 2026-10-28 23:07: one copy padded the trainer to
+-- four, the other kept its three, and the battle was two battles).
+function CoopBalance.plan(enemyParty, mineList, theirsList, rules)
+  rules = type(rules) == "table" and rules or CoopManager
+  local hard = rules.hardFoes == true
+  if not (hard or rules.balancedFoes) then return nil end
   local a, la = fighters(mineList)
   local b, lb = fighters(theirsList)
   local players, playerLevels = a + b, la + lb
@@ -91,12 +97,16 @@ function CoopBalance.plan(enemyParty, mineList, theirsList)
   return { foes = want, boost = boost }
 end
 
+function CoopBalance.currentRules()
+  return { balancedFoes = CoopManager.balancedFoes == true, hardFoes = CoopManager.hardFoes == true }
+end
+
 -- Applies the plan to battle.enemyParty in place.  Returns true when the
 -- party changed (the caller places the lead foe again).
 function CoopBalance.apply(battle, mineList, theirsList)
   if type(battle) ~= "table" or type(battle.enemyParty) ~= "table" then return false end
   if battle.coopWild or battle.battleTower or battle.isLinkBattle then return false end
-  local plan = CoopBalance.plan(battle.enemyParty, mineList, theirsList)
+  local plan = CoopBalance.plan(battle.enemyParty, mineList, theirsList, battle.coopBalanceRules)
   if not plan then return false end
   local data = (battle.game and battle.game.data) or battle.data
   local party = battle.enemyParty

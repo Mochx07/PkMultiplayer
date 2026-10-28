@@ -255,7 +255,7 @@ return {
   ["HEART"] = "CORAZÓN",
   ["ANGRY"] = "ENFADO",
   ["SLEEPY"] = "SUEÑO",
-  ["HIGH FIVE!"] = "¡CHOCA ESOS CINCO!",
+  ["HIGH FIVE!"] = "¡CHÓCALA!",
 
   -- the HUD
   ["WAITING P2"] = "ESPERANDO P2",

@@ -468,6 +468,17 @@ function CoopMenu:connectTo(ip, port)
   end
 end
 
+-- THE JOIN LIST'S CURSOR, ALWAYS ON A ROW.  The list is also reached from a
+-- link attempt that never went through it (RECONNECT, an automatic rejoin)
+-- -- and then had no cursor at all: "CoopMenu.lua:778: attempt to perform
+-- arithmetic on field 'pickIndex' (a nil value)", reported from play after
+-- a dropped link.
+local function pickInRange(index, count)
+  index = tonumber(index) or 1
+  if index < 1 or index > math.max(1, count) then index = 1 end
+  return index
+end
+
 function CoopMenu:openCode()
   self.code, self.errorMsg = "", nil
   self.stage = "codeEntry"
@@ -575,6 +586,7 @@ function CoopMenu:update(dt)
 
   elseif self.stage == "joinPick" then
     local rows = self:joinRows()
+    self.pickIndex = pickInRange(self.pickIndex, #rows)
     if self.pickIndex > #rows then self.pickIndex = 1 end
     if input:wasPressed("down") then
       self.pickIndex = (self.pickIndex % #rows) + 1
@@ -762,6 +774,7 @@ function CoopMenu:draw()
 
   elseif self.stage == "joinPick" then
     local rows = self:joinRows()
+    self.pickIndex = pickInRange(self.pickIndex, #rows)
     local current = rows[self.pickIndex] or rows[1]
     Font.drawBox(0, 0, 20, 5)
     if self.errorMsg then
@@ -786,7 +799,8 @@ function CoopMenu:draw()
     Font.draw((self.code or "") .. (blink and "_" or ""), 16, 52)
     Font.draw("TYPE THE CODE,", 8, 72)
     Font.draw("CTRL-V PASTES IT.", 8, 80)
-    if self.errorMsg then drawError(self.errorMsg, self.port, 8, 96, 2) end
+    -- the reason and what to do, whole: four rows above the key help
+    if self.errorMsg then drawError(self.errorMsg, self.port, 8, 96, 4) end
     Font.draw("ENTER:OK  ESC:BACK", 8, 128)
 
   elseif self.stage == "portEntry" then
@@ -798,9 +812,15 @@ function CoopMenu:draw()
       Font.draw(tostring(d), x, 52)
       if i == self.portPos then Font.drawCode(DOWN_ARROW, x, 60) end
     end
-    Font.draw("HOST AND JOIN ON", 8, 80)
-    Font.draw("THIS UDP PORT.", 8, 88)
-    if self.errorMsg then drawError(self.errorMsg, self.port, 8, 104, 1) end
+    -- WHAT WENT WRONG, WHOLE.  Reported from play: the firewall advice was cut
+    -- off (one row here, two in the address and code screens).  With an error
+    -- up, it takes the explanation's place.
+    if self.errorMsg then
+      drawError(self.errorMsg, self.port, 8, 80, 4)
+    else
+      Font.draw("HOST AND JOIN ON", 8, 80)
+      Font.draw("THIS UDP PORT.", 8, 88)
+    end
     Font.draw("A:OK  B:BACK", 8, 128)
 
   elseif self.stage == "addrEntry" then
@@ -819,7 +839,12 @@ function CoopMenu:draw()
       Font.draw(".", 16 + octet * 33 - 6, 52)
     end
     Font.draw("PORT: " .. (self.visitMode and (self.port + 1) or self.port), 8, 80)
-    Font.draw("D-PAD: EDIT IP", 8, 96)
+    if self.errorMsg then
+      -- the reason and the advice in the D-pad hint's place, four rows
+      drawError(self.errorMsg, self.port, 8, 96, 4)
+    else
+      Font.draw("D-PAD: EDIT IP", 8, 96)
+    end
     Font.draw(self.visitMode and "A:VISIT  B:BACK" or "A:JOIN  B:BACK", 8, 128)
 
   elseif self.stage == "joining" then
@@ -833,9 +858,6 @@ function CoopMenu:draw()
 
   end
 
-  if self.errorMsg and self.stage == "addrEntry" then
-    drawError(self.errorMsg, self.port, 8, 104, 2)
-  end
   love.graphics.setColor(1, 1, 1, 1)
 end
 

@@ -28,8 +28,16 @@ local ALIAS = { music = "happy", star = "bolt" }
 
 CoopEmotes.DURATION = 2.5
 
+-- Emotes of this mod's own, outside the picker and with no bubble on the
+-- cartridge's sheet: always this mod's drawn bubble.  HIGH FIVE from the
+-- partner menu used to send the heart ("I don't like the emoji").
+CoopEmotes.EXTRA = {
+  { id = "highfive", sym = "o/", name = "HIGH FIVE" },
+}
+
 local byId = {}
 for _, e in ipairs(CoopEmotes.LIST) do byId[e.id] = e end
+for _, e in ipairs(CoopEmotes.EXTRA) do byId[e.id] = e end
 
 function CoopEmotes.get(id)
   if type(id) ~= "string" then return nil end
@@ -97,7 +105,7 @@ function CoopEmotes.draw(game, id, fx, fy, age)
   -- the owner's centre is 8 above the feet; the bubble's centre 16 above that
   local cy = math.floor(fy - 8 - 16 + bounce(age))
   local img, bubbles = sheet(game)
-  local rect = bubbles and bubbles[e.bubble]
+  local rect = bubbles and e.bubble and bubbles[e.bubble]
   if img and rect then
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(img, quadFor(img, rect, tostring(img) .. e.bubble),
@@ -209,6 +217,19 @@ local SYMBOLS = {
     "....##....",
     "...##.....",
     "..##......",
+    "..........",
+  },
+  -- an open hand, palm out: four fingers and the thumb
+  highfive = {
+    ".#.#.#.#..",
+    "#+#+#+#+#.",
+    "#+#+#+#+#.",
+    "#+#+#+#+#.",
+    "#+++++++##",
+    "#++++++++#",
+    "#+++++++#.",
+    ".#+++++#..",
+    "..#####...",
     "..........",
   },
   sleep = {
