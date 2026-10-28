@@ -3,6 +3,17 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.8
+
+Compatible con 1.6.0–1.6.7 (mismo protocolo 16).
+
+### Añadido
+
+- Dobles co-op: **ves qué va a hacer tu compañero.** Mientras eliges, el recuadro a la izquierda
+  de LUCHA / PKMN / OBJETO / HUIR dice qué eligió: el ataque y a quién, el objeto y para quién, a
+  qué Pokémon cambia, o que sigue eligiendo.
+- El log co-op anota la versión del mod de tu compañero al conectar.
+
 ## 1.6.7
 
 Compatible con 1.6.0–1.6.6 (mismo protocolo 16), pero **los dos jugadores necesitan la 1.6.7**
