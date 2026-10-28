@@ -3,6 +3,20 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.3
+
+Compatible con 1.6.0, 1.6.1 y 1.6.2 (mismo protocolo 16), pero conviene que los dos
+jugadores actualicen: el arreglo actúa en la copia de cada uno.
+
+### Arreglado
+
+- Dobles co-op: el Pokémon del compañero se quedaba en el campo a 0 PS (medio hundido) el
+  resto del combate, mientras en su pantalla ya peleaba con el que había sacado después. Pasaba
+  cuando las dos copias del combate no coincidían en el turno en que cayó: esta copia nunca lo
+  daba por debilitado, su elección quedaba esperando y sus ataques se leían contra el caído; a
+  veces el combate acababa a medias. Ahora, al abrir cada turno, si el compañero dice que su
+  Pokémon está debilitado, sale y entra el que eligió.
+
 ## 1.6.2
 
 Compatible con 1.6.0 y 1.6.1 (mismo protocolo 16).
