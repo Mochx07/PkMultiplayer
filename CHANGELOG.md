@@ -3,6 +3,35 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.7
+
+Compatible con 1.6.0–1.6.6 (mismo protocolo 16), pero **los dos jugadores necesitan la 1.6.7**
+para que los combates dobles no se desincronicen por las reglas de dificultad.
+
+### Arreglado
+
+- **Cierre del juego** tras un corte: si la reconexión fallaba y el menú co-op volvía a la lista
+  de "¿a quién te unes?" sin haber pasado antes por ella, el juego se cerraba con
+  `CoopMenu.lua:778: attempt to perform arithmetic on field 'pickIndex'`.
+- Los avisos de conexión salen enteros: en las pantallas de IP, código y puerto el consejo
+  ("FIREWALL: ABRE UDP 7777; REVISA LA IP") se cortaba o ni aparecía. Con un error en pantalla,
+  ocupa el sitio de la ayuda de esa pantalla.
+- Dobles co-op: **cada pantalla usaba sus propias reglas de dificultad** (BALANCED FOES / HARD
+  FOES). Si uno las tenía activadas y el otro no, un juego rellenaba al entrenador y el otro no:
+  dos combates distintos desde el primer turno. Ahora la invitación lleva las reglas de quien
+  invita y las dos pantallas pelean con ellas.
+- Dobles co-op: si un Pokémon del compañero se debilitaba solo en tu pantalla, tu juego esperaba
+  su elección para siempre mientras el suyo esperaba tu ataque. Ahora, si llega su siguiente
+  ataque en vez de una elección, su Pokémon vuelve a entrar.
+- **El chat ya no congela el combate.** En un doble co-op se abre dentro del combate, que sigue
+  avanzando mientras escribes (los botones no le llegan).
+- **Chat más largo:** 70 letras en 4 filas, cortando por palabras (antes 35, y una tilde contaba
+  doble). El historial y los bocadillos muestran el mensaje entero.
+- **Elegir 3 Pokémon:** nada se sale ya de la pantalla (el número de orden pisaba el nombre, el
+  nivel los PS, y los PS se salían por la derecha). Los avisos largos ocupan dos líneas.
+- **Choca esos cinco:** el menú dice "¡CHÓCALA!" (antes no cabía) y sale una mano en vez del
+  corazón.
+
 ## 1.6.6
 
 Compatible con 1.6.0–1.6.5 (mismo protocolo 16), pero **los dos jugadores necesitan la 1.6.6**
