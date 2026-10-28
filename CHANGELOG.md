@@ -3,6 +3,19 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.10
+
+Compatible con 1.6.0–1.6.9 (mismo protocolo 16). Basta con que el **anfitrión** la tenga para
+que las reglas se compartan bien; mejor que la tengan los dos.
+
+### Arreglado
+
+- **Las reglas co-op no coincidían en los dos juegos.** Con NEW CO-OP GAME o CONTINUE CO-OP se
+  enlaza antes de cargar la partida, y el anfitrión mandaba sus reglas en ese momento (las de
+  fábrica, con BALANCED FOES activado) y no las que cargaba su partida después. El compañero se
+  quedaba con otras reglas: rivales rellenados en una pantalla y no en la otra, y combates
+  distintos. Ahora, cuando el anfitrión carga su partida estando enlazado, vuelve a mandarlas.
+
 ## 1.6.9
 
 Compatible con 1.6.0–1.6.8 (mismo protocolo 16).
