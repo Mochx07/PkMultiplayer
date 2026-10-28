@@ -3,6 +3,17 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.5
+
+Compatible con 1.6.0–1.6.4 (mismo protocolo 16): no hace falta que el compañero actualice.
+
+### Arreglado
+
+- Dobles co-op (Oro/Plata/Cristal y Rojo/Azul/Amarillo): un ataque en área repetía su
+  animación en cada objetivo, así que SURF, TERREMOTO, MAGNITUD o EXPLOSIÓN (los dos rivales y
+  tu compañero) se veían tres veces para un solo ataque. Ahora la animación sale una vez y los
+  demás objetivos muestran el golpe con su parpadeo y su sonido.
+
 ## 1.6.4
 
 Compatible con 1.6.0–1.6.3 (mismo protocolo 16), pero los dos jugadores deben actualizar
