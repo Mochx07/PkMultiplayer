@@ -128,7 +128,11 @@ local function diff(a, b)
   return d
 end
 
-local function play(seed, level, tamper)
+-- opts: hostRule/guestRule (each player's own battle ruleset), adopt (the
+-- guest takes the host's, as the invite makes it), oneFoe (a one-Pokemon
+-- trainer, padded by BALANCED FOES with copies of it)
+local function play(seed, level, tamper, opts)
+  opts = opts or {}
   local s = seed
   rnd = function(n) s = (s * 48271) % 2147483647 return 1 + (s % n) end
   local hostGame = newGame("HOST", { "FIXMON_A", "FIXMON_B" }, level)
@@ -142,8 +146,15 @@ local function play(seed, level, tamper)
   local hostWire, guestWire = {}, {}
   for i, m in ipairs(hostGame.save.party) do hostWire[i] = CoopManager.wireMon(m) end
   for i, m in ipairs(guestGame.save.party) do guestWire[i] = CoopManager.wireMon(m) end
+  if opts.hostRule then hostGame.save.options = hostGame.save.options or {} hostGame.save.options.ruleset = opts.hostRule end
+  if opts.guestRule then guestGame.save.options = guestGame.save.options or {} guestGame.save.options.ruleset = opts.guestRule end
   local hb = BattleState.newTrainer(hostGame, "OPP_FIX_YOUNGSTER", 1)
   local gb = BattleState.newTrainer(guestGame, "OPP_FIX_YOUNGSTER", 1)
+  if opts.adopt then CoopBattle.useRuleset(gb, CoopBattle.rulesetName(hb)) end
+  if opts.oneFoe then
+    while #hb.enemyParty > 1 do table.remove(hb.enemyParty) end
+    while #gb.enemyParty > 1 do table.remove(gb.enemyParty) end
+  end
   -- same enemy movesets on both copies
   local em = {}
   for i, m in ipairs(hb.enemyParty) do em[i] = moveset() m.moves = em[i] end
@@ -251,4 +262,50 @@ for i = 1, 6 do
   if CoopBattle.desyncs > before then caught = caught + 1 end
 end
 T.check(caught >= 5, ("a drifted copy is detected (%d of 6 games)"):format(caught))
+-- BALANCED FOES pads a one-Pokemon trainer with copies of it.  A host
+-- correction wrote one foe's HP and status onto its twin as well, so the
+-- guest's two foes swapped at every turn and the copies never agreed again
+-- (log 2026-10-28: two HITMONCHAN, "taking the host's word" every turn).
+CoopManager.balancedFoes = true
+for i = 1, 6 do
+  local bad, what = play(7000 + i * 104729, 20, 2, { oneFoe = true })
+  T.check(bad == nil, ("padded twins, tampered seed %d: one correction puts the copies right%s"):format(i,
+          bad and (" (turn " .. bad .. ": " .. table.concat(what, "; ") .. ")") or ""))
+end
+CoopManager.balancedFoes = false
+
+-- THE HOST'S RULESET ON BOTH COPIES.  Each player's own option: under
+-- gen1_faithful the foes spend no PP, and damage is worked out the
+-- cartridge's way; the copies ran their own and drifted from turn 1.
+CoopBattle.desyncs = 0
+local drifted = 0
+for i = 1, 8 do
+  if play(9000 + i * 7919, 20, nil, { hostRule = "gen1_faithful", guestRule = "modern_clean" }) then
+    drifted = drifted + 1
+  end
+end
+T.check(drifted > 0, ("two rulesets do drift apart (%d of 8 battles) -- the case this guards"):format(drifted))
+CoopBattle.desyncs = 0
+for i = 1, 20 do
+  local seed = 9000 + i * 7919
+  local bad, what = play(seed, 10 + (i % 4) * 5, nil,
+                         { hostRule = (i % 2 == 0) and "gen1_faithful" or "modern_clean",
+                           guestRule = (i % 2 == 0) and "modern_clean" or "gen1_faithful", adopt = true,
+                           oneFoe = i % 3 == 0 })
+  T.check(bad == nil, ("seed %d, the guest on the host's ruleset: both copies agree%s"):format(seed,
+          bad and (" (turn " .. bad .. ": " .. table.concat(what, "; ") .. ")") or ""))
+end
+T.check(CoopBattle.desyncs == 0, ("on the host's ruleset no turn needed correcting (%d did)"):format(CoopBattle.desyncs))
+do
+  local g = { data = Data, save = SaveData.newGame(), stack = newStack(),
+              input = { wasPressed = function() return false end, isDown = function() return false end } }
+  g.save.party = { Pokemon.new(Data, "FIXMON_A", 10, function(a) return a end) }
+  local b = BattleState.newTrainer(g, "OPP_FIX_YOUNGSTER", 1)
+  local before = CoopBattle.rulesetName(b)
+  CoopBattle.useRuleset(b, "NOT_A_RULESET")
+  T.check(CoopBattle.rulesetName(b) == before, "an unknown ruleset from the host leaves ours")
+  CoopBattle.useRuleset(b, nil)
+  T.check(CoopBattle.rulesetName(b) == before, "an invite from an older version (no ruleset) leaves ours")
+end
+
 T.finish("co-op status lockstep")

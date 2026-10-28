@@ -445,6 +445,36 @@ local function cloneMon(m)
   return copy(m, 0)
 end
 
+-- THE HOST'S RULES ON BOTH COPIES.  The battle ruleset (gen1_faithful,
+-- modern_clean...) is each player's own option, and the two copies of a
+-- co-op double ran under their own: from turn 1 they worked out different
+-- damage, and under gen1_faithful the foes spend no PP (log 2026-10-28: the
+-- host's foes kept 15 PP all battle, the guest's did not, and every turn
+-- had to be corrected).  The invite carries the host's ruleset by name and
+-- the guest's copy takes it before the first turn.
+function CoopBattle.rulesetName(battle)
+  return battle and battle.ruleset and battle.ruleset.name or nil
+end
+
+function CoopBattle.useRuleset(battle, name)
+  if not battle or type(name) ~= "string" or name == "" then return end
+  if battle.ruleset and battle.ruleset.name == name then return end
+  local data = (battle.game and battle.game.data) or battle.data
+  local rs = data and type(data.rulesets) == "table" and data.rulesets[name] or nil
+  if not rs then
+    local ok, mod = pcall(require, "src.battle.rulesets." .. name)
+    if ok and type(mod) == "table" then rs = mod end
+  end
+  if not rs then
+    CoopLog.warn("BATTLE", "the host's ruleset " .. name .. " is not known here; keeping "
+                 .. tostring(CoopBattle.rulesetName(battle)))
+    return
+  end
+  CoopLog.battle("RULESET", string.format("using the host's %s (ours was %s)", name,
+                 tostring(CoopBattle.rulesetName(battle))))
+  battle.ruleset = rs
+end
+
 function CoopBattle.initBattle(battle, localChosenMons, partnerChosenMons, partnerInfo, seed, inviteId)
   -- READY / NOT READY was about this battle: both start over
   local CM = package.loaded["src.coop.CoopManager"]
@@ -1198,12 +1228,24 @@ local function applyOne(battle, b, data, partyList)
     end
     changed = true
   end
+  -- ...and onto its entry in the party.  That is the battler's own Pokemon;
+  -- a look-alike (same species, same nickname) stands in for it only when
+  -- it is not there and there is exactly one.  BALANCED FOES pads a trainer
+  -- with copies of its own Pokemon: writing one foe's HP and status onto its
+  -- twins mixed the two foes up on the guest's copy at every correction, so
+  -- the copies never agreed again (log 2026-10-28, two HITMONCHAN).
   if changed and partyList then
+    local own, twins = false, {}
     for _, pm in ipairs(partyList) do
-      if pm == b.mon or (pm.species == b.mon.species and pm.nickname == b.mon.nickname) then
-        pm.hp = b.mon.hp
-        pm.status = b.mon.status
+      if pm == b.mon then
+        own = true
+      elseif type(pm) == "table" and pm.species == b.mon.species and pm.nickname == b.mon.nickname then
+        twins[#twins + 1] = pm
       end
+    end
+    if not own and #twins == 1 then
+      twins[1].hp = b.mon.hp
+      twins[1].status = b.mon.status
     end
   end
   return changed

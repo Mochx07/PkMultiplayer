@@ -1828,6 +1828,7 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
   end
 
   local CoopBattle = require("src.coop.CoopBattle")
+  CoopBattle.useRuleset(p2Battle, msg.ruleset)
   CoopBattle.initBattle(p2Battle, chosenMons, msg.localMons, CoopManager.partner, msg.seed, msg.inviteId)
   local cOw = game.overworld or ow2
   if cOw and cOw.pushBattle then
@@ -2412,6 +2413,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
           seed = seed,
           localMons = wired,
           tower = towerInfo,
+          ruleset = require("src.coop.CoopBattle").rulesetName(battle),
         })
       end, solo))
     end },

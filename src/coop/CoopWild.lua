@@ -92,6 +92,7 @@ function CoopWild.offer(ow, battle, opts)
     mapId = ow.map and ow.map.id,
     seed = seed,
     localMons = wired,
+    ruleset = require("src.coop.CoopBattle").rulesetName(battle),
   })
   CoopLog.info("WILD", "asked partner to join vs " .. tostring(mon.species))
   return true
