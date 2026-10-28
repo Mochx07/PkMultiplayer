@@ -3,6 +3,23 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.4
+
+Compatible con 1.6.0–1.6.3 (mismo protocolo 16), pero los dos jugadores deben actualizar
+para que el arreglo funcione.
+
+### Arreglado
+
+- Dobles co-op: **las dos pantallas calculaban el combate con reglas distintas.** El conjunto
+  de reglas de combate (ruleset: gen1_faithful, modern_clean...) es una opción de cada partida,
+  y cada copia usaba el suyo: desde el primer turno salían daños distintos (y con gen1_faithful
+  los rivales no gastan PP). Ahora la invitación lleva el ruleset del anfitrión y el invitado lo
+  usa durante el combate (entrenadores, salvajes en pareja y la Torre).
+- Dobles co-op: con BALANCED FOES, un entrenador con un solo Pokémon trae copias de él, y la
+  corrección que el anfitrión manda cada turno mezclaba los PS y el estado de los dos gemelos en
+  la pantalla del invitado; las dos copias ya no volvían a coincidir en todo el combate. Ahora
+  cada corrección solo toca a su propio Pokémon.
+
 ## 1.6.3
 
 Compatible con 1.6.0, 1.6.1 y 1.6.2 (mismo protocolo 16), pero conviene que los dos
