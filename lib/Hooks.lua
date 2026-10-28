@@ -130,6 +130,19 @@ Hooks.modules["src.core.Game"] = function(Game)
           end
         end
       end
+      -- the number pad: one emote per key, no picker (src/coop/CoopEmotes.lua)
+      if not delegated then
+        local okE, CoopEmotes = pcall(require, "src.coop.CoopEmotes")
+        local quick = okE and CoopEmotes.quickKey(key)
+        local ow = self.overworld
+        local CM = quick and coopManager()
+        if quick and CM and (CM.connected or CM.chatRoute) and top == ow and ow
+           and not ow.transitioning and not ow.engaging and not ow.inBattle
+           and not (ow.runner and ow.runner.isRunning and ow.runner:isRunning()) then
+          CM.sendEmote(quick)
+          return
+        end
+      end
       if not delegated and key == "y" and not ctrlDown(false) then
         local ow = self.overworld
         if top == ow and ow and not ow.transitioning and not ow.engaging and not ow.inBattle

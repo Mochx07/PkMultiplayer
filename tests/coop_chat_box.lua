@@ -68,4 +68,11 @@ local ES = require("src.coop.CoopLangES")
 local label = (type(ES) == "table" and (ES.strings or ES)["HIGH FIVE!"]) or nil
 if label then T.check(letters(label) <= 14, "the Spanish HIGH FIVE fits the partner menu (" .. label .. ")") end
 
+-- the number pad: one key per emote (requested from play)
+T.check(CoopEmotes.quickKey("kp1") == "exclaim" and CoopEmotes.quickKey("kp7") == "sleep",
+        "number pad 1-7: the picker's emotes, in its order")
+T.check(CoopEmotes.quickKey("kp8") == "highfive", "number pad 8: the high five")
+T.check(CoopEmotes.quickKey("kp9") == nil and CoopEmotes.quickKey("1") == nil, "other keys send nothing")
+for _, id in ipairs(CoopEmotes.QUICK) do T.check(CoopEmotes.valid(id), "quick emote " .. id .. " exists") end
+
 T.finish("co-op chat box and high five")

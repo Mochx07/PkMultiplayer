@@ -39,6 +39,17 @@ local byId = {}
 for _, e in ipairs(CoopEmotes.LIST) do byId[e.id] = e end
 for _, e in ipairs(CoopEmotes.EXTRA) do byId[e.id] = e end
 
+-- THE NUMBER PAD SENDS AN EMOTE AT ONCE (requested from play: "quick access
+-- to the emojis, the number pad for each one"): 1-7 the picker's seven, in
+-- its order, and 8 the high five.
+CoopEmotes.QUICK = { "exclaim", "question", "happy", "sad", "heart", "bolt", "sleep", "highfive" }
+
+-- the emote on key `key` ("kp1".."kp8"), or nil
+function CoopEmotes.quickKey(key)
+  local n = tonumber(tostring(key or ""):match("^kp(%d)$"))
+  return n and CoopEmotes.QUICK[n] or nil
+end
+
 function CoopEmotes.get(id)
   if type(id) ~= "string" then return nil end
   return byId[ALIAS[id] or id]
@@ -332,12 +343,17 @@ function Picker:draw()
   local Font = require("src.coop.CoopI18n").font()
   local n = #CoopEmotes.LIST
   love.graphics.setColor(1, 1, 1, 1)
-  Font.drawBox(0, 0, 20, 6)
+  Font.drawBox(0, 0, 20, 7)
   local step = 20
   local x0 = math.floor((160 - (n - 1) * step) / 2)
+  local MicroFont = require("src.render.MicroFont")
   for i = 1, n do
     -- feet at y=40 puts each bubble's centre at y=16
     CoopEmotes.draw(self.game, CoopEmotes.LIST[i].id, x0 + (i - 1) * step, 40, 1)
+    -- its number-pad key, under the name row
+    love.graphics.setColor(0, 0, 0, 1)
+    MicroFont.draw(tostring(i), x0 + (i - 1) * step - 1, 43)
+    love.graphics.setColor(1, 1, 1, 1)
   end
   -- the cursor under the picked one, and its name
   love.graphics.setColor(0, 0, 0, 1)
