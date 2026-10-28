@@ -210,6 +210,9 @@ return {
   -- in the battle
   ["WAITING TURN..."] = "ESPERANDO TURNO...",
   ["CHOOSING%s"] = "ELIGIENDO%s",
+  ["CHOOSING..."] = "ELIGIENDO...",
+  ["SWITCH TO"] = "CAMBIA A",
+  ["SAME MOVE"] = "MISMO ATAQUE",
   ["WATCHING %s"] = "MIRANDO A %s",
   ["LINK LOST..."] = "ENLACE PERDIDO...",
   ["AI PLAYS IN %ds"] = "JUEGA LA IA EN %ds",

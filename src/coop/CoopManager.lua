@@ -610,6 +610,13 @@ local function applyPartnerInfo(msg)
   partner.name = msg.name or partner.name or "PARTNER"
   partner.id = type(msg.id) == "string" and msg.id or nil
   partner.version = msg.ver or nil
+  -- in the log too: two copies on different versions play different
+  -- battles, and the on-screen notice is gone by the time a log is read
+  if partner.version ~= CoopManager.loggedPartnerVersion then
+    CoopManager.loggedPartnerVersion = partner.version
+    CoopLog.info("MANAGER", string.format("partner %s runs v%s (this game v%s)", tostring(partner.name),
+                 tostring(partner.version or "?"), tostring(CoopManager.modVersion())))
+  end
   partner.sprite = msg.sprite or partner.sprite
   partner.walk = type(msg.walk) == "string" and msg.walk or nil
   partner.country = msg.country or partner.country or "US"

@@ -200,4 +200,29 @@ do
   T.check(CoopBalance.currentRules().balancedFoes == false, "the inviter sends its own rules")
 end
 
+-- WHAT THE PARTNER IS GOING TO DO (requested from play: "you should know
+-- which attack the other player is going to use", "and items")
+do
+  local battle = hostCopy({ "FIXMON_C", "FIXMON_B" })
+  local c = battle.coop
+  CoopManager.partner = CoopManager.partner or {}
+  CoopManager.partner.name = "Toby"
+  local plan = CoopBattle.partnerPlan(battle)
+  T.check(plan and plan[1] == "TOBY" and plan[2] and plan[2]:find("CHOOSING"), "before they choose: their name, still choosing")
+  local ally = battle:battlerAt(P.PLAYER_RIGHT)
+  local mv = ally.curMoves[1]
+  c.partnerActions[c.turn] = { kind = "move", id = mv.id, slot = 1, target = P.OPPONENT_LEFT }
+  plan = CoopBattle.partnerPlan(battle)
+  local foe = battle:battlerAt(P.OPPONENT_LEFT)
+  T.check(plan[2] and plan[2] ~= "" and plan[3] and plan[3]:find(foe.name, 1, true), "a move: its name and the foe it is aimed at")
+  c.partnerActions[c.turn] = { kind = "item", id = "POTION", targetNick = "FIXMON_C" }
+  plan = CoopBattle.partnerPlan(battle)
+  T.check(plan[2] and plan[3] and plan[3]:find("FIXMON_C", 1, true), "an item: which one and who it is for")
+  c.partnerActions[c.turn] = { kind = "switch", index = 2, species = "FIXMON_B" }
+  plan = CoopBattle.partnerPlan(battle)
+  T.check(plan[3] and plan[3]:find(">", 1, true), "a switch: who comes in")
+  c.partnerLost = true
+  T.check(CoopBattle.partnerPlan(battle) == nil, "with the AI playing for them there is nothing to say")
+end
+
 T.finish("co-op double: the partner's Pokemon fell on their screen only")

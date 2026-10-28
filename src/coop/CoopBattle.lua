@@ -211,6 +211,82 @@ function CoopBattle.decodeAction(battle, w)
   return nil
 end
 
+-- WHAT THE PARTNER IS GOING TO DO.  Requested from play: "you should know
+-- which attack the other player is going to use", "and don't forget items".
+-- Their choice for this turn is already here once they have made it (their
+-- coop_battle_action), so while this player picks, the empty box left of
+-- the action menu says it: their move and its target, the Pokemon they
+-- switch to, the item and who it is for -- or that they are still choosing.
+-- Lines: their name, then up to two of detail; nil when there is nothing
+-- to say (no partner in the battle, or the AI plays for them).
+function CoopBattle.partnerPlan(battle)
+  local c = battle and battle.coop
+  if not c or c.partnerLost or c.finished or not battle.battlerAt then return nil end
+  local P = BattleStatePos()
+  local ally = battle:battlerAt(P.PLAYER_RIGHT)
+  if not ally then return nil end
+  local CM = manager()
+  local who = string.upper(tostring((CM and CM.partner and CM.partner.name) or "PARTNER"))
+  local okI, I18n = pcall(require, "src.coop.CoopI18n")
+  local function t(text) return okI and I18n.t(text) or text end
+  local okS, Strings = pcall(require, "src.core.Strings")
+  local function game(text) -- the game's own names, in the game's language
+    if okS and Strings.lookup and type(text) == "string" then return Strings.lookup(text) or text end
+    return text
+  end
+  local data = battle.data or (battle.game and battle.game.data) or {}
+  local w = c.partnerActions and c.partnerActions[c.turn]
+  if not w then return { who, t("CHOOSING...") } end
+  if w.kind == "move" then
+    local def = data.moves and data.moves[w.id]
+    local name = game(def and def.name or tostring(w.id or "?"))
+    local target = w.target and battle:battlerAt(mirror(w.target))
+    local tname = target and game(target.name or (target.mon and target.mon.species)) or nil
+    return { who, name, tname and ("> " .. tname) or nil }
+  elseif w.kind == "switch" then
+    local mon = w.index and battle.ally and battle.ally.party and battle.ally.party[w.index]
+    local def = mon and data.pokemon and data.pokemon[mon.species]
+    local name = (mon and mon.nickname) or (def and game(def.name)) or tostring(w.species or "?")
+    return { who, t("SWITCH TO"), "> " .. name }
+  elseif w.kind == "item" then
+    local def = data.items and data.items[w.id]
+    local name = game(def and def.name or tostring(w.id or "?"))
+    return { who, name, w.targetNick and ("> " .. game(w.targetNick)) or nil }
+  elseif w.kind == "locked" then
+    return { who, t("SAME MOVE") }
+  end
+  return nil
+end
+
+-- the small font has capitals, digits and a few signs: the rest is folded
+local FOLD = { ["Á"] = "A", ["É"] = "E", ["Í"] = "I", ["Ó"] = "O", ["Ú"] = "U", ["Ñ"] = "N", ["Ü"] = "U",
+               ["á"] = "A", ["é"] = "E", ["í"] = "I", ["ó"] = "O", ["ú"] = "U", ["ñ"] = "N", ["ü"] = "U" }
+local function micro(text)
+  text = tostring(text):gsub("[\195][\128-\191]", function(ch) return FOLD[ch] or "" end)
+  -- anything else outside plain ASCII (a game's own space, a symbol) is a space
+  text = text:gsub("[\128-\255]+", " "):gsub("  +", " ")
+  return text:upper()
+end
+
+-- in the box left of FIGHT / PKMN / ITEM / RUN (x 8..64, y 104..136)
+function CoopBattle.drawPartnerPlan(battle)
+  if not (battle and battle.coopDouble and battle.phase == "menu") then return end
+  local lines = CoopBattle.partnerPlan(battle)
+  if not lines then return end
+  local MicroFont = require("src.render.MicroFont")
+  love.graphics.setColor(0, 0, 0, 1)
+  Font.raw.draw(Font.raw.fit and Font.raw.fit(lines[1], 56) or lines[1]:sub(1, 7), 8, 104)
+  for i = 2, 3 do
+    local l = lines[i]
+    if l then
+      l = micro(l)
+      while #l > 1 and MicroFont.width(l) > 56 do l = l:sub(1, -2) end
+      MicroFont.draw(l, 8, 106 + (i - 1) * 9)
+    end
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+end
+
 -- ---------------------------------------------------------------------
 -- the owner's word on their own Pokemon
 --
@@ -1694,6 +1770,7 @@ end
 
 function CoopBattle.drawWaitPrompt(battle)
   if CoopBattle.drawReconnecting(battle) then return end
+  pcall(CoopBattle.drawPartnerPlan, battle)
   if not CoopBattle.waitingForPartner then return end
   local CM = manager()
   local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")
