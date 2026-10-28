@@ -63,18 +63,9 @@ T.check(hit(theirs) == base, "outside co-op a screen covers only its own Pokemon
 mine.reflect = nil
 CoopBattle.currentBattle = was
 
--- a spread move's animation plays on each foe it hits, in a co-op double
+-- a spread move is one animation: no wrapper replays it on each target
 local Hooks = rawget(_G, "__PKMULTIPLAYER").hooks
-local V = require("src.core.GameVersion")
-local realGen2, realGen1 = V.isGen2, V.isGen1
-V.isGen2, V.isGen1 = function() return true end, function() return false end
-T.check(Hooks.animateEachTarget({ coopDouble = true }, true) == false,
-        "Gold/Silver/Crystal: a spread move animates on the second foe too")
-T.check(Hooks.animateEachTarget({}, true) == true, "...only in a co-op double")
-V.isGen2 = function() return false end
-T.check(Hooks.animateEachTarget({ coopDouble = true }, true) == true,
-        "later generations keep their one field-wide animation")
-V.isGen2, V.isGen1 = realGen2, realGen1
+T.check(Hooks.animateEachTarget == nil, "a spread move plays its animation once, also in a co-op double")
 
 -- Gen 1 animations: an object at a single-battle pic's centre lands on the
 -- centre of the Pokemon actually there (OAM = screen + 8, + 16)
