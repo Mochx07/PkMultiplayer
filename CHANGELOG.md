@@ -3,6 +3,16 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.9
+
+Compatible con 1.6.0–1.6.8 (mismo protocolo 16).
+
+### Añadido
+
+- **Emotes con el teclado numérico**, sin abrir el selector: 1 sorpresa, 2 pregunta, 3 feliz,
+  4 triste, 5 corazón, 6 enfado, 7 sueño y 8 ¡chócala! (la mano). Funcionan en el mapa, como la
+  tecla Y. El selector (Y) muestra el número de cada uno.
+
 ## 1.6.8
 
 Compatible con 1.6.0–1.6.7 (mismo protocolo 16).
