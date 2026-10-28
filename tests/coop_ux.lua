@@ -260,4 +260,31 @@ do
   CoopManager.net, CoopManager.isConnected = realNet, realConnected
 end
 
+-- THE RULES ARE THE SAME ON BOTH GAMES.  Reported from play: NEW CO-OP /
+-- CONTINUE CO-OP link first and load the save after; the host sent its rules
+-- at the link (its defaults) and not the ones its save then loaded, so the
+-- two games played by different rules (BALANCED FOES on one, off the other).
+do
+  require("src.coop.CoopBalance")
+  local sentRules = {}
+  local realNet, realConnected, realHost = CoopManager.net, CoopManager.connected, CoopManager.isHost
+  CoopManager.net = { send = function(_, m) if m.type == "coop_rules" then sentRules[m.name] = m.value end return true end,
+                      flush = function() end }
+  CoopManager.connected, CoopManager.isHost = true, true
+  CoopManager.balancedFoes = true
+  CoopManager.loadRules({ coopRules = { balancedFoes = false } })
+  T.check(CoopManager.balancedFoes == false, "the host's save brings its own rules")
+  T.check(sentRules.balancedFoes == false, "...and they go to the partner again, not the defaults sent at the link")
+  -- a linked guest keeps the host's rules over the ones in its own save
+  sentRules = {}
+  CoopManager.isHost = false
+  CoopManager.balancedFoes = false
+  CoopManager.loadRules({ coopRules = { balancedFoes = true } })
+  T.check(CoopManager.balancedFoes == false and next(sentRules) == nil, "a linked guest plays by the host's rules, whatever its save says")
+  -- the partner's message sets the rule
+  CoopManager.handlers.coop_rules(nil, { type = "coop_rules", name = "balancedFoes", value = true })
+  T.check(CoopManager.balancedFoes == true, "the host's rule message is taken by the guest")
+  CoopManager.net, CoopManager.connected, CoopManager.isHost = realNet, realConnected, realHost
+end
+
 T.finish("co-op joining, menus and extras")

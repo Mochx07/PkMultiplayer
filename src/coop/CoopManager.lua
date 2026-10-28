@@ -50,14 +50,38 @@ local function keepRule(name)
   save.coopRules[name] = CoopManager[name]
 end
 
+-- The host's rules, all of them, to the partner (who takes them as the
+-- session's: H.coop_rules).
+function CoopManager.sendRules()
+  if not (CoopManager.connected and CoopManager.net) then return end
+  for name in pairs(SHARED_RULES) do
+    CoopManager.net:send({ type = "coop_rules", name = name, value = CoopManager[name] })
+  end
+end
+
 -- called once a save is up (Game.restoreSave); a guest who is linked
--- already plays by the host's rules
+-- already plays by the host's rules.
+--
+-- THE HOST'S SAVE CAN COME UP AFTER THE LINK.  Reported from play: the rules
+-- were not the same on both games.  NEW CO-OP GAME / CONTINUE CO-OP link
+-- first and load the save after, and the rules went to the partner only at
+-- the link -- the host's defaults (BALANCED FOES on), not the ones its save
+-- then loaded (off).  A host that loads its save while linked sends the
+-- rules again.
 function CoopManager.loadRules(save)
   local kept = type(save) == "table" and save.coopRules
   if type(kept) ~= "table" then return end
   if CoopManager.connected and not CoopManager.isHost then return end
+  local changed = false
   for name in pairs(SHARED_RULES) do
-    if type(kept[name]) == "boolean" then CoopManager[name] = kept[name] end
+    if type(kept[name]) == "boolean" and CoopManager[name] ~= kept[name] then
+      CoopManager[name] = kept[name]
+      changed = true
+    end
+  end
+  if CoopManager.connected and CoopManager.isHost then
+    if changed then CoopLog.info("MANAGER", "the host's save brought its rules: sent to the partner again") end
+    CoopManager.sendRules()
   end
 end
 
@@ -710,11 +734,7 @@ local function completeHandshake(ow)
   -- medicine handed over whose answer never came
   pcall(CoopManager.askHeldItems, getGame(ow))
   -- the host's rules are the session's rules
-  if CoopManager.isHost and not wasConnected then
-    for name in pairs(SHARED_RULES) do
-      CoopManager.net:send({ type = "coop_rules", name = name, value = CoopManager[name] })
-    end
-  end
+  if CoopManager.isHost and not wasConnected then CoopManager.sendRules() end
 
   -- Host proposes the clock once per session when the two disagree
   local partnerTz = CoopManager.partner.timezone
