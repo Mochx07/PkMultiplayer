@@ -3,6 +3,31 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.6
+
+Compatible con 1.6.0–1.6.5 (mismo protocolo 16), pero **los dos jugadores necesitan la 1.6.6**
+para que el combate se reanude tras un corte y para recibir el log del otro.
+
+### Añadido
+
+- **Reconexión en mitad de un combate doble.** Si se corta la conexión, los dos ven
+  "RECONECTANDO..." en el centro de la pantalla y el combate espera. Al volver, cada juego dice
+  en qué combate y turno está: si siguen en el mismo, se reenvía lo que se perdió y la pantalla
+  del invitado se pone igual que la del anfitrión, y sigue jugando el compañero. La IA solo toma
+  sus Pokémon si no vuelve en 3 minutos (antes, 20 segundos), si su juego ya no está en ese
+  combate (lo reinició) o si usa una versión anterior.
+- **El log co-op se comparte solo.** Cada juego envía las líneas de su `coop.log` al compañero
+  mientras están enlazados (las de un corte, al reconectar), y el compañero las guarda en
+  `coop-partner.log` junto a su `coop.log`. Ya no hace falta pasarse el archivo para revisar un
+  fallo. Se apaga en MODS → PkMultiplayer → OPTIONS → **SHARE CO-OP LOG**.
+
+### Arreglado
+
+- Dobles co-op: tras un corte con la IA al mando, el combate podía quedarse sin ningún Pokémon en
+  tu lado y jugar cientos de turnos vacíos por segundo, sin terminar nunca. Ahora, si tu lado
+  queda vacío dos turnos seguidos sin nadie pendiente de entrar, sale el siguiente Pokémon sano
+  del equipo que toque, y si no queda ninguno el combate se da por perdido.
+
 ## 1.6.5
 
 Compatible con 1.6.0–1.6.4 (mismo protocolo 16): no hace falta que el compañero actualice.
