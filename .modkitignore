@@ -6,6 +6,7 @@ tests/coop_live_chat.lua
 tests/coop_lockstep.lua
 tests/coop_mobile.lua
 tests/coop_partner_items.lua
+tests/coop_partner_slot.lua
 tests/coop_items_turn.lua
 tests/pokegear_clock.lua
 tests/coop_story_wait.lua

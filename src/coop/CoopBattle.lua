@@ -676,6 +676,7 @@ function CoopBattle.executeTurn(battle)
 
   if not c.partnerLost and partnerState then
     CoopBattle.applyPartnerState(battle, partnerState)
+    CoopBattle.alignPartnerSlot(battle)
   end
   battle.coopPartnerAction = (not c.partnerLost) and CoopBattle.decodeAction(battle, wire) or nil
   -- this turn's bag heals, host's first on both copies.  Ours on the
@@ -917,6 +918,39 @@ local function allyPick(battle, entry)
     if usable(mm) then return mm end
   end
   return nil
+end
+
+-- THEIR POKEMON FELL ON THEIR SCREEN AND NOT ON THIS ONE.  Reported from
+-- play: the partner's Pokemon sat in its slot at 0 HP for the rest of the
+-- battle while they were fighting with the one they had sent in after it.
+-- The two copies had drifted on the turn it fell, so this one never ran the
+-- faint, never waited for their pick (which sat in replaceQueue), and read
+-- every later action of theirs against the fallen one.  Their word on their
+-- own Pokemon (applyPartnerState) is what says it is down; their pick is
+-- already queued, since it is sent before their next action, and goes in
+-- here, before that action is read against the slot.
+function CoopBattle.alignPartnerSlot(battle)
+  local c = battle and battle.coop
+  if not c or c.partnerLost or not battle.placeBattler then return end
+  local P = BattleStatePos()
+  local pos = P.PLAYER_RIGHT
+  local fallen = battle.battlerAt and battle:battlerAt(pos)
+  if not (fallen and fallen.mon) or (tonumber(fallen.mon.hp) or 0) > 0 then return end
+  local entry = table.remove(c.replaceQueue, 1)
+  battle:placeBattler(pos, nil)
+  local mon = entry and allyPick(battle, entry)
+  local BattleState = require("src.battle.BattleState")
+  if mon and BattleState.makeBattler then
+    local who = battle:placeBattler(pos, BattleState.makeBattler(battle.data, mon, true, nil))
+    who.ally = true
+  elseif allyPick(battle, nil) then
+    -- no pick yet, but they have one to make: the end of this turn waits for it
+    battle.pendingReplacements = battle.pendingReplacements or {}
+    battle.pendingReplacements[#battle.pendingReplacements + 1] = pos
+  end
+  battle:syncSides()
+  CoopLog.battle("PARTNER_SLOT", string.format("%s was down on the partner's screen; now %s",
+                 tostring(fallen.mon.species), tostring(mon and mon.species or "empty")))
 end
 
 -- The state awaitPartnerReplacement pushes: a one-line box over the battle
