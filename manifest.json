@@ -1,7 +1,7 @@
 {
   "id": "PkMultiplayer",
   "name": "PkMultiplayer (Online Co-op)",
-  "version": "1.6.10",
+  "version": "1.6.11",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",

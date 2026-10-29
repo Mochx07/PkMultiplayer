@@ -3,6 +3,19 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.11
+
+Compatible con 1.6.0–1.6.10 (mismo protocolo 16).
+
+### Arreglado
+
+- **El reloj compartido desplazaba también los timestamps que deben ir en hora real.** Cuando el
+  anfitrión y el compañero estaban en husos horarios distintos, el offset del reloj afectaba a los
+  backups de la partida (quedaban sellados con la hora del otro jugador), al temporizador de veinte
+  minutos del Concurso de Bichos y al log co-op. Ahora los módulos que miden tiempo real (Save,
+  BugContest, CoopLog, red, mods, descargas) leen el reloj del sistema sin offset; el reloj del
+  mundo del juego sigue sincronizado al del anfitrión.
+
 ## 1.6.10
 
 Compatible con 1.6.0–1.6.9 (mismo protocolo 16). Basta con que el **anfitrión** la tenga para
