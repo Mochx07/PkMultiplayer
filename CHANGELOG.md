@@ -3,6 +3,29 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.12
+
+Compatible con 1.6.0–1.6.11 (mismo protocolo 16).
+
+### Arreglado
+
+- **Bucle infinito de turnos en combates dobles co-op (desconexión y espectador).** En combates
+  dobles, al debilitarse los Pokémon seleccionados para el combate (`coopChosenMons`), el motor base
+  consultaba erróneamente `save.party` en lugar de la alineación co-op. Si el jugador tenía Pokémon sanos
+  en la reserva que no formaban parte del combate, la derrota no se declaraba (`self.result = "lose"`
+  nunca se asignaba) pero `self.sideBeaten = "player"` quedaba bloqueado. Al quedar el jugador como
+  espectador y desconectarse el compañero (`c.partnerLost = true`), el juego ejecutaba turnos sin retardo
+  en cada cuadro, ciclando miles de turnos en minutos.
+- **Chequeo de derrota y protección de espectador en `BattleState:playerMonFainted`.** Ahora evalúa
+  la alineación cooperativa: si el compañero sigue en pie, el jugador permanece como espectador sin
+  sufrir blackout prematuro; si ambos jugadores han caído o no pueden continuar, se activa el blackout
+  y el combate termina de forma limpia.
+- **Guardas contra bucles rápidos y reconexión en combate.** `CoopBattle.guardEmptySide` y
+  `CoopBattle.onSpectatorTurn` ahora detectan de inmediato si ningún bando puede continuar
+  (`sideCanContinue`), cortando cualquier ejecución anómala con un limitador de frecuencia. Además,
+  la reconexión (`onNewSession` / `onLinkRestored`) ya no queda bloqueada si un timeout previo había
+  activado temporalmente el control por IA.
+
 ## 1.6.11
 
 Compatible con 1.6.0–1.6.10 (mismo protocolo 16).
