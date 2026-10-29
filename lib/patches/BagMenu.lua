@@ -14,6 +14,23 @@ return {
   units = {
     { name = "useOn", kind = "local",
       base = "c541dc31", edits = {
+        { at = 254, cut = 0,
+          ctx = { before = { "85ee37bf", "6a8e75aa" }, old = {  }, after = { "98d0dfff", "2e5e39ef" } },
+          put = {
+            "    if battle.coopDouble or battle.coopWild then",
+            "      if battle.kind ~= \"wild\" then",
+            "        local t = game.data and game.data.text",
+            "        local line1 = t and t._ThrowBallAtTrainerMonText1 or Strings(\"The trainer\\nblocked the BALL!\")",
+            "        local line2 = t and t._ThrowBallAtTrainerMonText2 or Strings(\"Don't be a thief!\")",
+            "        showMessages(game, { line1, line2 })",
+            { r = 9, h = "85ee37bf", i = "        " },
+            "      else",
+            "        local W = package.loaded[\"src.coop.CoopWild\"]",
+            "        showMessages(game, { (W and W.NO_BALL) or Strings(\"Not while you\\nbattle together!\") })",
+            { r = 9, h = "85ee37bf", i = "        " },
+            "      end",
+            "    end",
+          } },
         { at = 401, cut = 0,
           ctx = { before = { "8fb7d044", "cce6899d" }, old = {  }, after = { "1feae9b6", "85ee37bf" } },
           put = {

@@ -189,6 +189,50 @@ do
 end
 
 -- ---------------------------------------------------------------------
+-- a POKé BALL is refused in a co-op double (trainer: blocked / thief; wild: together)
+-- ---------------------------------------------------------------------
+do
+  local env = pair(100)
+  local ItemEffects = require("src.inventory.ItemEffects")
+  Data.items.POKE_BALL = Data.items.POKE_BALL or { id = "POKE_BALL", key = "POKE_BALL", name = "POKé BALL", price = 200 }
+  env.guestGame.save.inventory.POKE_BALL = 3
+
+  -- In a co-op trainer double, throwing a ball is blocked by the trainer
+  local kind, msgs = ItemEffects.use(Data, env.guestGame.save, "POKE_BALL", nil, env.gb)
+  T.check(kind == "failed", "a POKé BALL is refused in a co-op trainer battle (" .. tostring(kind) .. ")")
+  local textJoined = table.concat(msgs or {}, " ")
+  T.check(textJoined:find("blocked") or textJoined:find("thief"),
+          "refusal message mentions trainer block / thief: " .. tostring(textJoined))
+  T.check(env.guestGame.save.inventory.POKE_BALL == 3, "the ball is not consumed")
+
+  -- Using a POKé BALL via BagMenu: does not close the bag, does not consume the ball
+  local closed = false
+  local okUse, errUse = pcall(BagMenu.useItem, env.guestGame, env.gb, "POKE_BALL", { close = function() closed = true end })
+  T.check(okUse, "using a POKé BALL via BagMenu in a co-op double does not crash (" .. tostring(errUse) .. ")")
+  T.check(not closed, "the bag menu is NOT closed when a ball is blocked")
+  T.check(env.guestGame.save.inventory.POKE_BALL == 3, "the ball is still in inventory")
+
+  -- Direct throwBall in co-op does not advance turns or execute actions
+  local rec = { actions = 0, endTurns = 0 }
+  local realAct, realEnd = env.gb.executeAction, env.gb.endOfTurn
+  env.gb.executeAction = function(...) rec.actions = rec.actions + 1 return realAct(...) end
+  env.gb.endOfTurn = function(...) rec.endTurns = rec.endTurns + 1 return realEnd(...) end
+  local turnBefore = env.gb.turn or 1
+  env.gb:throwBall("POKE_BALL")
+  T.check(rec.actions == 0 and rec.endTurns == 0, "throwBall does not execute enemy actions or endOfTurn")
+  T.check((env.gb.turn or 1) == turnBefore, "turn count did not advance")
+  T.check(env.gb.phase == "menu", "phase returned to menu")
+  env.gb.executeAction, env.gb.endOfTurn = realAct, realEnd
+
+  -- In a co-op wild double, balls cannot be aimed
+  env.gb.kind = "wild"
+  env.gb.coopWild = true
+  local wKind, wMsgs = ItemEffects.use(Data, env.guestGame.save, "POKE_BALL", nil, env.gb)
+  T.check(wKind == "failed", "a POKé BALL is refused in a co-op wild battle (" .. tostring(wKind) .. ")")
+  T.check(wMsgs and wMsgs[1]:find("together"), "refusal message explains cannot catch together")
+end
+
+-- ---------------------------------------------------------------------
 -- a partner still choosing is waited for, however long it takes
 -- ---------------------------------------------------------------------
 do

@@ -545,9 +545,16 @@ Hooks.modules["src.inventory.ItemEffects"] = function(ItemEffects)
         return "failed", { "Not while you\nbattle together!" }
       end
       local result, a, b, c = use(data, save, id, target, battle, ...)
-      if result == "ball" and type(battle) == "table" and battle.coopWild then
-        local W = package.loaded["src.coop.CoopWild"]
-        return "failed", { (W and W.NO_BALL) or "Not while you\nbattle together!" }
+      if result == "ball" and type(battle) == "table" and (battle.coopDouble or battle.coopWild) then
+        if battle.kind ~= "wild" then
+          local t = data and data.text
+          local line1 = t and t._ThrowBallAtTrainerMonText1 or "The trainer\nblocked the BALL!"
+          local line2 = t and t._ThrowBallAtTrainerMonText2 or "Don't be a thief!"
+          return "failed", { line1, line2 }
+        else
+          local W = package.loaded["src.coop.CoopWild"]
+          return "failed", { (W and W.NO_BALL) or "Not while you\nbattle together!" }
+        end
       end
       return result, a, b, c
     end

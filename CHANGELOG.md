@@ -3,6 +3,27 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.13
+
+Compatible con 1.6.0–1.6.12 (mismo protocolo 16).
+
+### Arreglado
+
+- **Desincronización por lanzamiento de Poké Balls en combates dobles cooperativos.** Al intentar
+  usar una Poké Ball desde la mochila contra los Pokémon de un entrenador durante un combate doble co-op,
+  el juego ejecutaba el flujo de un solo jugador (`throwBall` local con la animación de bloqueo y el ataque
+  inmediato del rival). Esto esquivaba por completo el sistema lockstep por turnos cooperativo, no enviaba
+  la acción al compañero y alteraba el contador de turnos y las semillas de RNG de manera asimétrica,
+  dejando a ambos jugadores irreconciliablemente desincronizados.
+- **Bloqueo seguro en el menú de la mochila e intercepción defensiva.** Ahora, en cualquier combate
+  cooperativo (`battle.coopDouble` / `battle.coopWild`):
+  1. `ItemEffects.use` y el menú de la mochila (`BagMenu.useOn`) interceptan el intento antes de consumir
+     el objeto o cerrar el menú, mostrando el mensaje canónico («El entrenador bloqueó la Poké Ball. ¡No seas ladrón!»
+     o «¡No mientras combaten juntos!» en batallas salvajes), manteniendo la Poké Ball intacta en el inventario
+     y sin gastar el turno local.
+  2. Como defensa en profundidad, `BattleState:throwBall` y `Gen5BagUse` abortan de inmediato cualquier
+     intento de avance de turno asíncrono o tirada de dados fuera de sincronía si se les llama durante combates cooperativos.
+
 ## 1.6.12
 
 Compatible con 1.6.0–1.6.11 (mismo protocolo 16).
