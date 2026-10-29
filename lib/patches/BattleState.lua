@@ -1637,6 +1637,21 @@ return {
             "          self.sendingOut, self.sendingOutSlot = false, nil",
           } },
       } },
+    { name = "BattleState:playerMonFainted", kind = "method",
+      base = "1bd30c3e", edits = {
+        { at = 2, cut = 1,
+          ctx = { before = { "375a3aaf" }, old = { "27984ba5" }, after = { "6c673951", "477e2c10" } },
+          put = {
+            "  local bench = (self.coopDouble and self.coopChosenMons) or self.game.save.party",
+            "  local nextMon = Party.firstHealthy(bench)",
+            "  if self.coopDouble and self.ally and self:sideCanContinue(true) then",
+            { r = 76, h = "85ee37bf", i = "    " },
+            "  end",
+            "  if self.coopDouble and not self:sideCanContinue(true) then",
+            "    nextMon = nil",
+            "  end",
+          } },
+      } },
     { name = "BattleState:openReplacementMenu", kind = "method",
       base = "fa96e49c", edits = {
         { at = 27, cut = 0,

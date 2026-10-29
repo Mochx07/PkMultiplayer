@@ -225,4 +225,41 @@ do
   T.check(CoopBattle.partnerPlan(battle) == nil, "with the AI playing for them there is nothing to say")
 end
 
+-- PLAYER MON FAINTED WITH FULL SAVE PARTY BUT WIPED CO-OP SQUAD:
+-- Reported from play (log 2026-10-28 01:29): player brought 3 Pokemon, all
+-- fainted, while party slots 4-6 still had full HP in save.party.
+-- playerMonFainted must check coopChosenMons and sideCanContinue rather than
+-- save.party, so it does not ignore the defeat and spin in a spectator loop.
+do
+  local battle = hostCopy({ "FIXMON_C" })
+  local extraMon = Pokemon.new(Data, "FIXMON_B", 20, function(a) return a end)
+  table.insert(battle.game.save.party, extraMon)
+  battle.coopChosenMons = { battle.game.save.party[1] }
+  T.check(#battle.game.save.party > #battle.coopChosenMons, "player has unchosen healthy Pokemon in save party")
+
+  -- When player's chosen mons are fainted but partner is still alive: spectator mode
+  for _, m in ipairs(battle.coopChosenMons) do m.hp = 0 end
+  battle:playerMonFainted()
+  T.check(battle.result == nil, "with ally still fighting, playerMonFainted does not trigger blackout")
+
+  -- When partner is ALSO fainted: entire side cannot continue, so it must blackout and lose
+  for _, m in ipairs(battle.ally.party) do m.hp = 0 end
+  emptyOurSide(battle)
+  battle:playerMonFainted()
+  T.check(battle.result == "lose", "when whole side is down, playerMonFainted loses despite unchosen mons in save party")
+  T.check(battle.afterQueue == "finish", "...and queues battle finish")
+end
+
+-- SPECTATOR TURN WITH PARTNER LOST DOES NOT LOOP WHEN SIDE CANNOT CONTINUE
+do
+  local battle = hostCopy({ "FIXMON_C" })
+  local c = battle.coop
+  c.partnerLost = true
+  emptyOurSide(battle)
+  for _, m in ipairs(battle.coopChosenMons) do m.hp = 0 end
+  for _, m in ipairs(battle.ally.party) do m.hp = 0 end
+  CoopBattle.onSpectatorTurn(battle)
+  T.check(battle.result == "lose" or c.finished, "onSpectatorTurn immediately finishes when side cannot continue")
+end
+
 T.finish("co-op double: the partner's Pokemon fell on their screen only")

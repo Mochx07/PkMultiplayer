@@ -762,9 +762,19 @@ local function setWaiting(battle, on)
   end
 end
 
+local function standing(b)
+  return b and b.mon and (tonumber(b.mon.hp) or 0) > 0 and not b.fainted and not b.faintQueued
+end
+
+local function usable(mon, taken)
+  if type(mon) ~= "table" or taken[mon] or (tonumber(mon.hp) or 0) <= 0 then return false end
+  if mon.isEgg or (tonumber(mon.eggSteps) or 0) > 0 then return false end
+  return true
+end
+
 function CoopBattle.executeTurn(battle)
-  local c = battle.coop
-  if not c then return end
+  local c = battle and battle.coop
+  if not c or c.finished or (battle and battle.result) then return end
   local turn = c.turn
   local localAction = c.localTurnAction
   local wire = c.partnerActions[turn]
@@ -804,6 +814,14 @@ function CoopBattle.executeTurn(battle)
   end
   CoopBattle.queueRevivedSlots(battle)
   if CoopBattle.guardEmptySide(battle) then return end
+  local P = BattleStatePos()
+  local oppLeft = battle:battlerAt(P.OPPONENT_LEFT)
+  local oppRight = battle:battlerAt(P.OPPONENT_RIGHT)
+  if not standing(oppLeft) and not standing(oppRight) and battle.sideCanContinue and not battle:sideCanContinue(false) then
+    CoopLog.warn("BATTLE", "no opposing Pokemon standing or on bench; the battle is won")
+    CoopBattle.forceFinishBattle(battle, "win")
+    return
+  end
   reseed(battle, turn)
   CoopLog.battle("TURN", string.format("resolve turn %d (partner %s)", turn,
                  c.partnerLost and "AI" or tostring(wire and wire.kind)))
@@ -822,15 +840,7 @@ end
 -- side empty two turns running: a slot holding a fallen battler is cleared, each empty slot
 -- takes the first healthy Pokemon from its own bench (ours, or the
 -- partner's), and with nobody to send the battle is lost.
-local function standing(b)
-  return b and b.mon and (tonumber(b.mon.hp) or 0) > 0 and not b.fainted and not b.faintQueued
-end
 
-local function usable(mon, taken)
-  if type(mon) ~= "table" or taken[mon] or (tonumber(mon.hp) or 0) <= 0 then return false end
-  if mon.isEgg or (tonumber(mon.eggSteps) or 0) > 0 then return false end
-  return true
-end
 
 function CoopBattle.guardEmptySide(battle)
   if not (battle and battle.coopDouble and battle.battlerAt and battle.placeBattler) then return false end
@@ -839,6 +849,11 @@ function CoopBattle.guardEmptySide(battle)
   if standing(battle:battlerAt(P.PLAYER_LEFT)) or standing(battle:battlerAt(P.PLAYER_RIGHT)) then
     c.emptyTurns = 0
     return false
+  end
+  if battle.sideCanContinue and not battle:sideCanContinue(true) then
+    CoopLog.warn("BATTLE", "our side cannot continue; the battle is lost")
+    CoopBattle.forceFinishBattle(battle, "lose")
+    return true
   end
   -- An empty side at the start of ONE turn can be the engine still sending
   -- someone in: the replacements of the turn before are queued, or still
@@ -850,7 +865,7 @@ function CoopBattle.guardEmptySide(battle)
     return false
   end
   c.emptyTurns = (c.emptyTurns or 0) + 1
-  if c.emptyTurns < 2 then return false end
+  if c.emptyTurns < 2 and not c.partnerLost then return false end
   c.emptyTurns = 0
   local taken = {}
   for p = 0, 3 do
@@ -968,8 +983,33 @@ end
 function CoopBattle.onSpectatorTurn(battle)
   if not battle then return end
   local c = battle.coop
+  if battle.result or (c and c.finished) then return end
   if c and c.localReady then return end -- already submitted, still waiting
   if c and c.partnerLost then
+    if battle.sideCanContinue then
+      if not battle:sideCanContinue(true) then
+        CoopBattle.forceFinishBattle(battle, "lose")
+        return
+      end
+      if not battle:sideCanContinue(false) then
+        CoopBattle.forceFinishBattle(battle, "win")
+        return
+      end
+    end
+    local now = (love and love.timer and love.timer.getTime) and love.timer.getTime() or os.time()
+    if c.lastSpectatorTurnAt and (now - c.lastSpectatorTurnAt) < 0.05 then
+      c.fastSpectatorTurns = (c.fastSpectatorTurns or 0) + 1
+      if c.fastSpectatorTurns > 4 then
+        CoopLog.warn("BATTLE", "onSpectatorTurn rapid loop guard tripped; ending battle")
+        local res = (battle.sideCanContinue and battle:sideCanContinue(true)) and "win" or "lose"
+        CoopBattle.forceFinishBattle(battle, res)
+        return
+      end
+    else
+      c.fastSpectatorTurns = 0
+    end
+    c.lastSpectatorTurnAt = now
+
     -- nobody left to watch: the ally AI fights it out
     c.localReady = true
     c.localTurnAction = nil
@@ -1079,7 +1119,7 @@ end
 function CoopBattle.onNewSession()
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop
-  if not c or c.partnerLost or c.finished then return end
+  if not c or c.finished then return end
   c.awaitingResume = true
   c.resumeWait = 0
   CoopLog.battle("RESUME", "the link came back as a new session; asking if the partner is still in the battle")
@@ -1089,10 +1129,11 @@ function CoopBattle.onPartnerHere(msg)
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop
   local inviteId = msg and msg.inviteId
-  if not c or c.finished or c.partnerLost or (inviteId and c.inviteId and inviteId ~= c.inviteId) then
+  if not c or c.finished or (inviteId and c.inviteId and inviteId ~= c.inviteId) then
     if inviteId then send({ type = "coop_battle_gone", inviteId = inviteId }) end
     return
   end
+  c.partnerLost = nil
   c.awaitingResume = nil
   c.resumeWait = nil
   c.linkLostAt = nil
@@ -1124,9 +1165,9 @@ end
 function CoopBattle.onLinkRestored()
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop
-  if not c or c.partnerLost or c.finished then return end
+  if not c or c.finished then return end
   c.linkLostAt = nil
-  if c.localReady and c.lastSent and c.lastSent.turn == c.turn then
+  if not c.partnerLost and c.localReady and c.lastSent and c.lastSent.turn == c.turn then
     send(c.lastSent)
     CoopLog.battle("ACTION_RESENT", "turn " .. tostring(c.turn))
   end
