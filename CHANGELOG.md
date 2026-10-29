@@ -7,103 +7,64 @@ Version headings match `manifest.json`'s `version`.
 
 Compatible con 1.6.0–1.6.14 (mismo protocolo 16).
 
-### Arreglado
+### Corregido
 
-- **Sincronización de Alas Legendarias exclusiva por versión en cooperativo cruzado Oro/Plata:**
-  - En Pokémon Oro y Plata, la Torre Radio de Ciudad Trigal entrega el Ala del legendario principal (Ala Arcoíris en Oro para Ho-Oh, Ala Plateada en Plata para Lugia), mientras que el Anciano de Ciudad Plateada en Kanto entrega el Ala secundaria opuesta.
-  - Al jugar en cooperativo cruzado (jugador en Oro y compañero en Plata), la sincronización de recompensas de historia (`coop_story_rewards`) transmitía literalmente el objeto (`ITEM_178` / `RAINBOW_WING`) y el flag del evento (`120` / `EVENT_GOT_RAINBOW_WING`) al jugador de Plata, otorgándole indebidamente el Ala de Ho-Oh en Johto antes de la Liga Pokémon y bloqueando la obtención legítima de su propia Ala Plateada y el posterior evento de Kanto.
-  - Se implementó `CoopStory.remapVersionRewards`: cuando se reciben recompensas de historia de un compañero, los objetos y flags de las alas legendarias se reasignan dinámicamente según la versión del cartucho del receptor (`GameVersion.isSilver()` / `isGold()`) y el contexto del evento (Torre Radio vs Ciudad Plateada / progreso en Kanto).
-  - Un jugador de Plata en la Torre Radio siempre recibe el Ala Plateada (`ITEM_071`) y activa `EVENT_GOT_SILVER_WING`, y en Ciudad Plateada el Ala Arcoíris (`ITEM_178`).
-  - Un jugador de Oro en la Torre Radio siempre recibe el Ala Arcoíris (`ITEM_178`) y activa `EVENT_GOT_RAINBOW_WING`, y en Ciudad Plateada el Ala Plateada (`ITEM_071`).
-- **Autorreparación de partidas existentes (`CoopStory.repairSave`):**
-  - Al cargar una partida en Plata que no haya superado el Alto Mando ni llegado a Kanto pero que posea prematuramente el Ala Arcoíris (`ITEM_178`) o su flag (`EVENT_G2_0120`), el sistema elimina el Ala Arcoíris y el flag erróneo, y si la Torre Radio fue superada, asegura la posesión del Ala Plateada (`ITEM_071`) y el flag correcto (`EVENT_G2_0121`). Lo análogo se aplica para Oro con Ala Plateada prematura.
-- **Evaluación dinámica en tiempo de ejecución de `g2_checkver`:**
-  - Se añadió un gancho defensivo en `lib/Hooks.lua` para `Commands.g2_checkver` que evalúa dinámicamente `GameVersion.isSilver()` en tiempo de ejecución.
+- **Alas legendarias por versión en Oro y Plata.** En cooperativo entre Oro y
+  Plata, la Torre Radio entregaba el ala del compañero en vez de la de la propia
+  edición (el Ala Arcoíris en Plata o el Ala Plateada en Oro), bloqueando el
+  acceso al legendario principal de Johto y el evento del anciano de Ciudad
+  Plateada en Kanto. Ahora cada juego recibe siempre el ala que le corresponde a
+  su cartucho.
 
 ## 1.6.14
 
 Compatible con 1.6.0–1.6.13 (mismo protocolo 16).
 
-### Arreglado
+### Corregido
 
-- **Cuelgue por decodificación UTF-8 en menús y traducciones (`UnicodeFont.lua:33: UTF-8 decoding error: Not enough space`).**
-  Al recortar nombres de objetos, entrenadores o compañeros con `:sub(1, N)` sobre cadenas con caracteres acentuados
-  multibyte en español (como `ANTIPARÁLISIS`, `POCIÓN MÁXIMA` o `SUPERPOCIÓN`), el recorte por bytes partía la secuencia
-  UTF-8 por la mitad, dejando un byte guía huérfano (`\195`). Al pasar la cadena a través de `Menu:draw` y `Font.draw`,
-  el decodificador de LOVE2D abortaba con error fatal de C++.
-- **Truncado seguro y sanitización UTF-8 en todo el mod:**
-  1. Se implementaron `I18n.cleanUTF8`, `I18n.truncate` y `I18n.padRight` en `CoopI18n.lua`, garantizando que cualquier
-     corte respete los límites de caracteres Unicode y descarte bytes residuales o malformados sin partir letras.
-  2. Se reemplazaron todos los recortes inseguros `:sub(1, N)` en `CoopManager`, `CoopStory`, `CoopBattleInviteModal`,
-     `CoopWaitModal`, `CoopLink`, `CoopVisit`, `CoopWatch`, `CoopSummary`, `CoopBattle`, `CoopMenu` y `CoopBattleSelect`.
-  3. Se añadieron ganchos defensivos en `lib/Hooks.lua` sobre `src.render.Font` y `src.translation.UnicodeFont`,
-     sanitizando texto en `draw`, `split`, `encode`, `width` y protegiendo `UnicodeFont.draw` y `UnicodeFont.width` con
-     `pcall` defensivo para blindar tanto instalaciones nuevas como motores AppImage ya compilados.
-  4. Se endureció el motor en `PkMplayer-merge` (`Font.lua` y `UnicodeFont.lua`) validando las longitudes de secuencias
-     UTF-8 antes de registrarlas en `UnicodeFont`.
+- **Cuelgue con caracteres acentuados en los menús en español.** Al recortar
+  nombres de objetos, entrenadores o del compañero con tilde (como Poción
+  Máxima o Antiparálisis), el texto se partía por bytes a mitad de un carácter
+  Unicode, provocando un error de decodificación en la fuente. Ahora el corte
+  respeta los caracteres multibyte y no parte ninguna letra.
 
 ## 1.6.13
 
 Compatible con 1.6.0–1.6.12 (mismo protocolo 16).
 
-### Arreglado
+### Corregido
 
-- **Desincronización por lanzamiento de Poké Balls en combates dobles cooperativos.** Al intentar
-  usar una Poké Ball desde la mochila contra los Pokémon de un entrenador durante un combate doble co-op,
-  el juego ejecutaba el flujo de un solo jugador (`throwBall` local con la animación de bloqueo y el ataque
-  inmediato del rival). Esto esquivaba por completo el sistema lockstep por turnos cooperativo, no enviaba
-  la acción al compañero y alteraba el contador de turnos y las semillas de RNG de manera asimétrica,
-  dejando a ambos jugadores irreconciliablemente desincronizados.
-- **Bloqueo seguro en el menú de la mochila e intercepción defensiva.** Ahora, en cualquier combate
-  cooperativo (`battle.coopDouble` / `battle.coopWild`):
-  1. `ItemEffects.use` y el menú de la mochila (`BagMenu.useOn`) interceptan el intento antes de consumir
-     el objeto o cerrar el menú, mostrando el mensaje canónico («El entrenador bloqueó la Poké Ball. ¡No seas ladrón!»
-     o «¡No mientras combaten juntos!» en batallas salvajes), manteniendo la Poké Ball intacta en el inventario
-     y sin gastar el turno local.
-  2. Como defensa en profundidad, `BattleState:throwBall` y `Gen5BagUse` abortan de inmediato cualquier
-     intento de avance de turno asíncrono o tirada de dados fuera de sincronía si se les llama durante combates cooperativos.
+- **Lanzar Poké Balls en combates dobles cooperativos.** Intentar usar una
+  Poké Ball contra el Pokémon de un entrenador en combate doble ejecutaba el
+  flujo de un jugador y desincronizaba los turnos con el compañero. Ahora la
+  mochila bloquea el intento con el aviso del juego antes de consumir el turno.
 
 ## 1.6.12
 
 Compatible con 1.6.0–1.6.11 (mismo protocolo 16).
 
-### Arreglado
+### Corregido
 
-- **Bucle infinito de turnos en combates dobles co-op (desconexión y espectador).** En combates
-  dobles, al debilitarse los Pokémon seleccionados para el combate (`coopChosenMons`), el motor base
-  consultaba erróneamente `save.party` en lugar de la alineación co-op. Si el jugador tenía Pokémon sanos
-  en la reserva que no formaban parte del combate, la derrota no se declaraba (`self.result = "lose"`
-  nunca se asignaba) pero `self.sideBeaten = "player"` quedaba bloqueado. Al quedar el jugador como
-  espectador y desconectarse el compañero (`c.partnerLost = true`), el juego ejecutaba turnos sin retardo
-  en cada cuadro, ciclando miles de turnos en minutos.
-- **Chequeo de derrota y protección de espectador en `BattleState:playerMonFainted`.** Ahora evalúa
-  la alineación cooperativa: si el compañero sigue en pie, el jugador permanece como espectador sin
-  sufrir blackout prematuro; si ambos jugadores han caído o no pueden continuar, se activa el blackout
-  y el combate termina de forma limpia.
-- **Guardas contra bucles rápidos y reconexión en combate.** `CoopBattle.guardEmptySide` y
-  `CoopBattle.onSpectatorTurn` ahora detectan de inmediato si ningún bando puede continuar
-  (`sideCanContinue`), cortando cualquier ejecución anómala con un limitador de frecuencia. Además,
-  la reconexión (`onNewSession` / `onLinkRestored`) ya no queda bloqueada si un timeout previo había
-  activado temporalmente el control por IA.
+- **Bucle de turnos en combates dobles cooperativos.** Al caer todos los
+  Pokémon elegidos para el combate mientras el compañero seguía luchando o tras
+  desconectarse, el juego consultaba el equipo entero y ciclava turnos sin parar
+  en modo espectador. Ahora evalúa la alineación cooperativa correctamente y el
+  combate termina de forma limpia.
 
 ## 1.6.11
 
 Compatible con 1.6.0–1.6.10 (mismo protocolo 16).
 
-### Arreglado
+### Corregido
 
-- **El reloj compartido desplazaba también los timestamps que deben ir en hora real.** Cuando el
-  anfitrión y el compañero estaban en husos horarios distintos, el offset del reloj afectaba a los
-  backups de la partida (quedaban sellados con horas en el futuro, bloqueando los backups rotativos),
-  al temporizador de 20 minutos del Concurso de Bichos y al log co-op. Ahora los módulos que miden
-  tiempo real (`SaveSafety`, `BugContest`, `CoopLog`, red, mods, descargas) leen el reloj del
-  sistema sin offset; el reloj del mundo del juego sigue sincronizado al del anfitrión.
-- **Crash en la estructura del buzón de historia offline.** Corregido un fallo de índice nil en el
-  buzón de historia (`coopStoryOutbox`) al registrar entrenadores vencidos, accediendo correctamente
-  a `.rewards[1].kind` en lugar del índice directo.
-- **Modernización del ejecutor de pruebas (`tools/run_tests.sh`).** `test_coop.lua` ahora se corre
-  a través del cargador de parches del motor (`run.lua`) en vez de Lua en crudo sin parches,
-  eliminando 3 fallos falsos heredados ("3 are old") y dejando la suite completa en 219/219 (0 FAIL).
+- **El reloj compartido desplazaba también los timestamps de tiempo real.**
+  Cuando el anfitrión y el compañero estaban en husos horarios distintos, el
+  offset del reloj afectaba a los backups de la partida y al temporizador del
+  Concurso de Bichos. Ahora esos sistemas leen el reloj real sin offset; solo el
+  mundo del juego sigue la hora del anfitrión.
+- **Buzón de historia sin conexión.** Al registrar combates de entrenadores
+  ganados mientras no había enlace, una entrada vacía provocaba un error de
+  índice al reconectar. Ahora se guarda y reenvía limpiamente.
 
 ## 1.6.10
 
