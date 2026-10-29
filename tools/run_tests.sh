@@ -6,8 +6,9 @@
 #   tools/run_tests.sh            every suite
 #   tools/run_tests.sh session    only the suites whose file name has "session"
 #
-# test_coop.lua is the legacy ROM-free suite: 3 of its checks failed before
-# 1.5 already (foesOf order, two Bug Contest checks) and still do.
+# test_coop.lua is the legacy ROM-free suite; it runs through run.lua like the
+# rest (run bare, without the mod's patches, its foesOf and Bug Contest checks
+# fail because the engine underneath is unpatched).
 set -u
 M="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="${PKM_ENGINE_REPO:-$HOME/Downloads/PkMplayer-merge}"
@@ -27,6 +28,7 @@ done
 if [ -z "${1:-}" ]; then
   echo "== foreign_wrapper: $(PKM_EAGER=1 PKM_PRE="$M/tests/foreign_wrapper_pre.lua" luajit "$M/tests/run.lua" "$M/tests/foreign_wrapper.lua" 2>&1 | tail -1)"
   echo "== reload_patched: $(PKM_EAGER=1 luajit "$M/tests/run.lua" "$M/tests/reload_patched.lua" 2>&1 | tail -1)"
-  echo "== test_coop: $(LUA_PATH="$M/?.lua;;" luajit "$M/tests/test_coop.lua" 2>&1 | grep -c '^FAIL') FAIL (3 are old)"
-  LUA_PATH="$M/?.lua;;" luajit "$M/tests/test_coop.lua" 2>&1 | grep '^FAIL\|rror' | head
+  out=$(luajit "$M/tests/run.lua" "$M/tests/test_coop.lua" 2>&1)
+  echo "== test_coop: $(echo "$out" | grep -c '^ok') ok, $(echo "$out" | grep -c '^FAIL') FAIL"
+  echo "$out" | grep -E "^FAIL|rror" | grep -v "^\[warn\]" | head
 fi

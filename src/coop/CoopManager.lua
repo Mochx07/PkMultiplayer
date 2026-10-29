@@ -762,6 +762,35 @@ end
 -- every reader at once, rather than a handful patched and the rest left on
 -- the local time.  A date TABLE passed to os.time, or a time passed to
 -- os.date, is converted as given: only "what time is it" moves.
+--
+-- What measures real time keeps the real clock: the save's backups and
+-- "open elsewhere" markers, sign-in tokens, downloads, the mod index, the
+-- Bug Contest's twenty minutes and the co-op log.  Shifted, a session on a
+-- clock 3 h ahead left a backup stamped 3 h in the future, and no rolling
+-- backup was taken for the 3 h after it ended; a link that dropped mid-contest
+-- moved its deadline by the whole offset.
+CoopManager.REAL_CLOCK = {
+  "src/core/Save", "src/core/BootTrace", "src/core/DiscordPresence", "src/cloud/",
+  "src/net/", "src/mods/", "src/import/", "BugContest.lua", "CoopLog.lua",
+}
+local realCallers = {}
+local function callerWantsReal()
+  -- 1 = here, 2 = the shim, 3 = whoever asked the time (past a pcall)
+  local info = debug.getinfo(3, "S")
+  if info and info.what == "C" then info = debug.getinfo(4, "S") end
+  local src = info and info.source
+  if type(src) ~= "string" then return false end
+  local real = realCallers[src]
+  if real == nil then
+    real = false
+    for _, pat in ipairs(CoopManager.REAL_CLOCK) do
+      if src:find(pat, 1, true) then real = true break end
+    end
+    realCallers[src] = real
+  end
+  return real
+end
+
 local function installClockShim()
   if (CoopManager.timeOffsetSec or 0) == 0 then
     os.time, os.date = realTime, realDate
@@ -769,10 +798,13 @@ local function installClockShim()
   end
   os.time = function(t)
     if t ~= nil then return realTime(t) end
+    if callerWantsReal() then return realTime() end
     return realTime() + (CoopManager.timeOffsetSec or 0)
   end
   os.date = function(fmt, t)
-    if t == nil then t = os.time() end
+    if t == nil then
+      t = callerWantsReal() and realTime() or realTime() + (CoopManager.timeOffsetSec or 0)
+    end
     return realDate(fmt or "%c", t)
   end
 end

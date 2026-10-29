@@ -990,7 +990,7 @@ do
   package.loaded["src.core.Game"] = game
   CoopManager.syncTrainerDefeated("ROUTE30_obj_3", "EVENT_BEAT_YOUNGSTER", 3, "ROUTE_30")
   package.loaded["src.core.Game"] = Game
-  check(#game.save.coopStoryOutbox == 2 and game.save.coopStoryOutbox[2][1].kind == "trainer",
+  check(#game.save.coopStoryOutbox == 2 and game.save.coopStoryOutbox[2].rewards[1].kind == "trainer",
         "offline: a beaten trainer is kept too")
   -- a save that never played with anyone keeps nothing
   local loner = { player = { name = "SOLO" }, flags = {} }
@@ -1100,6 +1100,22 @@ do
   check(math.abs((shifted - before) - (3600 + 21600)) <= 2, "the game's clock moves to the shared one")
   check(os.date("%Y-%m-%d %H:%M", shifted) == os.date("%Y-%m-%d %H:%M"), "os.date with no time reads the shared clock")
   check(CoopManager.dayOffset({ g2DayOffset = 5 }) == 3, "the host's picked weekday is shared")
+  -- what measures real time keeps the real clock
+  local real = CoopManager.realTime()
+  local SaveSafety = require("src.core.SaveSafety")
+  check(SaveSafety.stamp() == CoopManager.realDate("%Y%m%d-%H%M%S", real)
+        or SaveSafety.stamp() == CoopManager.realDate("%Y%m%d-%H%M%S", real + 1),
+        "a save backup is stamped with the real time")
+  local files = {}
+  local memfs = { read = function(f) return files[f] end, write = function(f, b) files[f] = b return true end,
+                  remove = function(f) files[f] = nil return true end,
+                  getInfo = function(f) return files[f] and { type = "file" } or nil end }
+  SaveSafety.snapshot(memfs, "slot.sav", "A")
+  local list = SaveSafety.listBackups(memfs, "slot.sav")
+  check(list[1] and math.abs(list[1].t - real) <= 2, "the backup's time is the real one (rolling backups go on after the session)")
+  local BugContest = require("src.world.BugContest")
+  check(BugContest.secondsLeft({ g2BugContest = { endsAt = real + 600 } }) >= 598,
+        "the Bug Contest's twenty minutes run on the real clock")
   CoopManager.applyTimeMode("off")
   check(math.abs(os.time() - before) <= 2, "own clock comes back")
   check(CoopManager.dayOffset({ g2DayOffset = 5 }) == 5, "own weekday comes back")
