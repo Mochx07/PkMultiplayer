@@ -7,7 +7,7 @@ Version headings match `manifest.json`'s `version`.
 
 Compatible con 1.6.0–1.6.14 (mismo protocolo 16).
 
-### Corregido
+### Arreglado
 
 - **Alas legendarias por versión en Oro y Plata.** En cooperativo entre Oro y
   Plata, la Torre Radio entregaba el ala del compañero en vez de la de la propia
@@ -20,7 +20,7 @@ Compatible con 1.6.0–1.6.14 (mismo protocolo 16).
 
 Compatible con 1.6.0–1.6.13 (mismo protocolo 16).
 
-### Corregido
+### Arreglado
 
 - **Cuelgue con caracteres acentuados en los menús en español.** Al recortar
   nombres de objetos, entrenadores o del compañero con tilde (como Poción
@@ -32,7 +32,7 @@ Compatible con 1.6.0–1.6.13 (mismo protocolo 16).
 
 Compatible con 1.6.0–1.6.12 (mismo protocolo 16).
 
-### Corregido
+### Arreglado
 
 - **Lanzar Poké Balls en combates dobles cooperativos.** Intentar usar una
   Poké Ball contra el Pokémon de un entrenador en combate doble ejecutaba el
@@ -43,7 +43,7 @@ Compatible con 1.6.0–1.6.12 (mismo protocolo 16).
 
 Compatible con 1.6.0–1.6.11 (mismo protocolo 16).
 
-### Corregido
+### Arreglado
 
 - **Bucle de turnos en combates dobles cooperativos.** Al caer todos los
   Pokémon elegidos para el combate mientras el compañero seguía luchando o tras
@@ -55,7 +55,7 @@ Compatible con 1.6.0–1.6.11 (mismo protocolo 16).
 
 Compatible con 1.6.0–1.6.10 (mismo protocolo 16).
 
-### Corregido
+### Arreglado
 
 - **El reloj compartido desplazaba también los timestamps de tiempo real.**
   Cuando el anfitrión y el compañero estaban en husos horarios distintos, el
