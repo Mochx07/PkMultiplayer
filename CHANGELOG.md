@@ -3,6 +3,23 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.15
+
+Compatible con 1.6.0–1.6.14 (mismo protocolo 16).
+
+### Arreglado
+
+- **Sincronización de Alas Legendarias exclusiva por versión en cooperativo cruzado Oro/Plata:**
+  - En Pokémon Oro y Plata, la Torre Radio de Ciudad Trigal entrega el Ala del legendario principal (Ala Arcoíris en Oro para Ho-Oh, Ala Plateada en Plata para Lugia), mientras que el Anciano de Ciudad Plateada en Kanto entrega el Ala secundaria opuesta.
+  - Al jugar en cooperativo cruzado (jugador en Oro y compañero en Plata), la sincronización de recompensas de historia (`coop_story_rewards`) transmitía literalmente el objeto (`ITEM_178` / `RAINBOW_WING`) y el flag del evento (`120` / `EVENT_GOT_RAINBOW_WING`) al jugador de Plata, otorgándole indebidamente el Ala de Ho-Oh en Johto antes de la Liga Pokémon y bloqueando la obtención legítima de su propia Ala Plateada y el posterior evento de Kanto.
+  - Se implementó `CoopStory.remapVersionRewards`: cuando se reciben recompensas de historia de un compañero, los objetos y flags de las alas legendarias se reasignan dinámicamente según la versión del cartucho del receptor (`GameVersion.isSilver()` / `isGold()`) y el contexto del evento (Torre Radio vs Ciudad Plateada / progreso en Kanto).
+  - Un jugador de Plata en la Torre Radio siempre recibe el Ala Plateada (`ITEM_071`) y activa `EVENT_GOT_SILVER_WING`, y en Ciudad Plateada el Ala Arcoíris (`ITEM_178`).
+  - Un jugador de Oro en la Torre Radio siempre recibe el Ala Arcoíris (`ITEM_178`) y activa `EVENT_GOT_RAINBOW_WING`, y en Ciudad Plateada el Ala Plateada (`ITEM_071`).
+- **Autorreparación de partidas existentes (`CoopStory.repairSave`):**
+  - Al cargar una partida en Plata que no haya superado el Alto Mando ni llegado a Kanto pero que posea prematuramente el Ala Arcoíris (`ITEM_178`) o su flag (`EVENT_G2_0120`), el sistema elimina el Ala Arcoíris y el flag erróneo, y si la Torre Radio fue superada, asegura la posesión del Ala Plateada (`ITEM_071`) y el flag correcto (`EVENT_G2_0121`). Lo análogo se aplica para Oro con Ala Plateada prematura.
+- **Evaluación dinámica en tiempo de ejecución de `g2_checkver`:**
+  - Se añadió un gancho defensivo en `lib/Hooks.lua` para `Commands.g2_checkver` que evalúa dinámicamente `GameVersion.isSilver()` en tiempo de ejecución.
+
 ## 1.6.14
 
 Compatible con 1.6.0–1.6.13 (mismo protocolo 16).

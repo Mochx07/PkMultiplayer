@@ -885,6 +885,18 @@ end
 Hooks.modules["src.script.Gen2Commands"] = function()
   -- a co-op session sharing a clock shares mom's picked weekday too
   local Commands = require("src.script.Commands")
+  if not Commands.g2_checkver then
+    Commands.g2_checkver = function(ctx)
+      local okV, V = pcall(require, "src.core.GameVersion")
+      local isSilver = okV and V.isSilver and V.isSilver()
+      if Commands.setScriptVar then
+        Commands.setScriptVar(ctx, isSilver and 1 or 0)
+      elseif ctx and ctx.save then
+        ctx.save.g2ScriptVar = isSilver and 1 or 0
+        ctx.lastCheck = isSilver and true or false
+      end
+    end
+  end
   local readvar = Commands.g2_readvar
   if type(readvar) ~= "function" then return end
   function Commands.g2_readvar(ctx, var, ...)

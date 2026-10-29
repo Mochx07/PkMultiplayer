@@ -752,6 +752,135 @@ local function itemName(game, id)
   return (def and def.name) or tostring(id)
 end
 
+-- ---------------------------------------------------------------------
+-- Cross-version story reward remapping (Gen 2: Gold vs Silver)
+-- ---------------------------------------------------------------------
+--
+-- In Gen 2, two events hand out legendary wings based on cartridge version:
+--   1. Goldenrod Radio Tower (Director, after Rocket takeover):
+--      Gold receives RAINBOW_WING (ITEM_178) and EVENT_GOT_RAINBOW_WING (120).
+--      Silver receives SILVER_WING (ITEM_071) and EVENT_GOT_SILVER_WING (121).
+--   2. Pewter City (Gramps, Kanto postgame):
+--      Gold receives SILVER_WING (ITEM_071) and EVENT_GOT_SILVER_WING (121).
+--      Silver receives RAINBOW_WING (ITEM_178) and EVENT_GOT_RAINBOW_WING (120).
+--
+-- Sharing these rewards raw meant a Silver player co-oping with Gold received
+-- Ho-Oh's RAINBOW_WING at the 7th Johto gym, locked out their own SILVER_WING,
+-- and broke Pewter City later. We remap the wing and its event flag to match
+-- the local receiver's cartridge rules.
+
+local function isRainbowWingItem(id)
+  return id == 178 or id == "178" or id == "ITEM_178" or id == "RAINBOW_WING"
+end
+
+local function isSilverWingItem(id)
+  return id == 71 or id == "071" or id == "71" or id == "ITEM_071" or id == "SILVER_WING"
+end
+
+local function isRainbowWingFlag(id)
+  return id == 120 or id == "120" or id == "EVENT_G2_0120" or id == "EVENT_GOT_RAINBOW_WING"
+end
+
+local function isSilverWingFlag(id)
+  return id == 121 or id == "121" or id == "EVENT_G2_0121" or id == "EVENT_GOT_SILVER_WING"
+end
+
+local function toItemFormat(targetKind, sampleId)
+  if targetKind == "silver" then
+    if type(sampleId) == "number" then return 71 end
+    if sampleId == "RAINBOW_WING" or sampleId == "SILVER_WING" then return "SILVER_WING" end
+    return "ITEM_071"
+  else
+    if type(sampleId) == "number" then return 178 end
+    if sampleId == "SILVER_WING" or sampleId == "RAINBOW_WING" then return "RAINBOW_WING" end
+    return "ITEM_178"
+  end
+end
+
+local function toFlagFormat(targetKind, sampleId)
+  if targetKind == "silver" then
+    if type(sampleId) == "number" or sampleId == "120" or sampleId == "121" then return 121 end
+    if sampleId == "EVENT_GOT_RAINBOW_WING" or sampleId == "EVENT_GOT_SILVER_WING" then return "EVENT_GOT_SILVER_WING" end
+    return "EVENT_G2_0121"
+  else
+    if type(sampleId) == "number" or sampleId == "120" or sampleId == "121" then return 120 end
+    if sampleId == "EVENT_GOT_SILVER_WING" or sampleId == "EVENT_GOT_RAINBOW_WING" then return "EVENT_GOT_RAINBOW_WING" end
+    return "EVENT_G2_0120"
+  end
+end
+
+local function isRadioTowerEvent(msg, rewards, save)
+  if type(msg.map) == "string" and msg.map:find("RADIO_TOWER") then
+    return true
+  end
+  for _, r in ipairs(rewards) do
+    if r.kind == "set_flag" then
+      if r.id == 1889 or r.id == "1889" or r.id == "EVENT_G2_1889" or r.id == "EVENT_TEAM_ROCKET_DISBANDED" then
+        return true
+      end
+    elseif r.kind == "scene" or r.kind == "scene_key" then
+      if type(r.map) == "string" and r.map:find("RADIO_TOWER") then
+        return true
+      end
+    end
+  end
+  if type(msg.map) == "string" and msg.map:find("PEWTER") then
+    return false
+  end
+  local beatE4 = save and save.flags and (save.flags.EVENT_G2_0068 == true or save.flags.EVENT_BEAT_ELITE_FOUR == true)
+  local kantoBadges = save and save.kantoBadges and next(save.kantoBadges) ~= nil
+  if not beatE4 and not kantoBadges then
+    return true
+  end
+  return false
+end
+
+function CoopStory.remapVersionRewards(game, msg)
+  if type(msg) ~= "table" or type(msg.rewards) ~= "table" then return end
+  local okV, V = pcall(require, "src.core.GameVersion")
+  if not (okV and V and V.isGen2 and V.isGen2()) then return end
+  local isSilver = V.isSilver and V.isSilver()
+  local isGold = V.isGold and V.isGold()
+  if not (isSilver or isGold) then return end
+
+  local hasWing = false
+  for _, r in ipairs(msg.rewards) do
+    if (r.kind == "item" or r.kind == "take_item") and (isRainbowWingItem(r.id) or isSilverWingItem(r.id)) then
+      hasWing = true
+      break
+    elseif (r.kind == "set_flag" or r.kind == "clear_flag") and (isRainbowWingFlag(r.id) or isSilverWingFlag(r.id)) then
+      hasWing = true
+      break
+    end
+  end
+  if not hasWing then return end
+
+  local save = game and game.save
+  local isRadio = isRadioTowerEvent(msg, msg.rewards, save)
+  local targetWing
+  if isSilver then
+    targetWing = isRadio and "silver" or "rainbow"
+  else
+    targetWing = isRadio and "rainbow" or "silver"
+  end
+
+  for _, r in ipairs(msg.rewards) do
+    if (r.kind == "item" or r.kind == "take_item") and (isRainbowWingItem(r.id) or isSilverWingItem(r.id)) then
+      local oldId = r.id
+      r.id = toItemFormat(targetWing, oldId)
+      if oldId ~= r.id then
+        require("src.coop.CoopLog").info("STORY", string.format("remapped partner wing item %s -> %s for %s", tostring(oldId), tostring(r.id), isSilver and "Silver" or "Gold"))
+      end
+    elseif (r.kind == "set_flag" or r.kind == "clear_flag") and (isRainbowWingFlag(r.id) or isSilverWingFlag(r.id)) then
+      local oldId = r.id
+      r.id = toFlagFormat(targetWing, oldId)
+      if oldId ~= r.id then
+        require("src.coop.CoopLog").info("STORY", string.format("remapped partner wing flag %s -> %s for %s", tostring(oldId), tostring(r.id), isSilver and "Silver" or "Gold"))
+      end
+    end
+  end
+end
+
 -- Did the receiver already live this event?  An event that changed story
 -- state and changes nothing here was done on this side too (both of you
 -- talked to the same NPC, or played it apart before linking up): its items
@@ -796,6 +925,7 @@ function CoopStory.onPartnerRewards(game, msg)
     if #CoopStory.inbox < CoopStory.OUTBOX_MAX then CoopStory.inbox[#CoopStory.inbox + 1] = msg end
     return
   end
+  CoopStory.remapVersionRewards(game, msg)
   local save = game.save
   if seen(save, msg.eid) then
     require("src.coop.CoopLog").info("STORY", "event " .. msg.eid .. " was already lived here")
@@ -975,15 +1105,94 @@ function CoopStory.repairSave(save)
   local version = okV and V.get and V.get() or nil
   if version ~= "gold" and version ~= "silver" then return false end
   local f = save.flags
+  local repaired = false
   local r = AIDE_REPAIR
   local beat = f[r.beat] == true or f.ZEPHYRBADGE == true
   if beat and f[r.egg] ~= true and f[r.aideAway] == true
      and save.g2SpecialCall == nil and save.g2SpecialCallActive == nil then
     save.g2SpecialCall = r.call
     require("src.core.Logger").info("co-op story repair: re-armed Elm's call for the Togepi egg")
-    return true
+    repaired = true
   end
-  return false
+
+  -- Repair legendary wings: Silver players before Kanto must not hold the Rainbow Wing,
+  -- and Gold players before Kanto must not hold the Silver Wing.
+  local beatE4 = f.EVENT_G2_0068 == true or f.EVENT_BEAT_ELITE_FOUR == true
+  local kantoBadges = save.kantoBadges and next(save.kantoBadges) ~= nil
+  local reachedKanto = beatE4 or kantoBadges
+  if version == "silver" and not reachedKanto then
+    local hadRainbow = false
+    if save.inventory and save.inventory.ITEM_178 then
+      save.inventory.ITEM_178 = nil
+      hadRainbow = true
+    end
+    if type(save.bagOrder) == "table" then
+      for i = #save.bagOrder, 1, -1 do
+        if save.bagOrder[i] == "ITEM_178" then
+          table.remove(save.bagOrder, i)
+          hadRainbow = true
+        end
+      end
+    end
+    if f.EVENT_G2_0120 == true or f.EVENT_GOT_RAINBOW_WING == true or f[120] == true then
+      f.EVENT_G2_0120 = nil
+      f.EVENT_GOT_RAINBOW_WING = nil
+      f[120] = nil
+      hadRainbow = true
+    end
+    if (f.EVENT_G2_1889 == true or hadRainbow) and save.inventory then
+      if not save.inventory.ITEM_071 then
+        save.inventory.ITEM_071 = 1
+        if type(save.bagOrder) == "table" then
+          save.bagOrder[#save.bagOrder + 1] = "ITEM_071"
+        end
+      end
+      f.EVENT_G2_0121 = true
+    end
+    if hadRainbow then
+      pcall(function()
+        require("src.coop.CoopLog").info("STORY", "repaired Silver save: removed premature Rainbow Wing and restored Silver Wing")
+      end)
+      repaired = true
+    end
+  elseif version == "gold" and not reachedKanto then
+    local hadSilver = false
+    if save.inventory and save.inventory.ITEM_071 then
+      save.inventory.ITEM_071 = nil
+      hadSilver = true
+    end
+    if type(save.bagOrder) == "table" then
+      for i = #save.bagOrder, 1, -1 do
+        if save.bagOrder[i] == "ITEM_071" then
+          table.remove(save.bagOrder, i)
+          hadSilver = true
+        end
+      end
+    end
+    if f.EVENT_G2_0121 == true or f.EVENT_GOT_SILVER_WING == true or f[121] == true then
+      f.EVENT_G2_0121 = nil
+      f.EVENT_GOT_SILVER_WING = nil
+      f[121] = nil
+      hadSilver = true
+    end
+    if (f.EVENT_G2_1889 == true or hadSilver) and save.inventory then
+      if not save.inventory.ITEM_178 then
+        save.inventory.ITEM_178 = 1
+        if type(save.bagOrder) == "table" then
+          save.bagOrder[#save.bagOrder + 1] = "ITEM_178"
+        end
+      end
+      f.EVENT_G2_0120 = true
+    end
+    if hadSilver then
+      pcall(function()
+        require("src.coop.CoopLog").info("STORY", "repaired Gold save: removed premature Silver Wing and restored Rainbow Wing")
+      end)
+      repaired = true
+    end
+  end
+
+  return repaired
 end
 
 return CoopStory

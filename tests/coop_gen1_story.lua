@@ -244,6 +244,84 @@ check(#notices >= 1 and notices[1]:find("Crystal", 1, true), "the link says the 
 CoopManager.markTrainerBeaten(gold, gold.overworld, { npcId = "X_obj_1", headerEvent = "EVENT_G2_0400" })
 check(gold.save.defeatedTrainers.X_obj_1 and not gold.save.flags.EVENT_G2_0400,
       "a co-op trainer is beaten, but the other cartridge's flag is not set")
+
+-- ---------------------------------------------------------------------
+-- Legendary Wings Cross-Version Remapping (Gold <-> Silver)
+-- ---------------------------------------------------------------------
+-- Radio Tower: Gold partner sends Rainbow Wing (178), Silver must receive Silver Wing (071)
+GV.set("silver")
+CoopManager.partner.game = "gold"
+local silver = newGame("MOCHX")
+silver.overworld = { map = { id = "ECRUTEAK_CITY" } }
+CoopStory.onPartnerRewards(silver, {
+  type = "coop_story_rewards", eid = "w:1", map = "RADIO_TOWER5_F",
+  rewards = {
+    { kind = "item", id = "ITEM_178", count = 1 },
+    { kind = "set_flag", id = "EVENT_G2_0120" },
+    { kind = "set_flag", id = "EVENT_G2_1889" },
+    { kind = "scene", map = "RADIO_TOWER5_F", scene = 2 },
+  }
+})
+check(silver.save.inventory.ITEM_071 == 1, "Silver receives Silver Wing from Radio Tower")
+check(silver.save.inventory.ITEM_178 == nil, "Silver does not receive Rainbow Wing from Radio Tower")
+check(silver.save.flags.EVENT_G2_0121 == true, "Silver sets EVENT_GOT_SILVER_WING")
+check(silver.save.flags.EVENT_G2_0120 == nil, "Silver does not set EVENT_GOT_RAINBOW_WING in Johto")
+
+-- Pewter City: Gold partner sends Silver Wing (071), Silver must receive Rainbow Wing (178)
+CoopStory.onPartnerRewards(silver, {
+  type = "coop_story_rewards", eid = "w:2", map = "PEWTER_CITY",
+  rewards = {
+    { kind = "item", id = "ITEM_071", count = 1 },
+    { kind = "set_flag", id = "EVENT_G2_0121" },
+  }
+})
+check(silver.save.inventory.ITEM_178 == 1, "Silver receives Rainbow Wing in Pewter City")
+check(silver.save.flags.EVENT_G2_0120 == true, "Silver sets EVENT_GOT_RAINBOW_WING in Pewter City")
+
+-- Radio Tower: Silver partner sends Silver Wing (071), Gold must receive Rainbow Wing (178)
+GV.set("gold")
+CoopManager.partner.game = "silver"
+local goldGame = newGame("GOLD")
+goldGame.overworld = { map = { id = "ECRUTEAK_CITY" } }
+CoopStory.onPartnerRewards(goldGame, {
+  type = "coop_story_rewards", eid = "w:3", map = "RADIO_TOWER5_F",
+  rewards = {
+    { kind = "item", id = "ITEM_071", count = 1 },
+    { kind = "set_flag", id = "EVENT_G2_0121" },
+    { kind = "set_flag", id = "EVENT_G2_1889" },
+  }
+})
+check(goldGame.save.inventory.ITEM_178 == 1, "Gold receives Rainbow Wing from Radio Tower")
+check(goldGame.save.inventory.ITEM_071 == nil, "Gold does not receive Silver Wing from Radio Tower")
+check(goldGame.save.flags.EVENT_G2_0120 == true, "Gold sets EVENT_GOT_RAINBOW_WING from Radio Tower")
+check(goldGame.save.flags.EVENT_G2_0121 == nil, "Gold does not set EVENT_GOT_SILVER_WING in Johto")
+
+-- Pewter City: Silver partner sends Rainbow Wing (178), Gold must receive Silver Wing (071)
+CoopStory.onPartnerRewards(goldGame, {
+  type = "coop_story_rewards", eid = "w:4", map = "PEWTER_CITY",
+  rewards = {
+    { kind = "item", id = "ITEM_178", count = 1 },
+    { kind = "set_flag", id = "EVENT_G2_0120" },
+  }
+})
+check(goldGame.save.inventory.ITEM_071 == 1, "Gold receives Silver Wing in Pewter City")
+check(goldGame.save.flags.EVENT_G2_0121 == true, "Gold sets EVENT_GOT_SILVER_WING in Pewter City")
+
+-- Test Save Repair for a contaminated Silver save
+GV.set("silver")
+local badSilver = {
+  inventory = { ITEM_178 = 1, ITEM_071 = 1 },
+  bagOrder = { "ITEM_071", "ITEM_178" },
+  flags = { EVENT_G2_0120 = true, EVENT_G2_0121 = true, EVENT_G2_1889 = true },
+}
+local repaired = CoopStory.repairSave(badSilver)
+check(repaired == true, "repairSave fixed the contaminated Silver save")
+check(badSilver.inventory.ITEM_178 == nil, "repairSave stripped premature Rainbow Wing")
+check(badSilver.inventory.ITEM_071 == 1, "repairSave preserved Silver Wing")
+check(badSilver.flags.EVENT_G2_0120 == nil, "repairSave cleared premature EVENT_GOT_RAINBOW_WING")
+check(badSilver.flags.EVENT_G2_0121 == true, "repairSave ensured EVENT_GOT_SILVER_WING")
+check(#badSilver.bagOrder == 1 and badSilver.bagOrder[1] == "ITEM_071", "repairSave cleaned bagOrder")
+
 CoopManager.partner.game = "yellow"
 
 GV.set(wasGame)
