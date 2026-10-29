@@ -11,10 +11,16 @@ Compatible con 1.6.0–1.6.10 (mismo protocolo 16).
 
 - **El reloj compartido desplazaba también los timestamps que deben ir en hora real.** Cuando el
   anfitrión y el compañero estaban en husos horarios distintos, el offset del reloj afectaba a los
-  backups de la partida (quedaban sellados con la hora del otro jugador), al temporizador de veinte
-  minutos del Concurso de Bichos y al log co-op. Ahora los módulos que miden tiempo real (Save,
-  BugContest, CoopLog, red, mods, descargas) leen el reloj del sistema sin offset; el reloj del
-  mundo del juego sigue sincronizado al del anfitrión.
+  backups de la partida (quedaban sellados con horas en el futuro, bloqueando los backups rotativos),
+  al temporizador de 20 minutos del Concurso de Bichos y al log co-op. Ahora los módulos que miden
+  tiempo real (`SaveSafety`, `BugContest`, `CoopLog`, red, mods, descargas) leen el reloj del
+  sistema sin offset; el reloj del mundo del juego sigue sincronizado al del anfitrión.
+- **Crash en la estructura del buzón de historia offline.** Corregido un fallo de índice nil en el
+  buzón de historia (`coopStoryOutbox`) al registrar entrenadores vencidos, accediendo correctamente
+  a `.rewards[1].kind` en lugar del índice directo.
+- **Modernización del ejecutor de pruebas (`tools/run_tests.sh`).** `test_coop.lua` ahora se corre
+  a través del cargador de parches del motor (`run.lua`) en vez de Lua en crudo sin parches,
+  eliminando 3 fallos falsos heredados ("3 are old") y dejando la suite completa en 219/219 (0 FAIL).
 
 ## 1.6.10
 
