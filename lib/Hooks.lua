@@ -70,6 +70,123 @@ local function wrap(t, label, name, make)
   end
 end
 
+-- Strips malformed or truncated UTF-8 sequences so LOVE2D graphics operations
+-- never crash on "UTF-8 decoding error: Not enough space" or "Invalid UTF-8".
+local function cleanUTF8(str)
+  if type(str) ~= "string" or str == "" then return str or "" end
+  if not str:find("[\128-\255]") then return str end
+
+  local len = #str
+  local i = 1
+  local needsClean = false
+
+  while i <= len do
+    local b1 = str:byte(i)
+    if b1 < 0x80 then
+      i = i + 1
+    elseif b1 >= 0xC2 and b1 <= 0xDF then
+      if i + 1 <= len then
+        local b2 = str:byte(i + 1)
+        if b2 >= 0x80 and b2 <= 0xBF then
+          i = i + 2
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    elseif b1 >= 0xE0 and b1 <= 0xEF then
+      if i + 2 <= len then
+        local b2, b3 = str:byte(i + 1), str:byte(i + 2)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF)
+        if b1 == 0xE0 and b2 < 0xA0 then valid = false end
+        if b1 == 0xED and b2 > 0x9F then valid = false end
+        if valid then
+          i = i + 3
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    elseif b1 >= 0xF0 and b1 <= 0xF4 then
+      if i + 3 <= len then
+        local b2, b3, b4 = str:byte(i + 1), str:byte(i + 2), str:byte(i + 3)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF) and (b4 >= 0x80 and b4 <= 0xBF)
+        if b1 == 0xF0 and b2 < 0x90 then valid = false end
+        if b1 == 0xF4 and b2 > 0x8F then valid = false end
+        if valid then
+          i = i + 4
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    else
+      needsClean = true; break
+    end
+  end
+
+  if not needsClean then return str end
+
+  local out = {}
+  i = 1
+  while i <= len do
+    local b1 = str:byte(i)
+    if b1 < 0x80 then
+      out[#out + 1] = str:sub(i, i)
+      i = i + 1
+    elseif b1 >= 0xC2 and b1 <= 0xDF then
+      if i + 1 <= len then
+        local b2 = str:byte(i + 1)
+        if b2 >= 0x80 and b2 <= 0xBF then
+          out[#out + 1] = str:sub(i, i + 1)
+          i = i + 2
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    elseif b1 >= 0xE0 and b1 <= 0xEF then
+      if i + 2 <= len then
+        local b2, b3 = str:byte(i + 1), str:byte(i + 2)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF)
+        if b1 == 0xE0 and b2 < 0xA0 then valid = false end
+        if b1 == 0xED and b2 > 0x9F then valid = false end
+        if valid then
+          out[#out + 1] = str:sub(i, i + 2)
+          i = i + 3
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    elseif b1 >= 0xF0 and b1 <= 0xF4 then
+      if i + 3 <= len then
+        local b2, b3, b4 = str:byte(i + 1), str:byte(i + 2), str:byte(i + 3)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF) and (b4 >= 0x80 and b4 <= 0xBF)
+        if b1 == 0xF0 and b2 < 0x90 then valid = false end
+        if b1 == 0xF4 and b2 > 0x8F then valid = false end
+        if valid then
+          out[#out + 1] = str:sub(i, i + 3)
+          i = i + 4
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    else
+      i = i + 1
+    end
+  end
+  return table.concat(out)
+end
+Hooks.cleanUTF8 = cleanUTF8
+
 -- module name -> function(module) that installs its wrappers
 Hooks.modules = {}
 
@@ -278,9 +395,95 @@ Hooks.modules["src.ui.Menu"] = function(Menu)
   -- FALKNER"); Menu:draw (lib/patches/Menu.lua) draws it
   wrap(Menu, "Menu", "new", function(new)
     return function(game, items, opts, ...)
+      if type(items) == "table" then
+        for _, it in ipairs(items) do
+          if type(it) == "table" and type(it.label) == "string" then
+            it.label = cleanUTF8(it.label)
+          end
+        end
+      end
+      if type(opts) == "table" and type(opts.header) == "string" then
+        opts.header = cleanUTF8(opts.header)
+      end
       local self = new(game, items, opts, ...)
       if type(self) == "table" and type(opts) == "table" then self.header = opts.header end
       return self
+    end
+  end)
+end
+
+-- UTF-8 sanitization for font drawing and glyph splitting so orphan lead bytes
+-- or malformed sequences never reach the graphics decoder
+Hooks.modules["src.render.Font"] = function(Font)
+  wrap(Font, "Font", "draw", function(origDraw)
+    return function(text, x, y, ...)
+      if type(text) == "string" then text = cleanUTF8(text) end
+      return origDraw(text, x, y, ...)
+    end
+  end)
+  wrap(Font, "Font", "split", function(origSplit)
+    return function(text, ...)
+      if type(text) == "string" then text = cleanUTF8(text) end
+      return origSplit(text, ...)
+    end
+  end)
+  wrap(Font, "Font", "encode", function(origEncode)
+    return function(text, ...)
+      if type(text) == "string" then text = cleanUTF8(text) end
+      return origEncode(text, ...)
+    end
+  end)
+  wrap(Font, "Font", "width", function(origWidth)
+    return function(text, ...)
+      if type(text) == "string" then text = cleanUTF8(text) end
+      return origWidth(text, ...)
+    end
+  end)
+  wrap(Font, "Font", "fit", function(origFit)
+    return function(text, ...)
+      if type(text) == "string" then text = cleanUTF8(text) end
+      return origFit(text, ...)
+    end
+  end)
+end
+
+-- Fallback protections for UnicodeFont against invalid UTF-8 sequences
+Hooks.modules["src.translation.UnicodeFont"] = function(UnicodeFont)
+  wrap(UnicodeFont, "UnicodeFont", "draw", function(origDraw)
+    return function(code, x, y, height)
+      local ok = pcall(origDraw, code, x, y, height)
+      if not ok then
+        pcall(function()
+          local font = UnicodeFont.font and UnicodeFont.font(height)
+          if font and love and love.graphics then
+            local old = love.graphics.getFont()
+            love.graphics.setFont(font)
+            love.graphics.print("?", x, y)
+            love.graphics.setFont(old)
+          end
+        end)
+      end
+    end
+  end)
+  wrap(UnicodeFont, "UnicodeFont", "width", function(origWidth)
+    return function(code, height)
+      local ok, res = pcall(origWidth, code, height)
+      if ok and res then return res end
+      local font = UnicodeFont.font and UnicodeFont.font(height)
+      if font then
+        local okW, w = pcall(function() return font:getWidth("?") end)
+        if okW and w then return math.max(1, w) end
+      end
+      return height or 8
+    end
+  end)
+  wrap(UnicodeFont, "UnicodeFont", "code", function(origCode)
+    return function(char)
+      if type(char) == "string" and char ~= "" then
+        local cleaned = cleanUTF8(char)
+        if cleaned ~= char or cleaned == "" then char = "?" end
+      end
+      return origCode(char)
     end
   end)
 end

@@ -1347,13 +1347,14 @@ CoopManager.medicineIds = medicineIds
 
 -- one row of the partner's party, as their machine described it
 local function partyLabel(m)
-  local name = tostring(m.name or "?"):sub(1, 10)
+  local I18n = require("src.coop.CoopI18n")
+  local name = I18n.truncate(m.name or "?", 10)
   local right
   if m.egg then right = "EGG"
   elseif (m.hp or 0) <= 0 then right = "FNT"
-  elseif m.status then right = string.format("%s%4d", tostring(m.status):sub(1, 3), m.hp or 0)
+  elseif m.status then right = string.format("%s%4d", I18n.truncate(tostring(m.status), 3), m.hp or 0)
   else right = string.format("%7s", (m.hp or 0) .. "/" .. (m.maxHp or 0)) end
-  return string.format("%-10s%s", name, right)
+  return string.format("%s%s", I18n.padRight(name, 10), right)
 end
 
 -- Start: the medicine in your bag, then the partner's party.
@@ -1375,19 +1376,21 @@ function CoopManager.useItemOnPartner(game, ow)
     playSound(game, "Collision")
     return
   end
-  local Menu = require("src.coop.CoopI18n").menu()
+  local I18n = require("src.coop.CoopI18n")
+  local Menu = I18n.menu()
   local rows = {}
   for _, id in ipairs(ids) do
     local def = game.data.items[id]
     local itemId = id
+    local itemName = I18n.truncate(def and def.name or id, 12)
     rows[#rows + 1] = {
-      label = string.format("%-12s x%d", tostring(def and def.name or id):sub(1, 12), game.save.inventory[id] or 0),
+      label = string.format("%s x%d", I18n.padRight(itemName, 12), game.save.inventory[id] or 0),
       onSelect = function() CoopManager.askPartnerParty(game, ow, itemId) end,
     }
   end
   game.stack:push(Menu.new(game, rows, {
     tx = 1, ty = 4, tw = 18, cancelable = true, maxVisible = 6,
-    header = Strings("ITEM FOR %s:", string.upper(CoopManager.partner.name or "PARTNER"):sub(1, 8)),
+    header = Strings("ITEM FOR %s:", I18n.truncate(string.upper(CoopManager.partner.name or "PARTNER"), 8)),
   }))
 end
 
@@ -1426,9 +1429,11 @@ function CoopManager.onPartnerParty(ow, msg)
   end
   if #rows == 0 then return end
   local def = game.data.items[req.item]
+  local I18n = require("src.coop.CoopI18n")
+  local itemName = I18n.truncate(def and def.name or req.item, 10)
   game.stack:push(Menu.new(game, rows, {
     tx = 1, ty = 4, tw = 18, cancelable = true, maxVisible = 6,
-    header = Strings("USE %s ON?", tostring(def and def.name or req.item)):sub(1, 18),
+    header = I18n.truncate(Strings("USE %s ON?", itemName), 18),
   }))
 end
 
@@ -1976,7 +1981,7 @@ function CoopManager.onBattleInviteReceived(ow, msg)
   inviteModal.timeout = INVITE_TIMEOUT
   -- a wild Pokemon reads as one, not as "VS WILD PIDGEY"
   if msg.battleKind == "wild" then
-    inviteModal.lines = { pName, ("MET " .. tName):sub(1, 16), "FIGHT TOGETHER?" }
+    inviteModal.lines = { pName, require("src.coop.CoopI18n").truncate("MET " .. tName, 16), "FIGHT TOGETHER?" }
   end
 
   CoopManager.activeInviteModal = inviteModal
@@ -2141,7 +2146,7 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   game.stack:push(Menu.new(game, {
     { label = Strings("CO-OP"), onSelect = function() choice = "coop" runner:resume() end },
     { label = Strings("SOLO"), onSelect = function() choice = "solo" runner:resume() end },
-  }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,
+  }, { tx = 3, ty = 4, tw = 14, header = require("src.coop.CoopI18n").truncate("VS " .. name, 12), cancelable = true,
        onCancel = function() choice = "solo" runner:resume() end }))
   runner:yield()
 
@@ -2237,7 +2242,7 @@ function CoopManager.askBigBattle(ow, npc, onDone)
   game.stack:push(Menu.new(game, {
     { label = Strings("CO-OP"), onSelect = function() answer("coop") end },
     { label = Strings("SOLO"), onSelect = function() answer("solo") end },
-  }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,
+  }, { tx = 3, ty = 4, tw = 14, header = require("src.coop.CoopI18n").truncate("VS " .. name, 12), cancelable = true,
        onCancel = function() answer("solo") end }))
   return true
 end
@@ -2367,7 +2372,7 @@ function CoopManager.onBigBattleInvite(ow, msg)
   end)
   modal.inviteId = msg.inviteId
   modal.timeout = 30
-  modal.lines = { pName, ("FACES " .. tName):sub(1, 15) .. "!", "WANT TO JOIN?" }
+  modal.lines = { pName, require("src.coop.CoopI18n").truncate("FACES " .. tName, 15) .. "!", "WANT TO JOIN?" }
   CoopManager.activeInviteModal = modal
   game.stack:push(modal)
 end
@@ -2652,8 +2657,7 @@ end
 
 function CoopManager.onChatReceived(sender, text, own, n)
   if type(text) ~= "string" or text == "" then return end
-  sender = string.upper(tostring(sender or "PARTNER"))
-  if #sender > 8 then sender = sender:sub(1, 8) end
+  sender = require("src.coop.CoopI18n").truncate(string.upper(tostring(sender or "PARTNER")), 8)
   text = CoopManager.clipLetters(text, CoopManager.CHAT_MAX)
   if not own then
     CoopManager.partnerTyping = nil
@@ -3400,8 +3404,7 @@ function CoopManager.drawWorld(ow)
     local lift = CoopManager.projectPoint and math.max(0, HEAD_3D * (depth or 1) - 18) or 0
     local onScreen = sx >= -8 and sx <= vw + 8 and sy >= 0 and sy <= vh + 16
     if onScreen then
-      local name = string.upper(partner.name or "PARTNER")
-      if #name > 8 then name = name:sub(1, 8) end
+      local name = require("src.coop.CoopI18n").truncate(string.upper(partner.name or "PARTNER"), 8)
       local bw = math.max(16, MicroFont.width(name) + 6)
       local bx = math.floor(sx - bw / 2)
       local by = math.floor(sy + 2)
@@ -3569,8 +3572,7 @@ local function drawHud(ow)
   elseif not CoopManager.connected then
     label = "LINKING"
   else
-    label = string.upper(partner.name or "P2")
-    if #label > 8 then label = label:sub(1, 8) end
+    label = require("src.coop.CoopI18n").truncate(string.upper(partner.name or "P2"), 8)
     if partner.ready then label = label .. " OK" end
   end
   local net = CoopManager.net
@@ -3583,8 +3585,7 @@ local function drawHud(ow)
   MicroFont.draw(label, x + 11, 3)
 
   if CoopManager.connected and partner.map and ow and ow.map and not partnerFrameOffset(ow) then
-    local area = CoopManager.mapLabel(partner.map)
-    if #area > 18 then area = area:sub(1, 18) end
+    local area = require("src.coop.CoopI18n").truncate(CoopManager.mapLabel(partner.map), 18)
     local aw = MicroFont.width(area) + 6
     local ax = vw - aw - 1
     drawPill(ax, 11, aw, 9)
@@ -3638,8 +3639,7 @@ function CoopManager.drawUI(ow)
     Font.raw.draw(page[2] or "", 8, 128)
     -- whose scene this is, on the frame: a small blue tab
     local MicroFont = require("src.render.MicroFont")
-    local who = string.upper(CoopManager.partner.name or "P2")
-    if #who > 8 then who = who:sub(1, 8) end
+    local who = require("src.coop.CoopI18n").truncate(string.upper(CoopManager.partner.name or "P2"), 8)
     local tw = MicroFont.width(who) + 5
     love.graphics.setColor(0.16, 0.44, 0.97, 1)
     love.graphics.rectangle("fill", 8, 94, tw, 8)
@@ -3663,7 +3663,7 @@ function CoopManager.chatBubble()
   local typing = CoopManager.partnerTyping
   if typing then
     local cursor = (math.floor(now() * 3) % 2 == 0) and "_" or " "
-    local name = string.upper(CoopManager.partner.name or "PARTNER"):sub(1, 8)
+    local name = require("src.coop.CoopI18n").truncate(string.upper(CoopManager.partner.name or "PARTNER"), 8)
     local text = typing.text ~= "" and (typing.text .. cursor) or ("is typing" .. string.rep(".", math.floor(now() * 3) % 4))
     return name, text, true
   end
@@ -3722,7 +3722,7 @@ function CoopManager.chatLines(width, count)
   for _, m in ipairs(CoopManager.chatLog) do add(m.sender .. ": " .. m.text) end
   local typing = CoopManager.partnerTyping
   if typing then
-    local name = string.upper(CoopManager.partner.name or "PARTNER"):sub(1, 8)
+    local name = require("src.coop.CoopI18n").truncate(string.upper(CoopManager.partner.name or "PARTNER"), 8)
     add(name .. ": " .. (typing.text ~= "" and (typing.text .. "_") or "..."))
   end
   local first = math.max(1, #out - count + 1)

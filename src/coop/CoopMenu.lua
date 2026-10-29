@@ -270,7 +270,7 @@ function CoopMenu:connectedRows(ow, page)
         menu:close()
         if ow then CoopManager.useItemOnPartner(menu.game, ow) end
       end },
-      { label = "WATCH " .. tostring(CoopManager.partner.name or "PARTNER"):upper():sub(1, 7), run = function()
+      { label = "WATCH " .. require("src.coop.CoopI18n").truncate(tostring(CoopManager.partner.name or "PARTNER"):upper(), 7), run = function()
         require("src.coop.CoopWatch").open(menu.game)
       end },
       { label = "TRADE", run = function()
@@ -363,7 +363,7 @@ function CoopMenu:offlineRows()
   local rows = {}
   local link = self.game.save and self.game.save.coopLink
   if link then
-    local who = tostring(link.partner or "PARTNER"):sub(1, 6)
+    local who = require("src.coop.CoopI18n").truncate(tostring(link.partner or "PARTNER"), 6)
     rows[#rows + 1] = { label = "RECONNECT " .. who, run = function()
       menu.errorMsg = nil
       if require("src.coop.CoopRejoin").try(menu.game, true) then

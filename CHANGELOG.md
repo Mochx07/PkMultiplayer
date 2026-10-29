@@ -3,6 +3,28 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.14
+
+Compatible con 1.6.0–1.6.13 (mismo protocolo 16).
+
+### Arreglado
+
+- **Cuelgue por decodificación UTF-8 en menús y traducciones (`UnicodeFont.lua:33: UTF-8 decoding error: Not enough space`).**
+  Al recortar nombres de objetos, entrenadores o compañeros con `:sub(1, N)` sobre cadenas con caracteres acentuados
+  multibyte en español (como `ANTIPARÁLISIS`, `POCIÓN MÁXIMA` o `SUPERPOCIÓN`), el recorte por bytes partía la secuencia
+  UTF-8 por la mitad, dejando un byte guía huérfano (`\195`). Al pasar la cadena a través de `Menu:draw` y `Font.draw`,
+  el decodificador de LOVE2D abortaba con error fatal de C++.
+- **Truncado seguro y sanitización UTF-8 en todo el mod:**
+  1. Se implementaron `I18n.cleanUTF8`, `I18n.truncate` y `I18n.padRight` en `CoopI18n.lua`, garantizando que cualquier
+     corte respete los límites de caracteres Unicode y descarte bytes residuales o malformados sin partir letras.
+  2. Se reemplazaron todos los recortes inseguros `:sub(1, N)` en `CoopManager`, `CoopStory`, `CoopBattleInviteModal`,
+     `CoopWaitModal`, `CoopLink`, `CoopVisit`, `CoopWatch`, `CoopSummary`, `CoopBattle`, `CoopMenu` y `CoopBattleSelect`.
+  3. Se añadieron ganchos defensivos en `lib/Hooks.lua` sobre `src.render.Font` y `src.translation.UnicodeFont`,
+     sanitizando texto en `draw`, `split`, `encode`, `width` y protegiendo `UnicodeFont.draw` y `UnicodeFont.width` con
+     `pcall` defensivo para blindar tanto instalaciones nuevas como motores AppImage ya compilados.
+  4. Se endureció el motor en `PkMplayer-merge` (`Font.lua` y `UnicodeFont.lua`) validando las longitudes de secuencias
+     UTF-8 antes de registrarlas en `UnicodeFont`.
+
 ## 1.6.13
 
 Compatible con 1.6.0–1.6.12 (mismo protocolo 16).

@@ -83,8 +83,7 @@ function CoopWaitModal:draw()
   Font.drawBox(tx, ty, 18, 7)
 
   love.graphics.setColor(0, 0, 0, 1)
-  local name = self.partnerName
-  if #name > 12 then name = name:sub(1, 12) end
+  local name = require("src.coop.CoopI18n").truncate(self.partnerName, 12)
   local fit = require("src.coop.CoopI18n").fit
   Font.draw(fit((self.lines and self.lines[1]) or "WAITING FOR", 16), (tx + 1) * 8, (ty + 1) * 8)
   Font.draw(fit((self.lines and self.lines[2]) or (name .. "..."), 16), (tx + 1) * 8, (ty + 2) * 8)

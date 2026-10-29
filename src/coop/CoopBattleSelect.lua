@@ -187,12 +187,7 @@ function CoopBattleSelect:draw()
       local def = data and data.pokemon and (data.pokemon[mon.species] or (tonumber(mon.species) and data.pokemon[tonumber(mon.species)]))
       name = (def and def.name) or mon.name or tostring(mon.species or "POKéMON")
     end
-    local count, cut = 0, nil
-    for pos in tostring(name):gmatch("()[^\128-\191]") do
-      count = count + 1
-      if count > 8 then cut = pos break end
-    end
-    if cut then name = tostring(name):sub(1, cut - 1) end
+    name = require("src.coop.CoopI18n").truncate(tostring(name), 8)
     Font.raw.draw(tostring(name), 26, y)
 
     -- the level in the small font too: eight letters of name, "L100" and

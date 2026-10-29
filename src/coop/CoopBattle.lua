@@ -1301,8 +1301,7 @@ end
 
 function ReplaceWait:draw()
   local CM = manager()
-  local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")
-  if #name > 9 then name = name:sub(1, 9) end
+  local name = require("src.coop.CoopI18n").truncate(string.upper((CM and CM.partner and CM.partner.name) or "PARTNER"), 9)
   love.graphics.setColor(1, 1, 1, 1)
   Font.drawBox(0, 12, 20, 6)
   love.graphics.setColor(0, 0, 0, 1)
@@ -1793,8 +1792,7 @@ function CoopBattle.drawReconnecting(battle)
   local c = battle and battle.coop
   if not c or c.partnerLost or c.finished or not (c.linkLostAt or c.awaitingResume) then return false end
   local CM = manager()
-  local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")
-  if #name > 14 then name = name:sub(1, 14) end
+  local name = require("src.coop.CoopI18n").truncate(string.upper((CM and CM.partner and CM.partner.name) or "PARTNER"), 14)
   love.graphics.setColor(1, 1, 1, 1)
   Font.drawBox(1, 5, 18, 7)
   love.graphics.setColor(0, 0, 0, 1)
@@ -1814,8 +1812,7 @@ function CoopBattle.drawWaitPrompt(battle)
   pcall(CoopBattle.drawPartnerPlan, battle)
   if not CoopBattle.waitingForPartner then return end
   local CM = manager()
-  local name = string.upper((CM and CM.partner and CM.partner.name) or "PARTNER")
-  if #name > 9 then name = name:sub(1, 9) end
+  local name = require("src.coop.CoopI18n").truncate(string.upper((CM and CM.partner and CM.partner.name) or "PARTNER"), 9)
   local c = battle.coop
   local line1, line2
   if c and c.linkLostAt then

@@ -192,16 +192,152 @@ function I18n.t(text)
   return out
 end
 
+-- Strips any malformed or trailing truncated UTF-8 sequences so LOVE2D graphics
+-- operations never fail with "UTF-8 decoding error: Not enough space" or "Invalid UTF-8".
+local function cleanUTF8(str)
+  if type(str) ~= "string" or str == "" then return str or "" end
+  if not str:find("[\128-\255]") then return str end
+
+  local len = #str
+  local i = 1
+  local needsClean = false
+
+  while i <= len do
+    local b1 = str:byte(i)
+    if b1 < 0x80 then
+      i = i + 1
+    elseif b1 >= 0xC2 and b1 <= 0xDF then
+      if i + 1 <= len then
+        local b2 = str:byte(i + 1)
+        if b2 >= 0x80 and b2 <= 0xBF then
+          i = i + 2
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    elseif b1 >= 0xE0 and b1 <= 0xEF then
+      if i + 2 <= len then
+        local b2, b3 = str:byte(i + 1), str:byte(i + 2)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF)
+        if b1 == 0xE0 and b2 < 0xA0 then valid = false end
+        if b1 == 0xED and b2 > 0x9F then valid = false end
+        if valid then
+          i = i + 3
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    elseif b1 >= 0xF0 and b1 <= 0xF4 then
+      if i + 3 <= len then
+        local b2, b3, b4 = str:byte(i + 1), str:byte(i + 2), str:byte(i + 3)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF) and (b4 >= 0x80 and b4 <= 0xBF)
+        if b1 == 0xF0 and b2 < 0x90 then valid = false end
+        if b1 == 0xF4 and b2 > 0x8F then valid = false end
+        if valid then
+          i = i + 4
+        else
+          needsClean = true; break
+        end
+      else
+        needsClean = true; break
+      end
+    else
+      needsClean = true; break
+    end
+  end
+
+  if not needsClean then return str end
+
+  local out = {}
+  i = 1
+  while i <= len do
+    local b1 = str:byte(i)
+    if b1 < 0x80 then
+      out[#out + 1] = str:sub(i, i)
+      i = i + 1
+    elseif b1 >= 0xC2 and b1 <= 0xDF then
+      if i + 1 <= len then
+        local b2 = str:byte(i + 1)
+        if b2 >= 0x80 and b2 <= 0xBF then
+          out[#out + 1] = str:sub(i, i + 1)
+          i = i + 2
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    elseif b1 >= 0xE0 and b1 <= 0xEF then
+      if i + 2 <= len then
+        local b2, b3 = str:byte(i + 1), str:byte(i + 2)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF)
+        if b1 == 0xE0 and b2 < 0xA0 then valid = false end
+        if b1 == 0xED and b2 > 0x9F then valid = false end
+        if valid then
+          out[#out + 1] = str:sub(i, i + 2)
+          i = i + 3
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    elseif b1 >= 0xF0 and b1 <= 0xF4 then
+      if i + 3 <= len then
+        local b2, b3, b4 = str:byte(i + 1), str:byte(i + 2), str:byte(i + 3)
+        local valid = (b2 >= 0x80 and b2 <= 0xBF) and (b3 >= 0x80 and b3 <= 0xBF) and (b4 >= 0x80 and b4 <= 0xBF)
+        if b1 == 0xF0 and b2 < 0x90 then valid = false end
+        if b1 == 0xF4 and b2 > 0x8F then valid = false end
+        if valid then
+          out[#out + 1] = str:sub(i, i + 3)
+          i = i + 4
+        else
+          i = i + 1
+        end
+      else
+        break
+      end
+    else
+      i = i + 1
+    end
+  end
+  return table.concat(out)
+end
+I18n.cleanUTF8 = cleanUTF8
+
+-- Truncates a string to at most `maxChars` unicode code points without cutting
+-- multibyte characters in half, and strips any trailing malformed byte.
+function I18n.truncate(str, maxChars)
+  if type(str) ~= "string" or str == "" then return str or "" end
+  if not maxChars or maxChars <= 0 then return "" end
+  local count, cut = 0, #str
+  for pos in str:gmatch("()[^\128-\191]") do
+    count = count + 1
+    if count > maxChars then cut = pos - 1 break end
+  end
+  return cleanUTF8(str:sub(1, cut))
+end
+
+-- Pads a string to `width` visual characters with spaces, accounting for multibyte UTF-8 characters.
+function I18n.padRight(str, width)
+  str = tostring(str or "")
+  local count = 0
+  for _ in str:gmatch("[^\128-\191]") do count = count + 1 end
+  if count < (width or 0) then
+    return str .. string.rep(" ", width - count)
+  end
+  return str
+end
+
 -- `text` translated and cut to `n` letters
 function I18n.fit(text, n)
   text = I18n.t(tostring(text or ""))
-  if not n then return text end
-  local count, cut = 0, #text
-  for pos in text:gmatch("()[^\128-\191]") do
-    count = count + 1
-    if count > n then cut = pos - 1 break end
-  end
-  return text:sub(1, cut)
+  if not n then return cleanUTF8(text) end
+  return I18n.truncate(text, n)
 end
 
 -- Lines written to be read together (the RULES help, three short lines):
@@ -237,7 +373,7 @@ function I18n.font()
     -- with a dot, the way the engine's own Font.fit cuts a name
     draw = function(text, x, ...)
       local F = require("src.render.Font")
-      text = I18n.t(text)
+      text = cleanUTF8(I18n.t(text))
       -- 8 px short of the edge: the boxes' right border lives there
       local w = (I18n.screenW or 160) - 8
       if type(text) == "string" and type(x) == "number" and x < w and F.width(text) > w - x then
@@ -245,8 +381,8 @@ function I18n.font()
       end
       return F.draw(text, x, ...)
     end,
-    width = function(text, ...) return require("src.render.Font").width(I18n.t(text), ...) end,
-    fit = function(text, ...) return require("src.render.Font").fit(I18n.t(text), ...) end,
+    width = function(text, ...) return require("src.render.Font").width(cleanUTF8(I18n.t(text)), ...) end,
+    fit = function(text, ...) return require("src.render.Font").fit(cleanUTF8(I18n.t(text)), ...) end,
   }, { __index = function(_, k)
     if k == "raw" then return require("src.render.Font") end
     return require("src.render.Font")[k]

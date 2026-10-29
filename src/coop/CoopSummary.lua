@@ -61,9 +61,7 @@ function CoopSummary.onExpGained(payload)
 end
 
 local function short(name, n)
-  name = string.upper(tostring(name or ""))
-  if #name > n then name = name:sub(1, n) end
-  return name
+  return require("src.coop.CoopI18n").truncate(string.upper(tostring(name or "")), n)
 end
 
 -- the lines for a finished battle (nil when it was not a co-op one)

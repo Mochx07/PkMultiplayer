@@ -99,6 +99,38 @@ for _, row in ipairs({ "CHAT  (KEY T)", "EMOTE  (KEY Y)", "WARP TO PARTNER", "PA
   T.check(ES[row] and letters(ES[row]) <= 16, "the row " .. row .. " fits its menu")
 end
 
+-- UTF-8 sanitization & truncation resilience
+T.check(I18n.cleanUTF8("Hello World") == "Hello World", "cleanUTF8 preserves ASCII")
+T.check(I18n.cleanUTF8("POCIÓN MÁXIMA") == "POCIÓN MÁXIMA", "cleanUTF8 preserves valid Spanish UTF-8")
+T.check(I18n.cleanUTF8("POCI\195") == "POCI", "cleanUTF8 drops trailing incomplete 2-byte lead")
+T.check(I18n.cleanUTF8("TEST\226\128") == "TEST", "cleanUTF8 drops trailing incomplete 3-byte sequence")
+T.check(I18n.cleanUTF8("TEST\240\144\128") == "TEST", "cleanUTF8 drops trailing incomplete 4-byte sequence")
+T.check(I18n.cleanUTF8("\128\129abc") == "abc", "cleanUTF8 drops stray continuation bytes")
+
+T.check(I18n.truncate("ANTIPARÁLISIS", 12) == "ANTIPARÁLISI", "truncate cuts at character boundaries, preserving Á")
+T.check(I18n.truncate("ANTIPAR\195", 12) == "ANTIPAR", "truncate drops trailing raw-sliced orphan byte")
+T.check(I18n.padRight("POCIÓN", 10) == "POCIÓN    ", "padRight aligns by character count rather than byte count")
+
+-- Simulated UnicodeFont failure protection
+local S = rawget(_G, "__PKMULTIPLAYER")
+local Hooks = S and S.hooks
+if Hooks then
+  T.check(type(Hooks.cleanUTF8) == "function", "Hooks exports cleanUTF8")
+  T.check(Hooks.cleanUTF8("SUPERPOC\195") == "SUPERPOC", "Hooks.cleanUTF8 sanitizes truncated strings")
+
+  local fakeUnicodeFont = {
+    font = function() return { getWidth = function(s) if s:find("\195") then error("UTF-8 decoding error: Not enough space") end return 8 end } end,
+    draw = function(code, x, y, h) error("UTF-8 decoding error: Not enough space") end,
+    width = function(code, h) error("UTF-8 decoding error: Not enough space") end,
+    code = function(char) return -1 end,
+  }
+  Hooks.modules["src.translation.UnicodeFont"](fakeUnicodeFont)
+  local drawOk = pcall(function() fakeUnicodeFont.draw(-1, 0, 0, 8) end)
+  T.check(drawOk, "UnicodeFont.draw hook catches decoding errors without throwing")
+  local widthOk, w = pcall(function() return fakeUnicodeFont.width(-1, 8) end)
+  T.check(widthOk and w == 8, "UnicodeFont.width hook safely returns default height on error")
+end
+
 I18n.forced = nil
 package.loaded["src.render.Font"] = realFont
 I18n.resetGlyphs()

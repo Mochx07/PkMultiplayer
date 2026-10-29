@@ -103,13 +103,12 @@ function CoopBattleInviteModal:draw()
   love.graphics.setColor(0, 0, 0, 1)
   local x = (self.tx + 1) * 8
   local y = (self.ty + 1) * 8
-  local pLabel = self.partnerName
-  if #pLabel > 16 then pLabel = pLabel:sub(1, 16) end
-  local tLabel = self.trainerName
-  if #tLabel > 13 then tLabel = tLabel:sub(1, 13) end
+  local I18n = require("src.coop.CoopI18n")
+  local pLabel = I18n.truncate(self.partnerName, 16)
+  local tLabel = I18n.truncate(self.trainerName, 13)
   local lines = self.lines or { pLabel, "WANTS TO TEAM UP", "VS " .. tLabel }
   for i = 1, 3 do
-    Font.draw(require("src.coop.CoopI18n").fit(lines[i] or "", 16), x, y + (i - 1) * 8)
+    Font.draw(I18n.fit(lines[i] or "", 16), x, y + (i - 1) * 8)
   end
 
   local row1Y, row2Y = y + 32, y + 40

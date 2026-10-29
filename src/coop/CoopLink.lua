@@ -199,7 +199,7 @@ function CoopLink.onInvite(game, msg)
   end)
   modal.inviteId = msg.id
   modal.timeout = CoopLink.INVITE_TIMEOUT
-  modal.lines = { who:sub(1, 16), mode == "trade" and "WANTS TO TRADE!" or "WANTS TO BATTLE!",
+  modal.lines = { require("src.coop.CoopI18n").truncate(who, 16), mode == "trade" and "WANTS TO TRADE!" or "WANTS TO BATTLE!",
                   mode == "trade" and "OPEN TRADE ROOM?" or "P1 VS P2 BATTLE?" }
   CoopLink.asked = modal
   game.stack:push(modal)

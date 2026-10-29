@@ -163,9 +163,7 @@ CoopStory.stateChanges = stateChanges
 CoopStory.snapshot = snapshot
 
 local function shortName(n)
-  n = tostring(n or "")
-  if #n > 7 then n = n:sub(1, 7) end
-  return n
+  return require("src.coop.CoopI18n").truncate(tostring(n or ""), 7)
 end
 
 -- The trainer an event leads to, when it is one worth deciding about before
@@ -668,14 +666,13 @@ function CoopStory.waitForPartner(ctx, class, party)
   if not (CM and game and game.stack and runner and runner.yield and ow and ow.map) then return false end
   if not (CM.isConnected and CM.isConnected() and CM.net) then return false end
   if (CM.partner.healthy or 0) <= 0 then return false end
-  local pname = string.upper(CM.partner.name or "PARTNER")
-  if #pname > 8 then pname = pname:sub(1, 8) end
+  local pname = require("src.coop.CoopI18n").truncate(string.upper(CM.partner.name or "PARTNER"), 8)
   local name = CM.trainerDisplayName and CM.trainerDisplayName(game, class, party) or "TRAINER"
   local choice = "solo"
   game.stack:push(require("src.coop.CoopI18n").menu().new(game, {
     { label = "WAIT " .. pname, onSelect = function() choice = "wait" runner:resume() end },
     { label = "SOLO", onSelect = function() choice = "solo" runner:resume() end },
-  }, { tx = 3, ty = 4, tw = 14, header = ("VS " .. name):sub(1, 12), cancelable = true,
+  }, { tx = 3, ty = 4, tw = 14, header = require("src.coop.CoopI18n").truncate("VS " .. name, 12), cancelable = true,
        onCancel = function() choice = "solo" runner:resume() end }))
   runner:yield()
   if choice ~= "wait" or not CM.isConnected() then return false end

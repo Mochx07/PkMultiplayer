@@ -171,7 +171,7 @@ local function serveOnce(game, ow)
           pcall(ev.peer.disconnect_later, ev.peer, 0)
           srv.visitors[ev.peer] = nil
         elseif m.t == "hi" then
-          v.name = tostring(m.name or "VISITOR"):upper():sub(1, 8)
+          v.name = require("src.coop.CoopI18n").truncate(tostring(m.name or "VISITOR"):upper(), 8)
           v.sprite = m.sprite
           v.game = type(m.game) == "string" and m.game or nil
           if not v.named then
@@ -432,7 +432,7 @@ CoopManager.worldDrawers.visit = function(ow)
   for _, a in pairs(CoopVisit.avatars) do
     local e = a.entry or {}
     local sx, sy = CoopManager.screenPoint(ow, a.npc.px, a.npc.py)
-    local name = tostring(e.name or "?"):upper():sub(1, 8)
+    local name = require("src.coop.CoopI18n").truncate(tostring(e.name or "?"):upper(), 8)
     local bw = math.max(16, MicroFont.width(name) + 6)
     local bx, by = math.floor(sx - bw / 2), math.floor(sy + 2)
     CoopManager.drawPill(bx, by, bw, 9)

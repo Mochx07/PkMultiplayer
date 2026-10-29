@@ -157,8 +157,9 @@ local function hpBar(x, y, w, hp, max)
 end
 
 local function label(info)
-  local name = tostring(info.name or info.species or "?"):sub(1, 10)
-  return name, ("L%d"):format(tonumber(info.level) or 0) .. (info.status and (" " .. tostring(info.status):sub(1, 3)) or "")
+  local I18n = require("src.coop.CoopI18n")
+  local name = I18n.truncate(info.name or info.species or "?", 10)
+  return name, ("L%d"):format(tonumber(info.level) or 0) .. (info.status and (" " .. I18n.truncate(tostring(info.status), 3)) or "")
 end
 
 function Screen:draw()
@@ -166,7 +167,7 @@ function Screen:draw()
   g.setColor(1, 1, 1, 1)
   g.rectangle("fill", 0, 0, 160, 144)
   g.setColor(0, 0, 0, 1)
-  local who = tostring(CoopManager.partner.name or "PARTNER"):upper():sub(1, 7)
+  local who = require("src.coop.CoopI18n").truncate(tostring(CoopManager.partner.name or "PARTNER"):upper(), 7)
   local f = CoopWatch.frame
   if not f then
     Font.drawBox(0, 12, 20, 6)
