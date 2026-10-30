@@ -3,6 +3,43 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.16
+
+Compatible con 1.6.0–1.6.15 (mismo protocolo 16).
+
+### Añadido
+
+- **Indicador de mochila en el plan del compañero.** En combates dobles cooperativos,
+  cuando el compañero entra en la mochila para usar un objeto, el recuadro de plan
+  muestra `EN MOCHILA...` / `IN BAG...` junto a un icono de mochila de 6x6 píxeles,
+  avisando en tiempo real de que está eligiendo un consumible.
+- **Diferenciación de rivales repetidos en el plan.** Si los dos rivales pertenecen
+  a la misma especie (por ejemplo, dos Pidgey), el recuadro añade ` 1` y ` 2` al
+  objetivo (`> PIDGEY 1` / `> PIDGEY 2`) para distinguir con claridad a cuál de
+  los dos apunta el ataque del compañero.
+- **Objetivos de ataques curativos y propios.** Movimientos dirigidos al propio usuario
+  (como Recuperación, Amortiguador o Danza Espada) y potenciadores de características
+  (como Ataque X) ahora se indican explícitamente como `> A SI MISMO` (o `> SELF`).
+  Los ataques de área muestran `> RIVALES` y los globales `> TODOS`.
+
+### Arreglado
+
+- **Animación y desaparición de Vuelo en combates dobles.** Al usar Vuelo en un
+  combate cooperativo, el sprite del Pokémon atacante permanecía visible en el suelo
+  durante el turno de carga en lugar de desaparecer en el aire, y los efectos visuales
+  podían desplazarse hacia la posición del jugador local. Ahora el atacante desaparece
+  correctamente en el aire hasta el segundo turno y los efectos visuales quedan anclados
+  a su casilla correspondiente.
+- **Destello de Pokémon variocolor (shiny) en combates dobles.** Al enviar un Pokémon
+  variocolor al combate o cambiarlo en la casilla del compañero (o del segundo rival),
+  las chispas de brillo se reproducían desplazadas sobre la casilla izquierda. Ahora
+  los destellos se colocan exactamente sobre la posición del Pokémon variocolor.
+- **Margen de espera al iniciar combate simultáneo.** Si ambos jugadores se aproximaban
+  o hablaban con un entrenador al mismo tiempo, el juego del compañero rechazaba de
+  inmediato la invitación cooperativa por ocupado si aún tenía abierto el cuadro de
+  diálogo inicial. Ahora la invitación retiene un margen de gracia de 4 segundos y
+  muestra el aviso para unirse en cuanto se avanza el texto.
+
 ## 1.6.15
 
 Compatible con 1.6.0–1.6.14 (mismo protocolo 16).

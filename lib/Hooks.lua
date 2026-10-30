@@ -557,6 +557,87 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
       return drawAnimLayer(self, ...)
     end
   end)
+
+  wrap(BattleState, "BattleState", "performMove", function(performMove)
+    return function(self, user, target, moveInst, isCalled, suppressAnimation, ...)
+      local existing = {}
+      if self.queue then
+        for _, it in ipairs(self.queue) do existing[it] = true end
+      end
+      local res = performMove(self, user, target, moveInst, isCalled, suppressAnimation, ...)
+      if self.queue then
+        for _, it in ipairs(self.queue) do
+          if not existing[it] and (it.anim or it.hitRow) then
+            if it.attackerPosition == nil and user and user.position ~= nil then
+              it.attackerPosition = user.position
+            end
+            if it.targetPosition == nil and target and target.position ~= nil then
+              it.targetPosition = target.position
+            end
+          end
+        end
+      end
+      local move = self.moveDef and self:moveDef(moveInst)
+      if move and move.id == "FLY" and user and user.charging and user.invulnerable then
+        local pf = self.picFxFor and self:picFxFor(user)
+        if pf then pf.hidden = true end
+      end
+      return res
+    end
+  end)
+
+  wrap(BattleState, "BattleState", "shinyAnim", function(shinyAnim)
+    return function(self, battler, isPlayer, ...)
+      local ok = shinyAnim(self, battler, isPlayer, ...)
+      if ok and battler and battler.position ~= nil then
+        local item = self.queue and self.nextInsert and self.queue[self.nextInsert]
+        if item and item.anim == "SHINY_ANIM" then
+          item.targetPosition = battler.position
+          item.attackerPosition = battler.position
+        end
+      end
+      return ok
+    end
+  end)
+
+  wrap(BattleState, "BattleState", "shinyAnimAppend", function(shinyAnimAppend)
+    return function(self, battler, isPlayer, ...)
+      local ok = shinyAnimAppend(self, battler, isPlayer, ...)
+      if ok and battler and battler.position ~= nil then
+        local item = self.queue and self.queue[#self.queue]
+        if item and item.anim == "SHINY_ANIM" then
+          item.targetPosition = battler.position
+          item.attackerPosition = battler.position
+        end
+      end
+      return ok
+    end
+  end)
+
+  wrap(BattleState, "BattleState", "enter", function(enter)
+    return function(self, ...)
+      enter(self, ...)
+      local playRight = self.battlerAt and self:battlerAt(BattleState.POS.PLAYER_RIGHT)
+      if playRight and playRight.mon and require("src.pokemon.Pokemon").isShiny(playRight.mon) then
+        local alreadyQueued = false
+        for _, it in ipairs(self.queue or {}) do
+          if it.anim == "SHINY_ANIM" and it.targetPosition == BattleState.POS.PLAYER_RIGHT then
+            alreadyQueued = true
+            break
+          end
+        end
+        if not alreadyQueued then
+          if self:shinyAnimAppend(playRight, false) then
+            local item = self.queue and self.queue[#self.queue]
+            if item and item.anim == "SHINY_ANIM" then
+              item.targetPosition = BattleState.POS.PLAYER_RIGHT
+              item.attackerPosition = BattleState.POS.PLAYER_RIGHT
+            end
+          end
+        end
+      end
+    end
+  end)
 end
 
 -- DramaticShapes' arena module, when that mod is running (its loader
@@ -947,7 +1028,7 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
       local CM = coopManager()
       if CM and CM.connected then
         local partnerEngaging = CM.isPartnerEngaging and CM.isPartnerEngaging(self.map and self.map.id)
-        if partnerEngaging or CM.pendingBattleInvite or CM.activeInviteModal then
+        if partnerEngaging or CM.pendingBattleInvite or CM.activeInviteModal or CM.incomingInviteBuffer then
           return
         end
       end

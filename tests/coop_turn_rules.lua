@@ -211,4 +211,137 @@ do
   T.check(b.foeParticipants[foe2.mon][a], "the switched-out Pokemon is still owed its share of foe 2")
 end
 
+-- ---------------------------------------------------------------------
+-- partner plan details: repeated foes, self-targeting, in-bag state
+-- ---------------------------------------------------------------------
+
+do
+  local game = newGame("HOST", { "FIXMON_A" }, 10)
+  local b = BattleState.newTrainer(game, "OPP_FIX_YOUNGSTER", 1)
+  b.coopDouble = true
+  b.coop = {
+    turn = 1,
+    partnerActions = {},
+  }
+  local foe1 = { position = P.OPPONENT_LEFT, name = "PIDGEY", mon = { species = "PIDGEY" } }
+  local foe2 = { position = P.OPPONENT_RIGHT, name = "PIDGEY", mon = { species = "PIDGEY" } }
+  local ally = { position = P.PLAYER_RIGHT, name = "PIKACHU", mon = { species = "PIKACHU" } }
+  local player = { position = P.PLAYER_LEFT, name = "BULBASAUR", mon = { species = "BULBASAUR" } }
+  b.battlerAt = function(self, pos)
+    if pos == P.OPPONENT_LEFT then return foe1 end
+    if pos == P.OPPONENT_RIGHT then return foe2 end
+    if pos == P.PLAYER_RIGHT then return ally end
+    if pos == P.PLAYER_LEFT then return player end
+    return nil
+  end
+  b.ally = ally
+  b.data = {
+    moves = {
+      TACKLE = { id = "TACKLE", name = "TACKLE" },
+      RECOVER = { id = "RECOVER", name = "RECOVER", target = "user" },
+    },
+    items = {
+      POTION = { id = "POTION", name = "POTION" },
+      X_ATTACK = { id = "X_ATTACK", name = "X ATTACK" },
+    }
+  }
+
+  -- 1) Choosing state vs in-bag choosing
+  b.coop.partnerActions[1] = nil
+  b.coop.partnerInBag = nil
+  local lines = CoopBattle.partnerPlan(b)
+  T.check(lines[2] == "CHOOSING...", "default partner plan is choosing")
+
+  b.coop.partnerInBag = true
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[2] == "IN BAG..." and lines[3] == "CHOOSING...", "partner in bag shows in-bag choosing")
+
+  -- 2) Repeated enemy species numbering (guest mirrors targets)
+  b.coop.partnerInBag = nil
+  b.coop.partnerActions[1] = { kind = "move", id = "TACKLE", target = P.OPPONENT_LEFT }
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[3] == "> PIDGEY 1", "first repeated foe gets ' 1'")
+
+  b.coop.partnerActions[1] = { kind = "move", id = "TACKLE", target = P.OPPONENT_RIGHT }
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[3] == "> PIDGEY 2", "second repeated foe gets ' 2'")
+
+  -- 3) Self-targeting moves
+  b.coop.partnerActions[1] = { kind = "move", id = "RECOVER" }
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[3] == "> SELF", "self-targeting move shows '> SELF'")
+
+  -- 4) Items: fallback to self if no targetNick
+  b.coop.partnerActions[1] = { kind = "item", id = "POTION", targetNick = "PIKACHU" }
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[3] == "> PIKACHU", "item with targetNick shows target name")
+
+  b.coop.partnerActions[1] = { kind = "item", id = "X_ATTACK" }
+  lines = CoopBattle.partnerPlan(b)
+  T.check(lines[3] == "> SELF", "self-boost item shows '> SELF'")
+end
+
+-- ---------------------------------------------------------------------
+-- queued move anims and Fly charge picFx
+-- ---------------------------------------------------------------------
+
+do
+  local game = newGame("SOLO", { "FIXMON_A" }, 15)
+  local b = BattleState.newTrainer(game, "OPP_FIX_YOUNGSTER", 1)
+  b.double = true
+  local user = { position = P.PLAYER_RIGHT, isPlayer = true, name = "PIDGEY",
+                 curStats = { attack = 50, defense = 50, speed = 50, special = 50 },
+                 curTypes = { "FLYING" },
+                 def = { baseStats = { speed = 50 } },
+                 mon = { hp = 50, maxHp = 50, level = 10, species = "PIDGEY" } }
+  local target = { position = P.OPPONENT_LEFT, isPlayer = false, name = "RATTATA",
+                   curStats = { attack = 50, defense = 50, speed = 50, special = 50 },
+                   curTypes = { "NORMAL" },
+                   def = { baseStats = { speed = 50 } },
+                   mon = { hp = 50, maxHp = 50, level = 10, species = "RATTATA" } }
+  b.queue = {}
+  b.nextInsert = 0
+  Data.moves.FLY = { id = "FLY", name = "FLY", power = 70, accuracy = 95, type = "FLYING", effect = "EFFECT_FLY", semiInvulnerable = true, charge = { anim = "TELEPORT", invulnerable = true } }
+  b.data = Data
+  b.picFxFor = function(self, btr)
+    self.picFx = self.picFx or {}
+    self.picFx[btr] = self.picFx[btr] or { ox = 0, oy = 0 }
+    return self.picFx[btr]
+  end
+
+  user.charging = { id = "FLY", pp = 15 }
+  user.invulnerable = true
+  b:performMove(user, target, { id = "FLY", pp = 15 })
+  local pf = b:picFxFor(user)
+  T.check(pf.hidden == true, "Fly charge leaves user picFx hidden")
+end
+
+-- ---------------------------------------------------------------------
+-- double battle shiny animation positions
+-- ---------------------------------------------------------------------
+
+do
+  local game = newGame("SOLO", { "FIXMON_A" }, 15)
+  local b = BattleState.newTrainer(game, "OPP_FIX_YOUNGSTER", 1)
+  b.data = { battle_anims = { gen2 = true } }
+  local pr = { position = P.PLAYER_RIGHT, mon = { species = "PIDGEY", shiny = true } }
+  b.queue = {}
+  b.nextInsert = 0
+
+  local ok = b:shinyAnim(pr, false)
+  if ok then
+    local item = b.queue[b.nextInsert]
+    T.check(item and item.targetPosition == P.PLAYER_RIGHT and item.attackerPosition == P.PLAYER_RIGHT,
+            "shinyAnim attaches targetPosition and attackerPosition to partner slot")
+  end
+
+  b.queue = {}
+  local okAppend = b:shinyAnimAppend(pr, false)
+  if okAppend then
+    local item = b.queue[#b.queue]
+    T.check(item and item.targetPosition == P.PLAYER_RIGHT and item.attackerPosition == P.PLAYER_RIGHT,
+            "shinyAnimAppend attaches targetPosition and attackerPosition to partner slot")
+  end
+end
+
 T.finish("co-op doubles turn rules")

@@ -236,12 +236,47 @@ function CoopBattle.partnerPlan(battle)
   end
   local data = battle.data or (battle.game and battle.game.data) or {}
   local w = c.partnerActions and c.partnerActions[c.turn]
-  if not w then return { who, t("CHOOSING...") } end
+  if not w then
+    if c.partnerInBag then
+      return { who, t("IN BAG..."), t("CHOOSING...") }
+    end
+    return { who, t("CHOOSING...") }
+  end
   if w.kind == "move" then
     local def = data.moves and data.moves[w.id]
     local name = game(def and def.name or tostring(w.id or "?"))
     local target = w.target and battle:battlerAt(mirror(w.target))
-    local tname = target and game(target.name or (target.mon and target.mon.species)) or nil
+    local tname = nil
+    if target then
+      if target == ally then
+        tname = t("SELF")
+      elseif target.position == P.PLAYER_LEFT then
+        tname = target and game(target.name or (target.mon and target.mon.species)) or t("YOU")
+      else
+        tname = target and game(target.name or (target.mon and target.mon.species)) or nil
+        local op1 = battle:battlerAt(P.OPPONENT_LEFT)
+        local op2 = battle:battlerAt(P.OPPONENT_RIGHT)
+        local n1 = op1 and game(op1.name or (op1.mon and op1.mon.species))
+        local n2 = op2 and game(op2.name or (op2.mon and op2.mon.species))
+        if n1 and n2 and n1 == n2 and not (op1.fainted or op1.faintQueued) and not (op2.fainted or op2.faintQueued) then
+          if target.position == P.OPPONENT_LEFT then
+            tname = (tname or "") .. " 1"
+          elseif target.position == P.OPPONENT_RIGHT then
+            tname = (tname or "") .. " 2"
+          end
+        end
+      end
+    else
+      local okT, Targeting = pcall(require, "src.battle.Targeting")
+      local k = okT and Targeting and def and Targeting.kindOf and Targeting.kindOf(def)
+      if k == (Targeting and Targeting.USER) then
+        tname = t("SELF")
+      elseif k == (Targeting and Targeting.BOTH) then
+        tname = t("ALL FOES")
+      elseif k == (Targeting and Targeting.FOES_AND_ALLY) then
+        tname = t("EVERYONE")
+      end
+    end
     return { who, name, tname and ("> " .. tname) or nil }
   elseif w.kind == "switch" then
     local mon = w.index and battle.ally and battle.ally.party and battle.ally.party[w.index]
@@ -251,7 +286,16 @@ function CoopBattle.partnerPlan(battle)
   elseif w.kind == "item" then
     local def = data.items and data.items[w.id]
     local name = game(def and def.name or tostring(w.id or "?"))
-    return { who, name, w.targetNick and ("> " .. game(w.targetNick)) or nil }
+    local tname = w.targetNick and game(w.targetNick) or nil
+    if not tname then
+      local boost = w.boost
+      if boost and boost.flute then
+        tname = t("EVERYONE")
+      else
+        tname = t("SELF")
+      end
+    end
+    return { who, name, tname and ("> " .. tname) or nil }
   elseif w.kind == "locked" then
     return { who, t("SAME MOVE") }
   end
@@ -275,7 +319,14 @@ function CoopBattle.drawPartnerPlan(battle)
   if not lines then return end
   local MicroFont = require("src.render.MicroFont")
   love.graphics.setColor(0, 0, 0, 1)
-  Font.raw.draw(Font.raw.fit and Font.raw.fit(lines[1], 56) or lines[1]:sub(1, 7), 8, 104)
+  local c = battle.coop
+  local inBag = c and c.partnerInBag
+  local nameWidth = inBag and 44 or 56
+  Font.raw.draw(Font.raw.fit and Font.raw.fit(lines[1], nameWidth) or lines[1]:sub(1, inBag and 6 or 7), 8, 104)
+  if inBag then
+    love.graphics.rectangle("fill", 56, 107, 6, 4)
+    love.graphics.rectangle("line", 57, 104, 4, 3)
+  end
   for i = 2, 3 do
     local l = lines[i]
     if l then
@@ -786,6 +837,8 @@ function CoopBattle.executeTurn(battle)
   c.localReady = false
   c.waitTime = 0
   c.turn = turn + 1
+  c.partnerInBag = nil
+  c.localInBag = nil
   CoopBattle.localAction = nil
   CoopBattle.partnerAction = nil
   CoopBattle.fallbackAllowed = false
@@ -1638,6 +1691,14 @@ function CoopBattle.onPartnerHealedMon(msg)
   if battle.syncShownStatus then pcall(battle.syncShownStatus, battle) end
 end
 
+function CoopBattle.onPartnerBag(msg)
+  local battle = CoopBattle.currentBattle
+  local c = battle and battle.coop
+  if c and (not msg.inviteId or c.inviteId == msg.inviteId) then
+    c.partnerInBag = (msg.inBag == true)
+  end
+end
+
 -- End a battle the engine did not end on its own.  Goes through finish()
 -- when the battle is on top so music, the stack and the return fade are
 -- torn down the normal way; otherwise waits until it is.
@@ -1777,6 +1838,17 @@ function CoopBattle.tick(dt)
     c.hostResultAt = (c.hostResultAt or 0) + dt
     if c.hostResultAt >= CoopBattle.RESULT_GRACE or (betweenTurns(battle) and c.hostResultAt >= 1.0) then
       CoopBattle.forceFinishBattle(battle, c.hostResult)
+    end
+  end
+
+  -- sync local inBag status during menu phase
+  if battle.coopDouble and battle.phase == "menu" and not c.partnerLost then
+    local stack = battle.game and battle.game.stack
+    local top = stack and (type(stack.top) == "function" and stack:top() or stack.top)
+    local inBag = (battle.waitingUI and top and top.kind == "bag") and true or false
+    if c.localInBag ~= inBag then
+      c.localInBag = inBag
+      send({ type = "coop_battle_bag", inviteId = c.inviteId, inBag = inBag })
     end
   end
 end

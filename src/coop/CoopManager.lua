@@ -411,6 +411,7 @@ local function resetSession()
   CoopManager.render = nil
   CoopManager.pendingBattleInvite = nil
   CoopManager.activeInviteModal = nil
+  CoopManager.incomingInviteBuffer = nil
   CoopManager.bigBattle = nil
   CoopManager.guestBig = nil
   CoopManager.guestSelect = nil
@@ -1208,7 +1209,7 @@ function CoopManager.isPartnerInBattle()
 end
 
 -- Same map, idle and heard from recently.  Returns ok, reason.
-local function partnerReachable(ow, anywhere)
+local function partnerReachable(ow, anywhere, forBattleInvite)
   local partner = CoopManager.partner
   if not CoopManager.isConnected() then return false, "Partner not linked" end
   if CoopManager.net.stalled then return false, "Partner link is weak" end
@@ -1217,15 +1218,16 @@ local function partnerReachable(ow, anywhere)
   end
   if (now() - (partner.lastSeen or 0)) > PARTNER_FRESH then return false, "Partner not responding" end
   if partner.inBattle then return false, "Partner in battle" end
-  if partner.busy or partner.inDialogue then return false, "Partner is busy" end
+  if partner.busy and not (forBattleInvite and partner.inDialogue) then return false, "Partner is busy" end
+  if not forBattleInvite and partner.inDialogue then return false, "Partner is busy" end
   return true
 end
 
 -- ...and with a Pokemon that can fight.  Returns ok, reason.
 -- `anywhere`: the partner may be on another map (a BATTLE TOWER battle,
 -- whose room is the challenger's alone)
-function CoopManager.partnerAvailable(ow, anywhere)
-  local ok, why = partnerReachable(ow, anywhere)
+function CoopManager.partnerAvailable(ow, anywhere, forBattleInvite)
+  local ok, why = partnerReachable(ow, anywhere, forBattleInvite)
   if not ok then return false, why end
   if (CoopManager.partner.healthy or 0) <= 0 then return false, "Partner has no POKéMON" end
   return true
@@ -1934,9 +1936,13 @@ function CoopManager.onBattleInviteReceived(ow, msg)
   -- Only an idle player is asked.  The old path shoved the modal over
   -- whatever was open and, on accept, tore every text box and menu off the
   -- stack -- which orphaned the script waiting on them and soft-locked the
-  -- game.  Busy is simply a "no" the inviter fights solo on.
+  -- game.  Busy is buffered briefly if the player is just clearing a text box.
+  if CoopManager.incomingInviteBuffer and CoopManager.incomingInviteBuffer.msg.inviteId ~= msg.inviteId then
+    CoopManager.net:send({ type = "coop_battle_decline", inviteId = CoopManager.incomingInviteBuffer.msg.inviteId, reason = "busy" })
+    CoopManager.incomingInviteBuffer = nil
+  end
+
   if CoopManager.isLocalInBattle(ow2) then decline("in_battle") return end
-  if not overworldIdle(game, ow2) then decline("busy") return end
   local towerCap = type(msg.tower) == "table" and tonumber(msg.tower.cap) or nil
   if not towerCap and not (ow2 and ow2.map and mapsMatch(ow2.map.id, msg.mapId or CoopManager.partner.map)) then
     decline("far") return
@@ -1946,6 +1952,29 @@ function CoopManager.onBattleInviteReceived(ow, msg)
   if towerCap then
     eligible = require("src.coop.CoopTower").eligible(eligible, towerCap)
     if #eligible == 0 then decline("no_mons") return end
+  end
+
+  local function inDialogueOrScript(g, o)
+    if CoopManager.isLocalInDialogue(o) then return true end
+    if o and (o.engaging or (o.runner and o.runner.isRunning and o.runner:isRunning())) then
+      return true
+    end
+    return false
+  end
+
+  if not overworldIdle(game, ow2) then
+    if inDialogueOrScript(game, ow2) then
+      CoopManager.incomingInviteBuffer = {
+        ow = ow2,
+        msg = msg,
+        deadline = now() + 4.0,
+        eligible = eligible,
+      }
+      return
+    else
+      decline("busy")
+      return
+    end
   end
 
   local pName = string.upper(CoopManager.partner.name or "PARTNER")
@@ -2058,6 +2087,9 @@ end
 
 function CoopManager.onBattleCancelled(ow, msg)
   local game = getGame(ow)
+  if CoopManager.incomingInviteBuffer and (not msg.inviteId or CoopManager.incomingInviteBuffer.msg.inviteId == msg.inviteId) then
+    CoopManager.incomingInviteBuffer = nil
+  end
   -- the party picker opened from the invite goes first: left up, it held
   -- the player in place after the inviter went solo or dropped, and a pick
   -- made in it joined a battle nobody else was in
@@ -2415,7 +2447,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
   end
 
   local tower = battle.battleTower == true
-  local ok, why = CoopManager.partnerAvailable(ow, tower)
+  local ok, why = CoopManager.partnerAvailable(ow, tower, true)
   if not ok then
     if why ~= "Partner is far away" then CoopManager.showStatus(why .. ". Solo!", 2.5) end
     return false
@@ -2441,7 +2473,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
         return
       end
       game.stack:push(CoopBattleSelect.new(game, save.party, function(chosenMons)
-        local stillOk, whyNot = CoopManager.partnerAvailable(ow, tower)
+        local stillOk, whyNot = CoopManager.partnerAvailable(ow, tower, true)
         if not stillOk then
           CoopManager.showStatus(whyNot .. ". Solo!", 2.5)
           solo()
@@ -2887,6 +2919,7 @@ H.coop_battle_here = toBattle("onPartnerHere")
 H.coop_battle_gone = toBattle("onPartnerGone")
 H.coop_battle_replace = toBattle("onPartnerReplace")
 H.coop_battle_abort = toBattle("onPartnerLeft")
+H.coop_battle_bag = toBattle("onPartnerBag")
 
 H.coop_chat = function(ow, msg) CoopManager.onChatReceived(msg.sender, msg.text, false, msg.n) end
 H.coop_chat_live = function(ow, msg) CoopManager.onChatLive(msg) end
@@ -3218,6 +3251,23 @@ function CoopManager.update(ow, dt)
   end
 
   CoopManager.tickWarpAsk()
+
+  local buf = CoopManager.incomingInviteBuffer
+  if buf then
+    local bOw = buf.ow or ow
+    local bGame = getGame(bOw)
+    if CoopManager.isLocalInBattle(bOw) then
+      CoopManager.net:send({ type = "coop_battle_decline", inviteId = buf.msg.inviteId, reason = "in_battle" })
+      CoopManager.incomingInviteBuffer = nil
+    elseif overworldIdle(bGame, bOw) then
+      local msg = buf.msg
+      CoopManager.incomingInviteBuffer = nil
+      CoopManager.onBattleInviteReceived(bOw, msg)
+    elseif now() >= buf.deadline then
+      CoopManager.net:send({ type = "coop_battle_decline", inviteId = buf.msg.inviteId, reason = "busy" })
+      CoopManager.incomingInviteBuffer = nil
+    end
+  end
   -- the link's notices, one after another on the status line
   local notices = CoopManager.pendingNotices
   if notices and #notices > 0 then

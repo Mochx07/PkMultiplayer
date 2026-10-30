@@ -470,6 +470,18 @@ do
   check(game.stack:top() == menu, "busy player's menu is left alone")
   game.stack:pop()
 
+  -- receiving an invite while in dialogue: buffered until dialogue closes
+  local textBox = { isTextBox = true, lines = { "HELLO" }, page = 1 }
+  game.stack:push(textBox)
+  CoopManager.onBattleInviteReceived(ow, { inviteId = "BUF1", mapId = "ROUTE_30", trainerName = "JOEY" })
+  check(CoopManager.incomingInviteBuffer ~= nil and CoopManager.incomingInviteBuffer.msg.inviteId == "BUF1", "invite while in dialogue is buffered")
+  game.stack:pop()
+  check(CoopManager.overworldIdle(game, ow) == true, "overworld is idle after dialogue closes")
+  CoopManager.update(ow, 0.016)
+  check(CoopManager.incomingInviteBuffer == nil, "buffered invite consumed once idle")
+  check(game.stack:top() and game.stack:top().isCoopInvite and game.stack:top().inviteId == "BUF1", "buffered invite opened invite modal")
+  game.stack:pop()
+
   -- idle: the modal appears
   CoopManager.onBattleInviteReceived(ow, { inviteId = "A2", mapId = "ROUTE_30", trainerName = "JOEY" })
   check(game.stack:top() and game.stack:top().isCoopInvite, "idle player gets the invite modal")
