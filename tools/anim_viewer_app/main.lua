@@ -6,6 +6,7 @@ local BattleState = require("src.battle.BattleState")
 local Gen2AnimPlayer = require("src.battle.Gen2AnimPlayer")
 
 local MOVE_ARCHETYPES = {
+  { name = "Aerochorro (Aeroblast)", id = 177, arch = "aeroblast", routine = "Aeroblast" },
   { name = "Hiperrayo (Hyper Beam)", id = 63, arch = "beam", routine = "MoveWaveToTarget" },
   { name = "Lanzallamas (Flamethrower)", id = 53, arch = "beam", routine = "MoveWaveToTarget" },
   { name = "Rayo Burbuja (BubbleBeam)", id = 61, arch = "wave", routine = "Bubble" },
@@ -152,31 +153,75 @@ function love.draw()
     g.line(ox + acx * s, oy + acy * s, ox + tcx * s, oy + tcy * s)
   end
 
+  local isPlayerAtk = (app.attackerSlot % 2 == 0)
+  local pCartX = isPlayerAtk and 40 or 132
+  local pCartY = isPlayerAtk and 88 or 44
+  local tCartX = isPlayerAtk and 132 or 40
+  local tCartY = isPlayerAtk and 44 or 88
+
   local move = MOVE_ARCHETYPES[app.selectedMove]
   local progress = math.min(1.0, math.max(0.0, app.frame / app.maxFrames))
-  local px = acx + (tcx - acx) * progress
-  local py = acy + (tcy - acy) * progress
-
-  -- Engine offset blend calculation
-  local dx, dy = app.animPlayer:objectOffset(px + 8, py + 16)
-  local finalX = ox + (px + dx) * s
-  local finalY = oy + (py + dy) * s
 
   -- Draw projectile
-  if move.arch == "beam" then
+  if move.arch == "aeroblast" or move.id == 177 then
+    if progress <= 0.35 then
+      local chargeT = progress / 0.35
+      local vX = isPlayerAtk and 72 or 108
+      local vY = isPlayerAtk and 88 or 64
+      local dx, dy = app.animPlayer:objectOffset(vX, vY)
+      local vx, vy = ox + (vX + dx) * s, oy + (vY + dy) * s
+      for r = 0, 3 do
+        local rad = (18 - (chargeT * 8) + r * 5) * s
+        g.setColor(0.2, 0.8, 1.0, 0.85)
+        g.ellipse("line", vx, vy, rad, rad * 0.45)
+      end
+      g.setColor(1, 1, 1, 1)
+      g.circle("fill", vx, vy, (4 + math.sin(app.frame * 0.8) * 2) * s)
+    elseif progress <= 0.85 then
+      local streamP = (progress - 0.35) / 0.50
+      for i = 0, 3 do
+        local segT = math.max(0, math.min(1, streamP * 1.35 - i * 0.15))
+        if segT > 0 then
+          local cX = pCartX + (tCartX - pCartX) * segT
+          local cY = pCartY + (tCartY - pCartY) * segT
+          local dx, dy = app.animPlayer:objectOffset(cX, cY)
+          local bx = ox + (cX + dx) * s
+          local by = oy + (cY + dy) * s
+          g.setColor(0.2, 0.8, 1.0, 1 - i * 0.22)
+          g.circle("line", bx, by, (9 + i * 2) * s)
+          g.setColor(1, 1, 1, 0.9)
+          g.circle("fill", bx, by, (5 - i) * s)
+        end
+      end
+    else
+      local impP = (progress - 0.85) / 0.15
+      local dx, dy = app.animPlayer:objectOffset(tCartX, tCartY)
+      local ix = ox + (tCartX + dx) * s
+      local iy = oy + (tCartY + dy) * s
+      g.setColor(0.2, 0.8, 1.0, 1 - impP)
+      g.circle("line", ix, iy, impP * 28 * s)
+      g.setColor(1, 1, 1, 1 - impP * 0.8)
+      g.circle("fill", ix, iy, (12 - impP * 8) * s)
+    end
+  elseif move.arch == "beam" then
     for i = 0, 4 do
       local segP = math.max(0, math.min(1, progress * 1.5 - i * 0.12))
       if segP > 0 then
-        local sx = acx + (tcx - acx) * segP
-        local sy = acy + (tcy - acy) * segP
-        local sdx, sdy = app.animPlayer:objectOffset(sx + 8, sy + 16)
+        local cX = pCartX + (tCartX - pCartX) * segP
+        local cY = pCartY + (tCartY - pCartY) * segP
+        local dx, dy = app.animPlayer:objectOffset(cX, cY)
         g.setColor(1.0, 0.8, 0.2, 0.8 - i * 0.15)
-        g.circle("fill", ox + (sx + sdx) * s, oy + (sy + sdy) * s, (7 - i) * s * 0.8)
+        g.circle("fill", ox + (cX + dx) * s, oy + (cY + dy) * s, (7 - i) * s * 0.8)
+        g.setColor(1, 1, 1, 0.9)
+        g.circle("fill", ox + (cX + dx) * s, oy + (cY + dy) * s, (3 - i * 0.4) * s)
       end
     end
   else
+    local cX = pCartX + (tCartX - pCartX) * progress
+    local cY = pCartY + (tCartY - pCartY) * progress
+    local dx, dy = app.animPlayer:objectOffset(cX, cY)
     g.setColor(0.2, 0.9, 0.4)
-    g.circle("fill", finalX, finalY, 5 * s)
+    g.circle("fill", ox + (cX + dx) * s, oy + (cY + dy) * s, 5 * s)
   end
 
   -- Sidebar Controls UI

@@ -330,6 +330,16 @@ local function mapsMatch(m1, m2)
 end
 CoopManager.mapsMatch = mapsMatch
 
+function CoopManager.isLeagueMap(mapId)
+  local m = normMap(mapId)
+  return m ~= nil and LEAGUE_MAPS[m] == true
+end
+
+function CoopManager.leagueTogether(m1, m2)
+  local n1, n2 = normMap(m1), normMap(m2)
+  return n1 ~= nil and n2 ~= nil and LEAGUE_MAPS[n1] == true and LEAGUE_MAPS[n2] == true
+end
+
 -- "NEW_BARK_TOWN" -> "NEW BARK TOWN"
 function CoopManager.mapLabel(mapId)
   if not mapId then return "???" end
@@ -1213,7 +1223,7 @@ local function partnerReachable(ow, anywhere, forBattleInvite)
   local partner = CoopManager.partner
   if not CoopManager.isConnected() then return false, "Partner not linked" end
   if CoopManager.net.stalled then return false, "Partner link is weak" end
-  if not anywhere and not (ow and ow.map and mapsMatch(partner.map, ow.map.id)) then
+  if not anywhere and not (ow and ow.map and (mapsMatch(partner.map, ow.map.id) or CoopManager.leagueTogether(partner.map, ow.map.id))) then
     return false, "Partner is far away"
   end
   if (now() - (partner.lastSeen or 0)) > PARTNER_FRESH then return false, "Partner not responding" end
@@ -1944,7 +1954,7 @@ function CoopManager.onBattleInviteReceived(ow, msg)
 
   if CoopManager.isLocalInBattle(ow2) then decline("in_battle") return end
   local towerCap = type(msg.tower) == "table" and tonumber(msg.tower.cap) or nil
-  if not towerCap and not (ow2 and ow2.map and mapsMatch(ow2.map.id, msg.mapId or CoopManager.partner.map)) then
+  if not towerCap and not (ow2 and ow2.map and (mapsMatch(ow2.map.id, msg.mapId or CoopManager.partner.map) or CoopManager.leagueTogether(ow2.map.id, msg.mapId or (CoopManager.partner and CoopManager.partner.map)))) then
     decline("far") return
   end
   if healthyCount(game.save) <= 0 then decline("no_mons") return end
@@ -2131,9 +2141,10 @@ end
 
 -- Red / Blue / Yellow name their Elite Four by name (OPP_LORELEI); Gold
 -- and Crystal file them under OPP_ELITE_FOUR_*.
-local BIG_PATTERNS = { "^OPP_LEADER", "ELITE_FOUR", "^OPP_CHAMPION$", "RIVAL",
-                       "PKMN_TRAINER_RED", "ROCKET_EXECUTIVE", "GIOVANNI",
-                       "^OPP_LORELEI$", "^OPP_BRUNO$", "^OPP_AGATHA$", "^OPP_LANCE$" }
+local BIG_PATTERNS = { "^OPP_LEADER", "ELITE_FOUR", "^OPP_CHAMPION$", "^CHAMPION$", "RIVAL",
+                       "PKMN_TRAINER_RED", "^RED$", "ROCKET_EXECUTIVE", "GIOVANNI",
+                       "^OPP_LORELEI$", "^LORELEI$", "^OPP_BRUNO$", "^BRUNO$", "^OPP_AGATHA$", "^AGATHA$",
+                       "^OPP_LANCE$", "^LANCE$" }
 
 function CoopManager.isBigBattleClass(oppClass, save, partyIndex)
   if type(oppClass) ~= "string" then return false end
@@ -2186,6 +2197,7 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
     local inviteId = newInviteId()
     CoopManager.bigBattle = { inviteId = inviteId, oppClass = oppClass, partyIndex = partyIndex,
                               name = name, at = now() }
+    CoopManager.net:send({ type = "coop_story_hold", map = ow.map.id, class = oppClass })
     CoopManager.net:send({ type = "coop_bigbattle_invite", inviteId = inviteId, oppClass = oppClass,
                            partyIndex = partyIndex, trainerName = name, mapId = ow.map.id })
     CoopManager.showStatus("Asked " .. (CoopManager.partner.name or "partner") .. " to join!", 2.5)
@@ -2254,7 +2266,7 @@ function CoopManager.askBigBattle(ow, npc, onDone)
   end
   if not CoopManager.isBigBattleClass(class, game.save, party) then return false end
   if not CoopManager.partnerAvailable(ow, false, true) then return false end
-  if not mapsMatch(CoopManager.partner.map, ow.map.id) then return false end
+  if not (mapsMatch(CoopManager.partner.map, ow.map.id) or CoopManager.leagueTogether(CoopManager.partner.map, ow.map.id)) then return false end
   CoopManager.warnNotReady()
   local name = CoopManager.trainerDisplayName(game, class, party)
   local function answer(choice)
@@ -2371,7 +2383,7 @@ function CoopManager.onBigBattleInvite(ow, msg)
   end
 
   if CoopManager.isLocalInBattle(ow2) then decline("in_battle") return end
-  if not (ow2 and ow2.map and mapsMatch(ow2.map.id, msg.mapId)) then decline("far") return end
+  if not (ow2 and ow2.map and (mapsMatch(ow2.map.id, msg.mapId) or CoopManager.leagueTogether(ow2.map.id, msg.mapId))) then decline("far") return end
   if healthyCount(game.save) <= 0 then decline("no_mons") return end
 
   local function inDialogueOrScript(g, o)
@@ -2448,7 +2460,13 @@ function CoopManager.onBigBattleGo(ow, msg)
   CoopManager.guestBig = nil
   gb.modal.done = true
   removeState(game, gb.modal)
-  CoopManager.startGuestBattle(game, game.overworld or ow, msg, gb.chosen)
+  local cOw = game.overworld or ow
+  if cOw and msg.mapId and cOw.map and not mapsMatch(cOw.map.id, msg.mapId) then
+    if cOw.startWarpTo then
+      cOw:startWarpTo(msg.mapId, (CoopManager.partner and CoopManager.partner.cx) or 5, (CoopManager.partner and CoopManager.partner.cy) or 11, (CoopManager.partner and CoopManager.partner.facing) or "up")
+    end
+  end
+  CoopManager.startGuestBattle(game, cOw, msg, gb.chosen)
   CoopManager.showStatus("Together! Battle start!", 2.5)
 end
 

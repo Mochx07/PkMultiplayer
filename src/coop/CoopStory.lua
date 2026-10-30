@@ -73,7 +73,10 @@ local function partnerHere(ow)
   if not (CM and CM.isConnected and CM.isConnected() and CM.storySync) then return false end
   if CM.storyCompatible and not CM.storyCompatible() then return false end
   local map = ow and ow.map and ow.map.id
-  return map ~= nil and CM.mapsMatch(CM.partner.map, map)
+  if not map then return false end
+  if CM.mapsMatch(CM.partner.map, map) then return true end
+  if CM.leagueTogether and CM.leagueTogether(CM.partner.map, map) then return true end
+  return false
 end
 
 -- the outbox holds at most this many events; the oldest go first
@@ -585,6 +588,12 @@ end
 function CoopStory.onPartnerHold(msg)
   if type(msg) ~= "table" or type(msg.map) ~= "string" or type(msg.class) ~= "string" then return end
   CoopStory.held = { map = msg.map, class = msg.class, at = clock() }
+  local CM = manager()
+  if CM and CM.showStatus then
+    local name = (CM.partner and CM.partner.name) or "Partner"
+    local fmt = require("src.coop.CoopI18n").t("%s is waiting for you!")
+    CM.showStatus(string.format(fmt, name), 3)
+  end
 end
 
 function CoopStory.onPartnerRelease(msg)
@@ -600,7 +609,9 @@ function CoopStory.heldHere(ow, class)
     return false
   end
   local map = ow and ow.map and ow.map.id
-  return map ~= nil and CM.mapsMatch(h.map, map) and h.class == class
+  if not map then return false end
+  local match = CM.mapsMatch(h.map, map) or (CM.leagueTogether and CM.leagueTogether(h.map, map))
+  return match and h.class == class
 end
 
 local Font
@@ -720,7 +731,10 @@ end
 local function sameMap(game, map)
   local CM = manager()
   local ow = game and game.overworld
-  return CM and ow and ow.map and CM.mapsMatch(ow.map.id, map)
+  if not (CM and ow and ow.map) then return false end
+  if CM.mapsMatch(ow.map.id, map) then return true end
+  if CM.leagueTogether and CM.leagueTogether(ow.map.id, map) then return true end
+  return false
 end
 
 function CoopStory.onPartnerText(game, msg)

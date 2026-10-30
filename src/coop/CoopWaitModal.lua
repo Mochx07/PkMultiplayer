@@ -55,9 +55,18 @@ function CoopWaitModal:update(dt)
     return
   end
   local input = self.game and self.game.input
-  if input and input:wasPressed("b") and self.timer >= 0.5 then
-    pcall(Sound.play, self.game and self.game.data, "Menu")
-    self:finish("user")
+  if input then
+    if input:wasPressed("b") and self.timer >= 0.5 then
+      pcall(Sound.play, self.game and self.game.data, "Menu")
+      self:finish("user")
+      return
+    end
+    -- Consume action / menu button presses so they don't leak into overworld
+    if input.wasPressed then
+      input:wasPressed("start")
+      input:wasPressed("a")
+      input:wasPressed("select")
+    end
   end
 end
 

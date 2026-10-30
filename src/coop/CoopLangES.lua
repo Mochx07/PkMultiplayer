@@ -348,6 +348,7 @@ return {
   ["Asked %s to join!"] = "¡Le pediste a %s que se una!",
   ["%s is ready!"] = "¡%s está listo!",
   ["Wait for %s! (%s)"] = "¡Espera a %s! (%s)",
+  ["%s is waiting for you!"] = "¡%s te espera!",
   ["Earned the %s!"] = "¡Obtuviste la %s!",
   ["High five with %s!"] = "¡Chocas los cinco con %s!",
   ["%s ran. Got away!"] = "%s huyó. ¡Escapasteis!",

@@ -194,5 +194,28 @@ do
   CoopManager.isConnected = function() return true end
 end
 
+-- ---------------------------------------------------------------------
+-- Pokemon League: partners in different chambers count as together
+-- ---------------------------------------------------------------------
+do
+  CoopManager.partner.map = "KARENS_ROOM"
+  menus = {}
+  offered = {}
+  local gameL = newGame("MOCHI")
+  local owL = { game = gameL, map = { id = "LANCES_ROOM" } }
+  local runnerL = newRunner()
+  local ctxL = { game = gameL, save = gameL.save, overworld = owL, runner = runnerL }
+  local scriptLance = { { "g2_load_trainer", "CHAMPION", 1 }, { "start_battle" } }
+  local doneL = false
+  runnerL.co = coroutine.create(function() CoopStory.begin(ctxL, scriptLance) doneL = true end)
+  runnerL:resume()
+  T.check(#menus == 0, "League: no WAIT menu when partner is in the League corridor")
+  T.check(offered[1] == "CHAMPION", "League: asks CO-OP directly for Lance")
+  T.check(doneL and ctxL.coopStory and ctxL.coopStory.here == true, "League: partner in Karen's room counts as here")
+  T.check(CoopManager.leagueTogether("LANCES_ROOM", "KARENS_ROOM") == true, "leagueTogether recognises Lance and Karen")
+  T.check(CoopManager.leagueTogether("LANCES_ROOM", "INDIGO_PLATEAU_POKECENTER_1F") == true, "leagueTogether recognises Indigo Pokecenter")
+  T.check(CoopManager.leagueTogether("LANCES_ROOM", "NEW_BARK_TOWN") == false, "leagueTogether rejects non-league map")
+end
+
 CoopManager.offerBigBattle = realOffer
 T.finish("co-op big battle waits for the partner")
