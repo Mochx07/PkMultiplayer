@@ -1232,6 +1232,21 @@ do
   CoopManager.partner.name = "TOBY"
   local gow, ggame = fakeOw("VIOLET_GYM")
   package.loaded["src.core.Game"] = ggame
+
+  -- big battle invite while reading dialogue: buffered until dialogue closes
+  local textBox = { isTextBox = true, lines = { "LANCE" }, page = 1 }
+  ggame.stack:push(textBox)
+  CoopManager.dispatch(gow, { type = "coop_bigbattle_invite", inviteId = "Q_BUF", oppClass = "OPP_CHAMPION",
+                              trainerName = "LANCE", mapId = "VIOLET_GYM" })
+  check(CoopManager.incomingInviteBuffer ~= nil and CoopManager.incomingInviteBuffer.isBigBattle == true,
+        "big battle invite while in dialogue is buffered")
+  ggame.stack:pop()
+  CoopManager.update(gow, 0.016)
+  check(CoopManager.incomingInviteBuffer == nil, "buffered big battle invite consumed once idle")
+  check(ggame.stack:top() and ggame.stack:top().isCoopInvite and ggame.stack:top().inviteId == "Q_BUF",
+        "buffered big battle invite opened invite modal")
+  ggame.stack:pop()
+
   CoopManager.dispatch(gow, { type = "coop_bigbattle_invite", inviteId = "Q", oppClass = "OPP_LEADER",
                               trainerName = "FALKNER", mapId = "VIOLET_GYM" })
   local modal = ggame.stack:top()

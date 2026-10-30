@@ -2169,7 +2169,7 @@ end
 function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
   local game, runner, ow = ctx.game, ctx.runner, ctx.overworld
   if not (game and runner and ow) then return end
-  local ok = CoopManager.partnerAvailable(ow)
+  local ok = CoopManager.partnerAvailable(ow, false, true)
   if not ok then return end
   CoopManager.warnNotReady()
   local name = CoopManager.trainerDisplayName(game, oppClass, partyIndex)
@@ -2253,7 +2253,7 @@ function CoopManager.askBigBattle(ow, npc, onDone)
     return false
   end
   if not CoopManager.isBigBattleClass(class, game.save, party) then return false end
-  if not CoopManager.partnerAvailable(ow) then return false end
+  if not CoopManager.partnerAvailable(ow, false, true) then return false end
   if not mapsMatch(CoopManager.partner.map, ow.map.id) then return false end
   CoopManager.warnNotReady()
   local name = CoopManager.trainerDisplayName(game, class, party)
@@ -2364,10 +2364,38 @@ function CoopManager.onBigBattleInvite(ow, msg)
   local function decline(reason)
     CoopManager.net:send({ type = "coop_battle_decline", inviteId = msg.inviteId, reason = reason })
   end
+
+  if CoopManager.incomingInviteBuffer and CoopManager.incomingInviteBuffer.msg.inviteId ~= msg.inviteId then
+    CoopManager.net:send({ type = "coop_battle_decline", inviteId = CoopManager.incomingInviteBuffer.msg.inviteId, reason = "busy" })
+    CoopManager.incomingInviteBuffer = nil
+  end
+
   if CoopManager.isLocalInBattle(ow2) then decline("in_battle") return end
-  if not overworldIdle(game, ow2) then decline("busy") return end
   if not (ow2 and ow2.map and mapsMatch(ow2.map.id, msg.mapId)) then decline("far") return end
   if healthyCount(game.save) <= 0 then decline("no_mons") return end
+
+  local function inDialogueOrScript(g, o)
+    if CoopManager.isLocalInDialogue(o) then return true end
+    if o and (o.engaging or (o.runner and o.runner.isRunning and o.runner:isRunning())) then
+      return true
+    end
+    return false
+  end
+
+  if not overworldIdle(game, ow2) then
+    if inDialogueOrScript(game, ow2) then
+      CoopManager.incomingInviteBuffer = {
+        ow = ow2,
+        msg = msg,
+        deadline = now() + 4.0,
+        isBigBattle = true,
+      }
+      return
+    else
+      decline("busy")
+      return
+    end
+  end
 
   local pName = string.upper(CoopManager.partner.name or "PARTNER")
   local tName = string.upper(msg.trainerName or "TRAINER")
@@ -3261,8 +3289,13 @@ function CoopManager.update(ow, dt)
       CoopManager.incomingInviteBuffer = nil
     elseif overworldIdle(bGame, bOw) then
       local msg = buf.msg
+      local isBig = buf.isBigBattle
       CoopManager.incomingInviteBuffer = nil
-      CoopManager.onBattleInviteReceived(bOw, msg)
+      if isBig then
+        CoopManager.onBigBattleInvite(bOw, msg)
+      else
+        CoopManager.onBattleInviteReceived(bOw, msg)
+      end
     elseif now() >= buf.deadline then
       CoopManager.net:send({ type = "coop_battle_decline", inviteId = buf.msg.inviteId, reason = "busy" })
       CoopManager.incomingInviteBuffer = nil
