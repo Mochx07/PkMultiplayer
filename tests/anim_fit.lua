@@ -80,4 +80,70 @@ do
   T.check(near(x, 124) and near(y, 28), "without boxes the animation is left alone")
 end
 
+do
+  -- Double battle: beam trajectories (e.g. Hyper Beam) across all slots
+  local b = setmetatable({ data = Data, sides = { { battlers = {} }, { battlers = {} } } },
+                         { __index = BattleState })
+  b.coopDouble = true
+  b.isDouble = function() return true end
+  b.gen3Layout = function() return false end
+  b.picImage = function(_, img) return img end
+
+  b.sides[1].battlers[1] = { sprite = pic(48, 48), mon = {} } -- P1 (0)
+  b.sides[1].battlers[2] = { sprite = pic(48, 48), mon = {} } -- P2 (2)
+  b.sides[2].battlers[1] = { sprite = pic(56, 56), mon = {} } -- E1 (1)
+  b.sides[2].battlers[2] = { sprite = pic(56, 56), mon = {} } -- E2 (3)
+
+  -- Hyper Beam authored coordinates from player side:
+  local hbCoords = { {64, 92}, {80, 84}, {96, 76}, {112, 68}, {126, 62} }
+
+  -- 1) P1 -> E1, P2 -> E1, P1 -> E2, P2 -> E2 (all monotonic progression toward enemy)
+  for _, pair in ipairs({
+    { 0, 1, "P1 to E1" },
+    { 2, 1, "P2 to E1" },
+    { 0, 3, "P1 to E2" },
+    { 2, 3, "P2 to E2" },
+  }) do
+    local aSlot, tSlot, label = pair[1], pair[2], pair[3]
+    local so = {
+      player = b:animPicBox(aSlot, false),
+      enemy = b:animPicBox(tSlot, true),
+    }
+    local ap = player(so)
+    local prevY = 999
+    local monotonic = true
+    for _, pt in ipairs(hbCoords) do
+      local _, curY = oamAt(ap, pt[1] - 8, pt[2] - 16)
+      if curY >= prevY then monotonic = false end
+      prevY = curY
+    end
+    T.check(monotonic, label .. " hyper beam travels smoothly toward target without snapping")
+  end
+
+  -- 2) Ally targeting (side to side): P1 attacking P2, and P2 attacking P1
+  local p1ToP2 = player({
+    player = b:animPicBox(0, false),
+    enemy = b:animPicBox(2, true),
+  })
+  local xStart, yStart = oamAt(p1ToP2, hbCoords[1][1] - 8, hbCoords[1][2] - 16)
+  local xEnd, yEnd = oamAt(p1ToP2, hbCoords[5][1] - 8, hbCoords[5][2] - 16)
+  T.check(xEnd < xStart and math.abs(yEnd - yStart) < 10, "P1 targeting P2 travels leftward across player side")
+
+  local p2ToP1 = player({
+    player = b:animPicBox(2, false),
+    enemy = b:animPicBox(0, true),
+  })
+  xStart, yStart = oamAt(p2ToP1, hbCoords[1][1] - 8, hbCoords[1][2] - 16)
+  xEnd, yEnd = oamAt(p2ToP1, hbCoords[5][1] - 8, hbCoords[5][2] - 16)
+  T.check(math.abs(yEnd - yStart) < 30 and yEnd > 70, "P2 targeting P1 stays on player row and reaches partner")
+
+  -- 3) animFxBattler targets correct ally on friendly fire
+  b.animAttackerPos = 0
+  b.animTargetPos = 2
+  b.animAttackerIsPlayer = true
+  b.animFxSide = "target"
+  local targetBattler = b:animFxBattler(false)
+  T.check(targetBattler == b:battlerAt(2), "animFxBattler resolves partner P2 on friendly fire")
+end
+
 T.finish("move animations fit the Pokemon")
