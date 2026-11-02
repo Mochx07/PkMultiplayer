@@ -29,6 +29,8 @@ tests/drivers/net_reconnect_ow.lua
 tests/drivers/league_will.lua
 tests/drivers/league_door.lua
 tests/drivers/claudeui_review.lua
+tests/drivers/hyper_beam_double.lua
+tests/drivers/league_lance_both.lua
 tests/foreign_wrapper.lua
 tests/foreign_wrapper_pre.lua
 tests/patch_scope.lua
