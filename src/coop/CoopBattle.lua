@@ -1850,12 +1850,21 @@ function CoopBattle.tick(dt)
     end
   end
 
-  -- sync local inBag status during menu phase
-  if battle.coopDouble and battle.phase == "menu" and not c.partnerLost then
-    local stack = battle.game and battle.game.stack
-    local top = stack and (type(stack.top) == "function" and stack:top() or stack.top)
-    local inBag = (battle.waitingUI and top and top.kind == "bag") and true or false
-    if c.localInBag ~= inBag then
+  -- tell the partner's plan box when this player is in the PACK.  ITEM on
+  -- the action menu is openItems(), which sets the phase to "messages"
+  -- before the bag goes up, so the bag is looked for whatever the phase;
+  -- anywhere above the battle, as the bag's own party picker sits on it
+  if battle.coopDouble and not c.partnerLost then
+    local inBag = false
+    local states = battle.waitingUI and battle.game and battle.game.stack and battle.game.stack.states
+    if states then
+      local above = false
+      for _, st in ipairs(states) do
+        if st == battle then above = true
+        elseif above and type(st) == "table" and st.kind == "bag" then inBag = true break end
+      end
+    end
+    if c.localInBag ~= inBag and (inBag or c.localInBag or battle.phase == "menu") then
       c.localInBag = inBag
       send({ type = "coop_battle_bag", inviteId = c.inviteId, inBag = inBag })
     end

@@ -344,4 +344,54 @@ do
   end
 end
 
+-- ---------------------------------------------------------------------
+-- IN BAG... reaches the partner when the PACK is opened the real way.
+-- ITEM on the action menu is openItems(), which puts the battle in
+-- "messages" before it pushes the bag: a check made only in phase "menu"
+-- never saw a bag open, and the partner's box stayed on CHOOSING...
+-- ---------------------------------------------------------------------
+
+do
+  local bagMsgs = {}
+  local hb, gb = setup(77, 20, { "FIXMON_A", "FIXMON_B" }, { "FIXMON_B", "FIXMON_A" }, nil)
+  local realSend = CoopManager.net.send
+  CoopManager.net.send = function(net, m)
+    if m.type == "coop_battle_bag" then bagMsgs[#bagMsgs + 1] = Json.decode(Json.encode(m)) end
+    return realSend(net, m)
+  end
+  local function deliverBag()
+    CoopBattle.currentBattle = hb
+    for _, m in ipairs(bagMsgs) do CoopBattle.onPartnerBag(m) end
+    bagMsgs = {}
+  end
+  -- the harness drains to the intro's end; the player stands on the menu
+  gb.phase, hb.phase = "menu", "menu"
+  -- the guest picks ITEM: openItems, then the queue pushes the bag screen
+  local bag = { kind = "bag", update = function() end }
+  gb.buildScreen = function() return bag end
+  gb:openItems()
+  for _ = 1, 50 do
+    if gb.game.stack:top() == bag then break end
+    gb:updateQueue()
+  end
+  T.check(gb.game.stack:top() == bag and gb.waitingUI, "bag: the guest's PACK is open over the battle")
+  CoopBattle.currentBattle = gb
+  CoopBattle.tick(1 / 60)
+  deliverBag()
+  T.check(hb.coop.partnerInBag == true, "bag: the host hears the guest opened the PACK")
+  local lines = CoopBattle.partnerPlan(hb) or {}
+  T.check(lines[2] == "IN BAG...", "bag: the host's plan box says IN BAG... (" .. tostring(lines[2]) .. ")")
+  -- B: back to the action menu
+  gb.game.stack:pop()
+  for _ = 1, 50 do
+    if gb.phase == "menu" then break end
+    gb:updateQueue()
+  end
+  CoopBattle.currentBattle = gb
+  CoopBattle.tick(1 / 60)
+  deliverBag()
+  T.check(hb.coop.partnerInBag == false, "bag: closing the PACK clears it on the host")
+  CoopManager.net.send = realSend
+end
+
 T.finish("co-op doubles turn rules")
