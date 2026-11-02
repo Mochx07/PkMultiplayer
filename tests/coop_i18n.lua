@@ -31,6 +31,10 @@ I18n.forced = "es"
 T.check(I18n.t("Partner is busy") == "Tu compañero está ocupado", "ESPAÑOL: a whole line")
 T.check(I18n.t("Linked with TOBY!") == "¡Enlazado con TOBY!", "a line built at run time, by its template")
 T.check(I18n.t("WARP (4:05)") == "IR (4:05)", "numbers keep their zeros")
+-- the guest's box while the host picks who goes in: what is happening, not
+-- an order to the one waiting (and never "usted")
+T.check(I18n.t("WAITING MOCHI") .. " / " .. I18n.t("TO SEND OUT ONE...") == "ESPERANDO A MOCHI / QUE SAQUE OTRO...",
+        "the replacement wait reads as the partner's doing (" .. I18n.t("TO SEND OUT ONE...") .. ")")
 T.check(I18n.t("MISTY's STARMIE joins your DAY-CARE") == "STARMIE de MISTY entra en tu GUARDERÍA",
         "pieces go in the Spanish order")
 T.check(I18n.t("STORY SYNC ON (partner)") == "HIST. COMÚN SÍ (compañero)", "the mod's own words inside a line too")

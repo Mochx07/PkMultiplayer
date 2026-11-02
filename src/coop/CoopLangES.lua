@@ -225,7 +225,7 @@ return {
   ["AI IN %ds"] = "IA EN %ds",
   ["RESUMING..."] = "REANUDANDO...",
   ["RECONNECTED!"] = "¡RECONECTADO!",
-  ["TO SEND OUT ONE%s"] = "ELIJA OTRO%s",
+  ["TO SEND OUT ONE%s"] = "QUE SAQUE OTRO%s",
   ["%s got back\nup with 1 HP!"] = "¡%s se levanta\ncon 1 PS!",
   ["%s healed\nyour POKéMON!"] = "¡%s curó a\ntus POKéMON!",
   ["%s can't take\nthat right now."] = "%s no puede\ntomar eso ahora.",
