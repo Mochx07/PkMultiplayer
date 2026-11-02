@@ -47,10 +47,10 @@ return function(game)
     return m
   end
   if role == "host" then
-    table.insert(save.party, mon("PIKACHU", 25, { "THUNDERSHOCK", "HYPER_BEAM" }))
+    table.insert(save.party, mon("PIKACHU", 40, { "THUNDERSHOCK", "HYPER_BEAM" }))
     table.insert(save.party, mon("CHARMANDER", 20, { "EMBER" }))
   else
-    table.insert(save.party, mon("SQUIRTLE", 25, { "WATER_GUN", "PSYBEAM" }))
+    table.insert(save.party, mon("SQUIRTLE", 40, { "WATER_GUN", "PSYBEAM" }))
     table.insert(save.party, mon("BULBASAUR", 20, { "VINE_WHIP" }))
   end
   U.teleport(game, MAP, role == "host" and 5 or 7, 8, "down")
@@ -105,7 +105,7 @@ return function(game)
     CoopManager.setRule("wildTogether", true)
     U.wait(30)
     local ow = game.overworld
-    local battle = BattleState.newWild(game, "SLOWPOKE", 30)
+    local battle = BattleState.newWild(game, "SLOWPOKE", 22)
     battle.onFinish = function(r) ow:afterBattle(r, battle) end
     ow.pkmRandomEncounter = true
     ow:pushBattle(battle)
