@@ -7,8 +7,11 @@
 --
 -- Counted from the engine's own battle events (main.lua subscribes):
 --   battle.fainted     -- a foe down; BattleState:killerOf says who did it
---   battle.exp_gained  -- a Pokemon paid; each copy pays both teams the same
---                         split, so both screens add up to the same numbers
+--   battle.exp_gained  -- one of OUR Pokemon paid (each copy pays its own team)
+--   BattleState:awardExp -- the partner's share, on their copies: the same
+--                         split and the same number their owner's copy pays
+--                         (lib/patches/BattleState.lua), so both screens add up
+--                         to the same numbers
 -- A Pokemon is the partner's when it is one of the battle's ally party (the
 -- copies of their team); every other one on our side is ours.
 

@@ -84,6 +84,22 @@ local function pickMove(b, slot)
   return mv
 end
 
+-- battles whose result screens both credited the partner with experience
+local summaryBoth = 0
+-- the engine's battle events reach the co-op result the way main.lua relays
+-- them in the game
+do
+  local CoopSummary = require("src.coop.CoopSummary")
+  local relay = { ["battle.fainted"] = "onFainted", ["battle.exp_gained"] = "onExpGained" }
+  require("src.mods.Runtime").events = {
+    listeners = { ["battle.fainted"] = true, ["battle.exp_gained"] = true },
+    emit = function(_, name, payload)
+      if relay[name] then CoopSummary[relay[name]](payload) end
+    end,
+    removeOwner = function() end,
+  }
+end
+
 -- one full battle; returns turns played and the first turn that disagreed
 local function play(seed, level)
   local hostGame = newGame("HOST", { "FIXMON_A", "FIXMON_B" }, level)
@@ -158,6 +174,16 @@ local function play(seed, level)
       T.eq(m.stats.hp, maxBefore[i], "seed " .. seed .. " lv " .. level .. ": max HP of party mon " .. i .. " untouched")
     end
   end
+  -- THE CO-OP RESULT AGREES ON BOTH SCREENS (src/coop/CoopSummary.lua): the
+  -- partner's experience was always 0, since each copy pays its own team only
+  local ht, gt = hb.coopTally, gb.coopTally
+  if ht and gt then
+    T.check(ht.exp.you == gt.exp.partner and ht.exp.partner == gt.exp.you
+            and ht.ko.you == gt.ko.partner and ht.ko.partner == gt.ko.you,
+            ("seed %d lv %d: both result screens agree (host %d/%d XP, guest %d/%d XP)"):format(
+              seed, level, ht.exp.you, ht.exp.partner, gt.exp.you, gt.exp.partner))
+    if ht.exp.partner > 0 and gt.exp.partner > 0 then summaryBoth = summaryBoth + 1 end
+  end
   return turns, nil
 end
 
@@ -174,6 +200,7 @@ for _, level in ipairs({ 3, 4, 5, 8, 12 }) do
   end
 end
 T.check(played > battles * 2, "the battles actually ran (" .. played .. " turns over " .. battles .. " battles)")
+T.check(summaryBoth > 0, "the partner's experience shows on both result screens (" .. summaryBoth .. " battles)")
 
 -- ---------------------------------------------------------------------
 -- INTERACTIVE REPLACEMENTS: each player picks their own fallen slot (the
