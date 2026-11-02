@@ -266,7 +266,9 @@ function CoopChatBox:draw()
         Font.draw(cursor, 8, y + i * 8)
       end
     end
-    Font.draw(part, x, y + (i - 1) * 8)
+    -- an accented letter the font has no glyph for is drawn without its
+    -- accent (what is sent is what was typed)
+    Font.draw(require("src.coop.CoopI18n").fitGlyphs(part), x, y + (i - 1) * 8)
   end
 
   love.graphics.setColor(1, 1, 1, 1)

@@ -3791,6 +3791,13 @@ function CoopManager.chatBubble()
   return nil
 end
 
+-- a chat line as it is drawn: an accented letter the font has no glyph for
+-- loses its accent (CoopI18n.fitGlyphs), the way the mod's own Spanish does
+local function chatGlyphs(text)
+  return require("src.coop.CoopI18n").fitGlyphs(tostring(text or ""))
+end
+CoopManager.chatGlyphs = chatGlyphs
+
 -- ty = nil: the classic box along the bottom; a number: a compact box at
 -- that row (over dialogue, or over a battle)
 function CoopManager.drawChatBubble(ty)
@@ -3804,14 +3811,15 @@ function CoopManager.drawChatBubble(ty)
     local top = 17 - (#lines + 2)
     Font.drawBox(0, top, 20, #lines + 3)
     love.graphics.setColor(0, 0, 0, 1)
-    -- chat is what the players typed: never translated
-    Font.raw.draw(sender .. ":", 8, (top + 1) * 8)
-    for i, l in ipairs(lines) do Font.raw.draw(l, 8, (top + 1 + i) * 8) end
+    -- chat is what the players typed: never translated, only written in
+    -- letters this font has ("QUÉ" as "QUE", not "QU ")
+    Font.raw.draw(chatGlyphs(sender .. ":"), 8, (top + 1) * 8)
+    for i, l in ipairs(lines) do Font.raw.draw(chatGlyphs(l), 8, (top + 1 + i) * 8) end
   else
     local lines = wrap(sender .. ": " .. text, 18, 6)
     Font.drawBox(0, ty, 20, #lines + 2)
     love.graphics.setColor(0, 0, 0, 1)
-    for i, l in ipairs(lines) do Font.raw.draw(l, 8, (ty + i) * 8) end
+    for i, l in ipairs(lines) do Font.raw.draw(chatGlyphs(l), 8, (ty + i) * 8) end
   end
   love.graphics.setColor(1, 1, 1, 1)
   return true
@@ -3836,7 +3844,7 @@ end
 function CoopManager.chatLines(width, count)
   local out = {}
   local function add(s)
-    for _, l in ipairs(wrap(s, width, 6)) do out[#out + 1] = l end
+    for _, l in ipairs(wrap(s, width, 6)) do out[#out + 1] = chatGlyphs(l) end
   end
   for _, m in ipairs(CoopManager.chatLog) do add(m.sender .. ": " .. m.text) end
   local typing = CoopManager.partnerTyping

@@ -421,10 +421,52 @@ Hooks.modules["src.render.Font"] = function(Font)
       return origDraw(text, x, y, ...)
     end
   end)
+  -- ¿ AND ¡ ARE ? AND ! TURNED OVER.  The Game Boy fonts have neither, so
+  -- "¿QUÉ TAL?" lost its first mark and every Spanish line of the mod that
+  -- opens with one ("¡%s te espera!") lost it too.  Where the charmap has no
+  -- glyph for them they take a code of their own, drawn as the font's own ?
+  -- or ! rotated half a turn in the same cell, and measured as that glyph.
+  local INVERTED = { ["\194\161"] = { code = -0x7FA1, mark = "!" },   -- ¡
+                     ["\194\191"] = { code = -0x7FBF, mark = "?" } }  -- ¿
+  local INVERTED_CODE = {}
+  for _, v in pairs(INVERTED) do INVERTED_CODE[v.code] = v.mark end
+  local plainSplit
+  local function markCode(code)
+    local mark = INVERTED_CODE[code]
+    local spans = mark and plainSplit and plainSplit(mark)
+    return spans and spans[1] and spans[1].code or nil
+  end
   wrap(Font, "Font", "split", function(origSplit)
+    plainSplit = origSplit
     return function(text, ...)
       if type(text) == "string" then text = cleanUTF8(text) end
-      return origSplit(text, ...)
+      local spans = origSplit(text, ...)
+      if type(text) == "string" and type(spans) == "table" and text:find("\194[\161\191]") then
+        for _, span in ipairs(spans) do
+          local inv = span.code == nil and INVERTED[text:sub(span.from, span.to)]
+          if inv and markCode(inv.code) then span.code = inv.code end
+        end
+      end
+      return spans
+    end
+  end)
+  wrap(Font, "Font", "drawCode", function(origDrawCode)
+    return function(code, x, y, ...)
+      local plain = INVERTED_CODE[code] and markCode(code)
+      if not plain then return origDrawCode(code, x, y, ...) end
+      local w = Font.advanceOf(plain)
+      local h = (Font.glyphHeight and Font.glyphHeight()) or 8
+      love.graphics.push()
+      love.graphics.translate(x + w, y + h)
+      love.graphics.scale(-1, -1)
+      origDrawCode(plain, 0, 0, ...)
+      love.graphics.pop()
+    end
+  end)
+  wrap(Font, "Font", "advanceOf", function(origAdvanceOf)
+    return function(code, ...)
+      local plain = INVERTED_CODE[code] and markCode(code)
+      return origAdvanceOf(plain or code, ...)
     end
   end)
   wrap(Font, "Font", "encode", function(origEncode)

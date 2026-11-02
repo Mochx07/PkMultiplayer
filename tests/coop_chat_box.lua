@@ -75,4 +75,59 @@ T.check(CoopEmotes.quickKey("kp8") == "highfive", "number pad 8: the high five")
 T.check(CoopEmotes.quickKey("kp9") == nil and CoopEmotes.quickKey("1") == nil, "other keys send nothing")
 for _, id in ipairs(CoopEmotes.QUICK) do T.check(CoopEmotes.valid(id), "quick emote " .. id .. " exists") end
 
+-- SPANISH IN THE CHAT.  Reported: "HOLA, ¿QUÉ TAL?" was drawn "HOLA,  QU  TAL?"
+-- and "AQUÍ" as "AQU ": the font has no É, Í or ¿.  An accented letter it
+-- cannot draw loses its accent, and ¿ / ¡ are its own ? / ! turned over.
+do
+  love = love or require("tests.love_stub")
+  local Font = require("src.render.Font")
+  local I18n = require("src.coop.CoopI18n")
+  local data = T.fixtures.fresh()
+  -- the fixture page plus the cartridge's ? and ! (and no É, Í, ¿ or ¡)
+  data.font.charmap[#data.font.charmap + 1] = { code = 0xE6, seq = "?" }
+  data.font.charmap[#data.font.charmap + 1] = { code = 0xE7, seq = "!" }
+  data.font.charmap[#data.font.charmap + 1] = { code = 0xF4, seq = "," }
+  Font.load(data)
+  I18n.resetGlyphs()
+
+  local spans = Font.split("¿¡")
+  T.check(#spans == 2 and spans[1].code ~= nil and spans[2].code ~= nil, "¿ and ¡ have a glyph")
+  T.check(Font.width("¿QUE TAL?") == Font.width("?QUE TAL?") and Font.width("¡YA!") == Font.width("!YA!"),
+          "...as wide as ? and !")
+  -- drawn: the ? glyph, turned half a turn in its own cell
+  local g, calls = love.graphics, {}
+  local saved = { g.push, g.pop, g.translate, g.scale, g.draw }
+  g.push = function() calls[#calls + 1] = "push" end
+  g.pop = function() calls[#calls + 1] = "pop" end
+  g.translate = function(x, y) calls[#calls + 1] = ("translate %d %d"):format(x, y) end
+  g.scale = function(x, y) calls[#calls + 1] = ("scale %d %d"):format(x, y) end
+  g.draw = function(_, _, x, y) calls[#calls + 1] = ("draw %d %d"):format(x or -1, y or -1) end
+  Font.draw("¿", 16, 40)
+  g.push, g.pop, g.translate, g.scale, g.draw = saved[1], saved[2], saved[3], saved[4], saved[5]
+  local seq = table.concat(calls, ", ")
+  T.check(seq:find("push, translate 24 48, scale %-1 %-1, draw 0 0, pop") ~= nil,
+          "¿ is the ? glyph turned over in its own cell (" .. seq .. ")")
+
+  -- the chat, as the box and the bubble draw it
+  CoopManager.chatLog = { { sender = "TOBYMON", text = "HOLA, ¿QUÉ TAL?" },
+                          { sender = "TOBYMON", text = "¡ESPÉRAME AQUÍ!" } }
+  CoopManager.partnerTyping = nil
+  local lines = table.concat(CoopManager.chatLines(18, 4), " / ")
+  T.check(lines == "TOBYMON: HOLA, / ¿QUE TAL? / TOBYMON: ¡ESPERAME / AQUI!",
+          "the chat log keeps every letter and mark (" .. lines .. ")")
+  local drawn, realRaw = {}, Font.draw
+  Font.draw = function(text, ...) drawn[#drawn + 1] = text return realRaw(text, ...) end
+  CoopManager.activeChatMessage = { sender = "TOBYMON", text = "HOLA, ¿QUÉ TAL?", timer = 5 }
+  CoopManager.drawChatBubble()
+  Font.draw = realRaw
+  CoopManager.activeChatMessage, CoopManager.chatLog = nil, {}
+  T.check(table.concat(drawn, " / ") == "TOBYMON: / HOLA, ¿QUE TAL?",
+          "the bubble too (" .. table.concat(drawn, " / ") .. ")")
+  -- and the mod's own Spanish keeps its opening marks (UI-7)
+  I18n.forced = "es"
+  T.check(I18n.t("TOBY is waiting for you!") == "¡TOBY te espera!", "¡%s te espera! keeps its ¡ (" .. I18n.t("TOBY is waiting for you!") .. ")")
+  T.check(I18n.t("WANT TO JOIN?") == "¿TE UNES?", "¿TE UNES? keeps its ¿")
+  I18n.forced = nil
+end
+
 T.finish("co-op chat box and high five")
