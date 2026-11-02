@@ -281,6 +281,39 @@ do
   T.check(lines[3] == "> SELF", "self-boost item shows '> SELF'")
 end
 
+-- THE PLAN BOX'S OWN WORDS ARE DRAWN WHOLE, in English and in Spanish.  The
+-- box is 56 px of the small font; "MISMO ATAQUE" was drawn "MISMO ATAQU".
+do
+  local I18n = require("src.coop.CoopI18n")
+  local MicroFont = require("src.render.MicroFont")
+  local realPlan, realDraw = CoopBattle.partnerPlan, MicroFont.draw
+  local realLove = love
+  local noop = function() end
+  love = { graphics = setmetatable({}, { __index = function() return noop end }) }
+  local drawn
+  MicroFont.draw = function(text) drawn[#drawn + 1] = text end
+  local b = { coopDouble = true, phase = "menu", coop = {} }
+  for _, lang in ipairs({ "en", "es" }) do
+    I18n.forced = lang
+    for _, label in ipairs({ "CHOOSING...", "IN BAG...", "SWITCH TO", "SAME MOVE" }) do
+      local shown = I18n.t(label)
+      CoopBattle.partnerPlan = function() return { "TOBY", shown } end
+      drawn = {}
+      CoopBattle.drawPartnerPlan(b)
+      T.check(drawn[1] == shown:upper(), ("%s: %q is drawn whole (%s)"):format(lang, shown, tostring(drawn[1])))
+    end
+    for _, label in ipairs({ "SELF", "ALL FOES", "EVERYONE" }) do
+      local shown = "> " .. I18n.t(label)
+      CoopBattle.partnerPlan = function() return { "TOBY", "TACKLE", shown } end
+      drawn = {}
+      CoopBattle.drawPartnerPlan(b)
+      T.check(drawn[2] == shown:upper(), ("%s: %q is drawn whole (%s)"):format(lang, shown, tostring(drawn[2])))
+    end
+  end
+  I18n.forced = nil
+  CoopBattle.partnerPlan, MicroFont.draw, love = realPlan, realDraw, realLove
+end
+
 -- ---------------------------------------------------------------------
 -- queued move anims and Fly charge picFx
 -- ---------------------------------------------------------------------

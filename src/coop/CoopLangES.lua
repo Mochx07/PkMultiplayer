@@ -213,7 +213,7 @@ return {
   ["CHOOSING..."] = "ELIGIENDO...",
   ["IN BAG..."] = "EN MOCHILA...",
   ["SWITCH TO"] = "CAMBIA A",
-  ["SAME MOVE"] = "MISMO ATAQUE",
+  ["SAME MOVE"] = "MISMO MOV.",
   ["SELF"] = "A SI MISMO",
   ["ALL FOES"] = "RIVALES",
   ["EVERYONE"] = "TODOS",
