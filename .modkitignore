@@ -14,6 +14,7 @@ tests/pokegear_clock.lua
 tests/coop_story_wait.lua
 tests/coop_switch_rules.lua
 tests/coop_turn_rules.lua
+tests/coop_hyper_beam.lua
 tests/drivers/coop_smoke.lua
 tests/drivers/follow_smoke.lua
 tests/drivers/wild_together.lua

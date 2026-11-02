@@ -861,6 +861,29 @@ Hooks.modules["src.battle.MoveEffects"] = function(MoveEffects)
   end)
 end
 
+-- HYPER BEAM RECHARGES AFTER A KNOCKOUT IN GEN 2.  The engine's
+-- HYPER_BEAM_EFFECT skips the recharge when the target fainted or its
+-- substitute broke -- Generation One's rule, on by the gen1_faithful ruleset
+-- that Gold, Silver and Crystal fight under too.  From Gen 2 on only a miss
+-- spares the turn.  Wrapped around the damaging pipeline rather than the
+-- record: the record the battle dispatches on is a copy made at load
+-- (MoveEffects.RECORDS).  ctx.hits is set only once the move has landed (a
+-- miss, an immunity or PROTECT return before it).  Decided by the cartridge
+-- both copies of a co-op double run, so the two agree.
+Hooks.modules["src.battle.EffectRegistry"] = function(EffectRegistry)
+  wrap(EffectRegistry, "EffectRegistry", "runDamaging", function(runDamaging)
+    return function(battle, ctx, record, ...)
+      local a, b, c = runDamaging(battle, ctx, record, ...)
+      if type(ctx) == "table" and ctx.hits ~= nil and ctx.user
+         and type(ctx.move) == "table" and ctx.move.effect == "HYPER_BEAM_EFFECT" then
+        local okV, V = pcall(require, "src.core.GameVersion")
+        if okV and V.isGen2 and V.isGen2() then ctx.user.mustRecharge = true end
+      end
+      return a, b, c
+    end
+  end)
+end
+
 -- WILD TOGETHER: four Pokemon out, no BALL can be aimed
 Hooks.modules["src.inventory.ItemEffects"] = function(ItemEffects)
   wrap(ItemEffects, "ItemEffects", "use", function(use)
