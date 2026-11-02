@@ -761,8 +761,14 @@ function CoopNet:onPeerConnected(peer, t)
   -- silent may be the partner coming back on a new connection: it waits as
   -- the candidate until its coop_resume says who it is, and the live
   -- connection is only given up for it then.
+  --
+  -- Once a session is up, even a live-looking partner does not shut the
+  -- door: the link can die one way only (the host still hears the guest,
+  -- the guest hears nothing, gives up on it and dials again), and turning
+  -- that call away with the busy code ended the guest's session for good.
+  -- The call waits as the candidate; its coop_resume decides (onResume).
   if self.isHost and self.peer and self.peer ~= peer then
-    if self.paired and (t - self.lastHeartbeat) < CoopNet.STALL_TIMEOUT then
+    if self.paired and not self.sessionActive and (t - self.lastHeartbeat) < CoopNet.STALL_TIMEOUT then
       CoopLog.warn("NET", "Rejected extra connection: a partner is already linked")
       pcall(peer.disconnect_now, peer, 3)
       return
@@ -788,11 +794,31 @@ function CoopNet:onPeerConnected(peer, t)
   self:sendResume(peer)
 end
 
+-- the partner's hello (or name update) says which save it plays: the place
+-- the host keeps while the link is down is for that save.  It resumed with
+-- the id it had when it dialed -- the title screen's boot save, when it
+-- linked from there -- and comes back with the loaded save's.
+function CoopNet:notePeerIdentity(id)
+  if type(id) == "string" and id ~= "" then self.peerId = id end
+end
+
 -- the coop_resume of `peer` (the live connection or the host's candidate)
 function CoopNet:onResume(peer, msg, t)
-  -- while waiting for its partner, the host keeps the place for that save
+  local continuation = self.peerSession ~= nil and msg.session == self.peerSession
+                       and msg.peer == self.localSession
+  -- while waiting for its partner, the host keeps the place for that save.
+  -- A connection that carries on THIS session is the partner whatever save
+  -- id it gives: a guest that linked from the title screen resumed first
+  -- with the boot save's id, and its next hello stamped the loaded save's,
+  -- so its second reconnect was turned away as a stranger (log 2026-10-28
+  -- 22:09:31 "Turned away a connection that is not the partner").
   local waiting = self.isHost and self.sessionActive and self.peerId ~= nil
-  if waiting and msg.id ~= self.peerId then
+  -- a call that came in while the partner's link still looked alive takes
+  -- its place only as the same session or the same save
+  local overLive = self.isHost and peer == self.candidate and self.paired and self.resumed
+                   and (t - self.lastHeartbeat) < CoopNet.STALL_TIMEOUT
+  if not continuation and ((waiting and msg.id ~= self.peerId)
+                           or (overLive and (self.peerId == nil or msg.id ~= self.peerId))) then
     CoopLog.warn("NET", "Turned away a connection that is not the partner (" .. tostring(msg.id) .. ")")
     sendControl(peer, { type = "coop_busy" })
     pcall(peer.disconnect_later, peer, 3)
@@ -814,8 +840,6 @@ function CoopNet:onResume(peer, msg, t)
     self.error = nil
   end
 
-  local continuation = self.peerSession ~= nil and msg.session == self.peerSession
-                       and msg.peer == self.localSession
   if continuation then
     self:acknowledged(msg.ack)
   else
@@ -1064,7 +1088,15 @@ function CoopNet:update(dt)
       end
     end
     self.reconnectTimer = self.reconnectTimer + dt
-    if self.reconnectTimer >= CoopNet.RECONNECT_MAX then
+    -- A CO-OP DOUBLE WAITING FOR THE PARTNER KEEPS THE SESSION.  The battle
+    -- gives a dropped partner LINK_GRACE (RECONNECTING... AI IN 180s on both
+    -- screens), but this window closed at a minute: the guest's transport
+    -- shut and never dialed again, the host took a new session, and the two
+    -- screens counted down two more minutes to a reconnect that could not
+    -- happen (log 2026-10-28 21:40:35 -> 21:41:35 expired -> 21:43:35 AI).
+    -- While the battle still waits, so does the session (and the guest
+    -- keeps dialing); when the battle gives up, the window closes.
+    if self.reconnectTimer >= CoopNet.RECONNECT_MAX and not (self.holdSession and self.holdSession()) then
       CoopLog.error("NET", "Reconnect window expired; dropping the session")
       self.sessionActive = false
       if self.isHost then

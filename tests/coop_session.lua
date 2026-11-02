@@ -277,14 +277,20 @@ check(host:isLinked() and lastEvent(host, "net_disconnect") == nil, "a packet na
 
 -- a partner from before the session layer: its hello reaches the game, so
 -- the player can be told which version it has
+-- a third machine while the partner is linked: it waits as a candidate
+-- (it could be the partner, calling again over a link that died one way)
+-- and is turned away once it says who it is -- or dropped if it never does
+local third = track(CoopNet.new(), "third")
+third.identity = "SAVE-THIRD"
+assert(third:join("127.0.0.1", 7777))
+run(1)
+check(third.closed and third.error == "HOST IS BUSY" and guest2:isLinked() and host:isLinked(),
+      "a third machine is told the host is busy, and the partner stays linked")
 local old = newHost(nil)
 local busy = old:connect("127.0.0.1:7777")
-run(0.1)
-local refused = false
-for _, e in ipairs(old.events) do if e.type == "disconnect" and e.data == 3 then refused = true end end
-check(refused and host.peer and guest2:isLinked(), "a third machine is told the host is busy")
+run(CoopNet.RESUME_TIMEOUT + 1)
+check(not busy.link.up and guest2:isLinked(), "a connection that never says who it is is dropped")
 old.events = {}
-local _ = busy
 guest2:shutdown()
 run(0.5)
 clear(host)
@@ -301,6 +307,125 @@ for _, e in ipairs(old.events) do
   if e.type == "receive" and e.data:find("coop_reject") then told = true end
 end
 check(told, "...and the refusal reaches it")
+
+-- ------------------------------------------- reconnects from real play
+-- Each pair below gets its own port.
+local function pair(port, hostId, guestId)
+  local h = track(CoopNet.new(), "host" .. port); h.identity = hostId
+  assert(h:host(port))
+  local g = track(CoopNet.new(), "guest" .. port); g.identity = guestId
+  assert(g:join("127.0.0.1", port))
+  run(0.5)
+  return h, g
+end
+local function dropBoth(net) local l = currentLink(net); if not l then return end goSilent(l); notice(l) end
+
+-- THE SECOND RECONNECT (log 2026-10-28 22:07 resumed, 22:09:31 "Turned
+-- away a connection that is not the partner"; same in a two-instance
+-- repro).  The guest linked from the title screen: it resumed with the boot
+-- save's id, CONTINUE loaded its own save, and the hello after the first
+-- reconnect stamped that save's id on the transport.
+do
+  local h, g = pair(7781, "SAVE-H", "BOOT-SAVE")
+  check(h:isLinked() and g:isLinked() and h.peerId == "BOOT-SAVE", "linked from the title screen (boot save id)")
+  dropBoth(g)
+  run(4)
+  check(h:isLinked() and g:isLinked(), "the first reconnect resumes")
+  g.identity = "REAL-SAVE"          -- what the reconnect's hello stamps (CoopManager.sendHello)
+  clear(h); clear(g)
+  chat(h, "turn-4")
+  dropBoth(g)
+  run(6)
+  check(g.error == nil and not g.closed, "the second reconnect is not turned away (" .. tostring(g.error) .. ")")
+  check(h:isLinked() and g:isLinked() and lastEvent(h, "net_connect")
+        and lastEvent(h, "net_connect").resumed == true, "...it resumes the same session")
+  check(bodies(g) == "turn-4", "...and what was sent meanwhile arrives")
+
+  -- the host learns the save the partner plays from its hello / name update:
+  -- a partner whose game restarted with that save takes its place back
+  -- while the host is still waiting (a new session)
+  ;(h.notePeerIdentity or function() end)(h, "REAL-SAVE")
+  dropBoth(g)
+  run(0.2)
+  g:close()
+  local g2 = track(CoopNet.new(), "guest7781b"); g2.identity = "REAL-SAVE"
+  assert(g2:join("127.0.0.1", 7781))
+  run(1)
+  check(h:isLinked() and g2:isLinked() and lastEvent(h, "net_connect").resumed == false,
+        "the partner's own save, restarted, is let back in while the host waits")
+  g2:close()
+  run(0.2)
+end
+
+-- A LINK THAT DIES ONE WAY.  The host still hears the guest (its pings get
+-- through) but the guest hears nothing: enet gives up on the guest's side
+-- only, the guest dials again at once, and the host -- whose partner looks
+-- alive -- used to turn the call away with the busy code, which ends the
+-- guest's session for good ("Rejected extra connection: a partner is
+-- already linked" -> "HOST IS BUSY").
+do
+  local h, g = pair(7782, "SAVE-H2", "SAVE-G2")
+  run(2)
+  clear(h); clear(g)
+  chat(h, "lost-one-way")
+  local l = currentLink(g)
+  local hostPeer = h.peer
+  -- the host's packets stop reaching the guest; the guest's still arrive
+  local realSend = Peer.send
+  Peer.send = function(self, text)
+    if self == hostPeer then return end
+    return realSend(self, text)
+  end
+  run(0.5)
+  table.insert(g.enetHost.events, { type = "disconnect", peer = g.peer, data = 0 })
+  l.silent = true                    -- and the old connection is dead from here
+  Peer.send = realSend
+  run(0.3)
+  check(h.peer == hostPeer or h:isLinked(), "(the host still had its partner when the call came)")
+  run(5)
+  check(g.error == nil and not g.closed, "the guest's new call is not refused as a stranger (" .. tostring(g.error) .. ")")
+  check(h:isLinked() and g:isLinked() and h.peer ~= hostPeer, "it takes the old link's place")
+  check(lastEvent(g, "net_connect") and lastEvent(g, "net_connect").resumed == true, "...as the same session")
+  check(bodies(g) == "lost-one-way", "...and what the host sent into the dead link arrives once")
+  -- and a stranger calling while the partner is alive is still turned away
+  local s3 = track(CoopNet.new(), "stranger7782"); s3.identity = "SAVE-OTHER"
+  assert(s3:join("127.0.0.1", 7782))
+  run(1)
+  check(s3.closed and s3.error == "HOST IS BUSY" and h:isLinked() and g:isLinked(),
+        "a stranger calling over a live partner is still turned away")
+  g:close(); h:close()
+  run(0.2)
+end
+
+-- A CO-OP DOUBLE WAITING FOR THE PARTNER (log 2026-10-28 21:40:35 link
+-- lost, 21:41:35 "Reconnect window expired", 21:43:35 the AI): the battle
+-- waits LINK_GRACE with RECONNECTING... on both screens, so the session
+-- must stay open (and the guest keep dialing) that long, not RECONNECT_MAX.
+do
+  local h, g = pair(7783, "SAVE-H3", "SAVE-G3")
+  local battleWaits = true
+  h.holdSession = function() return battleWaits end
+  g.holdSession = function() return battleWaits end
+  clear(h); clear(g)
+  chat(h, "after-a-long-drop")
+  local addr = g.address
+  g.address = "127.0.0.1:1"          -- the guest cannot get through for now
+  dropBoth(g)
+  run(CoopNet.RECONNECT_MAX + 15)
+  check(h.state == CoopNet.STATE.RECONNECTING and g.state == CoopNet.STATE.RECONNECTING and not g.closed,
+        "while the battle waits, both keep the session past RECONNECT_MAX (" .. h.state .. "/" .. g.state .. ")")
+  g.address = addr
+  run(10)
+  check(h:isLinked() and g:isLinked() and lastEvent(g, "net_connect").resumed == true,
+        "the partner comes back into the same session")
+  check(bodies(g) == "after-a-long-drop", "...with what was sent meanwhile")
+  -- the battle gave up (or ended): the usual window applies again
+  battleWaits = false
+  g.address = "127.0.0.1:1"
+  dropBoth(g)
+  run(CoopNet.RECONNECT_MAX + 1)
+  check(h.state == CoopNet.STATE.LISTENING and g.closed, "without a waiting battle the window closes at RECONNECT_MAX")
+end
 
 print(string.format("%d/%d checks passed%s  (co-op session layer)", total - fails, total,
                     fails > 0 and (", " .. fails .. " FAILURES") or ""))

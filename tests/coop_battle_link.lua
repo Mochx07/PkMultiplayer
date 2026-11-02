@@ -141,6 +141,24 @@ do
   T.check(battle.coop.partnerLost, "a goodbye hands their Pokemon to the AI")
 end
 
+-- THE SESSION WAITS AS LONG AS THE BATTLE (log 2026-10-28 21:40:35 link
+-- lost, 21:41:35 the transport's window expired, 21:43:35 the AI): while the
+-- RECONNECTING box counts down, the transport is told to keep the session
+do
+  local battle = newBattle()
+  T.check(CoopBattle.waitingOnLink and CoopBattle.waitingOnLink() == false, "a battle with its link up holds nothing")
+  CoopBattle.onLinkLost("lost")
+  CoopBattle.tick(0.5)
+  T.check(CoopBattle.waitingOnLink and CoopBattle.waitingOnLink() == true, "a battle waiting for a dropped partner holds the session")
+  CoopManager.net = nil
+  CoopManager.init()
+  local hold = CoopManager.net.holdSession
+  T.check(hold and hold() == true, "...and CoopManager hands that to the transport")
+  CoopManager.net = net
+  for _ = 1, math.ceil(CoopBattle.LINK_GRACE / 0.5) + 1 do CoopBattle.tick(0.5) end
+  T.check(CoopBattle.waitingOnLink and CoopBattle.waitingOnLink() == false, "once the AI took over, the session is let go")
+end
+
 -- early actions for battles not up yet are kept for a few battles only
 do
   CoopBattle.currentBattle = nil

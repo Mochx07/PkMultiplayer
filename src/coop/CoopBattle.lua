@@ -1178,6 +1178,15 @@ function CoopBattle.onNewSession()
   CoopLog.battle("RESUME", "the link came back as a new session; asking if the partner is still in the battle")
 end
 
+-- A co-op double is waiting for a partner whose link dropped (the
+-- RECONNECTING... box is up): the transport keeps the session open for it
+-- (CoopNet holdSession) until the battle itself gives up (LINK_GRACE).
+function CoopBattle.waitingOnLink()
+  local battle = CoopBattle.currentBattle
+  local c = battle and battle.coop
+  return c ~= nil and not c.finished and not c.partnerLost and c.linkLostAt ~= nil
+end
+
 function CoopBattle.onPartnerHere(msg)
   local battle = CoopBattle.currentBattle
   local c = battle and battle.coop

@@ -394,6 +394,12 @@ CoopManager.overworldIdle = overworldIdle
 function CoopManager.init()
   if not CoopManager.net then
     CoopManager.net = CoopNet.new()
+    -- a co-op double still waiting for a dropped partner keeps the session
+    -- open past the transport's own window (CoopNet:update)
+    CoopManager.net.holdSession = function()
+      local CB = package.loaded["src.coop.CoopBattle"]
+      return type(CB) == "table" and CB.waitingOnLink ~= nil and CB.waitingOnLink() == true
+    end
     CoopLog.info("MANAGER", "CoopManager initialized")
   end
 end
@@ -520,7 +526,9 @@ function CoopManager.syncTrainerName(game)
   game = game or getGame()
   local playerName = CoopManager.getLocalPlayerName(game)
   if playerName ~= "HOST" and playerName ~= "GUEST" and CoopManager.connected and CoopManager.net then
-    CoopManager.net:send({ type = "coop_name_update", name = playerName })
+    -- `id`: the save now played (a 1.6.0-1.6.16 copy ignores the field)
+    CoopManager.net:send({ type = "coop_name_update", name = playerName,
+                           id = CoopManager.coopId(game and game.save) })
   end
 end
 
@@ -634,6 +642,11 @@ local function applyPartnerInfo(msg)
   CoopManager.partnerTyping = nil
   partner.name = msg.name or partner.name or "PARTNER"
   partner.id = type(msg.id) == "string" and msg.id or nil
+  -- the place the host keeps for its partner while the link is down is for
+  -- the save the partner says it plays NOW, not the one it resumed with
+  if partner.id and CoopManager.net and CoopManager.net.notePeerIdentity then
+    CoopManager.net:notePeerIdentity(partner.id)
+  end
   partner.version = msg.ver or nil
   -- in the log too: two copies on different versions play different
   -- battles, and the on-screen notice is gone by the time a log is read
@@ -2890,6 +2903,11 @@ H.coop_name_update = function(ow, msg)
   if type(msg.name) == "string" and msg.name ~= "" then
     CoopManager.partner.name = msg.name
   end
+  -- a partner who linked from the title screen and then loaded its save
+  if type(msg.id) == "string" and msg.id ~= "" then
+    CoopManager.partner.id = msg.id
+    if CoopManager.net and CoopManager.net.notePeerIdentity then CoopManager.net:notePeerIdentity(msg.id) end
+  end
 end
 
 H.coop_time_sync = function(ow, msg)
@@ -3337,8 +3355,15 @@ function CoopManager.update(ow, dt)
     promptTimezoneChoice(game)
   end
 
+  -- THE SAVE PLAYED CHANGED UNDER THE LINK.  Linked from the title screen,
+  -- the hello (and the transport's identity) carried the boot save's id;
+  -- CONTINUE then loads the real save.  The partner is told the new id (it
+  -- is the one this copy comes back with after a drop) along with the name.
+  local myId = game and game.save and CoopManager.coopId(game.save)
+  local idChanged = myId ~= nil and CoopManager.net.identity ~= myId
+  if idChanged then stampIdentity() end
   local pName = CoopManager.getLocalPlayerName(game)
-  if pName ~= "HOST" and pName ~= "GUEST" and pName ~= CoopManager.lastSyncedName then
+  if pName ~= "HOST" and pName ~= "GUEST" and (pName ~= CoopManager.lastSyncedName or idChanged) then
     CoopManager.lastSyncedName = pName
     CoopManager.syncTrainerName(game)
   end
