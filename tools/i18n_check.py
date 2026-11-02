@@ -27,13 +27,17 @@ SINKS = re.compile(
 LIST_SINKS = re.compile(r'(?:info|lines)\s*=\s*\{([^}]*)\}')
 
 
+def unescape(s):
+    """The text a Lua literal stands for ("a\\nb" in the source -> a, newline, b),
+    so a source line and its catalog key compare the way they do at run time."""
+    return s.encode().decode("unicode_escape").encode("latin-1").decode("utf-8")
+
+
 def catalog():
     text = (MOD / "src" / "coop" / "CoopLangES.lua").read_text(encoding="utf-8")
     entries = {}
     for m in re.finditer(r'\[' + STRING + r'\]\s*=\s*\n?\s*' + STRING, text):
-        key = m.group(1).encode().decode("unicode_escape").encode("latin-1").decode("utf-8")
-        val = m.group(2).encode().decode("unicode_escape").encode("latin-1").decode("utf-8")
-        entries[key] = val
+        entries[unescape(m.group(1))] = unescape(m.group(2))
     return entries
 
 
@@ -44,7 +48,7 @@ def template(expr):
     for p in parts:
         m = re.fullmatch(STRING, p)
         if m:
-            out.append(m.group(1))
+            out.append(unescape(m.group(1)))
             literal = True
         else:
             out.append("%s")
@@ -98,7 +102,7 @@ def main():
                     found.append(t)
             for m in LIST_SINKS.finditer(src):
                 # a help box is translated as one block (CoopI18n.lines)
-                block = re.findall(STRING, m.group(1))
+                block = [unescape(b) for b in re.findall(STRING, m.group(1))]
                 if not translated("\n".join(block)):
                     found.extend(block)
             for line in found:
