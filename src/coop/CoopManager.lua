@@ -2027,7 +2027,10 @@ function CoopManager.onBattleInviteReceived(ow, msg)
   inviteModal.timeout = INVITE_TIMEOUT
   -- a wild Pokemon reads as one, not as "VS WILD PIDGEY"
   if msg.battleKind == "wild" then
-    inviteModal.lines = { pName, require("src.coop.CoopI18n").truncate("MET " .. tName, 16), "FIGHT TOGETHER?" }
+    -- the wire says "WILD <NAME>"; the box draws I18n.fit(line, 16), so cut
+    -- nothing here: a pre-cut English line no longer matched "MET %s" whole
+    -- and read "ENCONTRÓ WILD SL" in Spanish
+    inviteModal.lines = { pName, "MET " .. (tName:gsub("^WILD ", "")), "FIGHT TOGETHER?" }
   end
 
   CoopManager.activeInviteModal = inviteModal

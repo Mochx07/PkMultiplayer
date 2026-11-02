@@ -490,6 +490,24 @@ do
   CoopManager.onBattleCancelled(ow, { inviteId = "A2" })
   check(game.stack:top() == ow, "cancelled invite removes the modal")
 
+  -- a wild invite names the Pokemon whole, in either language (the wire
+  -- carries "WILD <NAME>"; the 16-letter box cut it to "ENCONTRÓ WILD SL")
+  CoopManager.onBattleInviteReceived(ow, { inviteId = "W1", mapId = "ROUTE_30",
+                                           trainerName = "WILD SLOWPOKE", battleKind = "wild" })
+  local wm = game.stack:top()
+  check(wm and wm.isCoopInvite and wm.lines, "wild invite modal is up")
+  local I18n = require("src.coop.CoopI18n")
+  local seen = {}
+  for _, lang in ipairs({ "en", "es" }) do
+    I18n.forced = lang
+    seen[lang] = I18n.fit(wm and wm.lines and wm.lines[2] or "", 16)
+  end
+  I18n.forced = nil
+  check(seen.en == "MET SLOWPOKE", "wild invite line (en): " .. tostring(seen.en))
+  check(seen.es:find("SLOWPOKE", 1, true) and not seen.es:find("WILD", 1, true),
+        "wild invite line (es) is Spanish and names the Pokemon: " .. tostring(seen.es))
+  CoopManager.onBattleCancelled(ow, { inviteId = "W1" })
+
   -- an accept that arrives after we already went solo is answered with abort
   CoopManager.pendingBattleInvite = nil
   CoopManager.onBattleAccepted(ow, { inviteId = "LATE" })

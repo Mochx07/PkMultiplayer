@@ -420,7 +420,7 @@ return {
   ["Partner has v%s, you v%s"] = "Tu compañero tiene v%s; tú, v%s",
   ["The invite ran out"] = "La invitación caducó",
   ["B: STOP WAITING"] = "B: NO ESPERAR",
-  ["MET %s"] = "ENCONTRÓ %s",
+  ["MET %s"] = "HALLÓ %s",
   ["FIGHT TOGETHER?"] = "¿LUCHAR JUNTOS?",
   ["OFF: GOLD/SILVER\nAND CRYSTAL KEEP\nTHEIR OWN STORY."] = "NO: ORO/PLATA Y\nCRISTAL LLEVAN\nSU PROPIA HISTORIA",
   ["PORT %s"] = "PUERTO %s",
