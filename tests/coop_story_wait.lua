@@ -217,5 +217,43 @@ do
   T.check(CoopManager.leagueTogether("LANCES_ROOM", "NEW_BARK_TOWN") == false, "leagueTogether rejects non-league map")
 end
 
+-- ---------------------------------------------------------------------
+-- CO-OP asked with the partner already here: the hold that goes out with
+-- the invite is lifted when the scene ends.  4763e13 sent it from
+-- offerBigBattle without marking the scene, so no release ever followed and
+-- the partner's game skipped that trainer's scene for HOLD_MAX (15 min):
+-- declined, the host lost solo, and the partner could not fight the leader.
+-- ---------------------------------------------------------------------
+do
+  CoopManager.partner.map = "VIOLET_GYM"
+  menus = {}
+  sent = {}
+  local realAvail = CoopManager.partnerAvailable
+  CoopManager.partnerAvailable = function() return true end
+  local game = newGame("MOCHI")
+  local ow = { game = game, map = { id = "VIOLET_GYM" } }
+  local runner = newRunner()
+  local ctx = { game = game, save = game.save, overworld = ow, runner = runner }
+  runner.co = coroutine.create(function() realOffer(ctx, "OPP_LEADER_FIX", 1) end)
+  runner:resume()
+  T.check(menus[1] ~= nil, "offer: CO-OP or SOLO is asked")
+  if menus[1] then menus[1].items[1].onSelect() end
+  local hold
+  for _, m in ipairs(sent) do if m.type == "coop_story_hold" then hold = m end end
+  T.check(hold ~= nil and hold.class == "OPP_LEADER_FIX", "offer: CO-OP tells the partner's game to hold the scene")
+  if hold then CoopStory.onPartnerHold(hold) end
+  local owP = { game = newGame("TOBY"), map = { id = "VIOLET_GYM" } }
+  sent = {}
+  CoopStory.finish(ctx)
+  local release
+  for _, m in ipairs(sent) do if m.type == "coop_story_release" then release = m end end
+  T.check(release ~= nil, "offer: the hold is lifted when the scene is over")
+  if release then CoopStory.onPartnerRelease(release) end
+  T.check(not CoopStory.heldHere(owP, "OPP_LEADER_FIX"), "offer: the partner can fight that trainer afterwards")
+  CoopStory.held = nil
+  CoopManager.partnerAvailable = realAvail
+  CoopManager.bigBattle = nil
+end
+
 CoopManager.offerBigBattle = realOffer
 T.finish("co-op big battle waits for the partner")

@@ -2198,6 +2198,8 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
     CoopManager.bigBattle = { inviteId = inviteId, oppClass = oppClass, partyIndex = partyIndex,
                               name = name, at = now() }
     CoopManager.net:send({ type = "coop_story_hold", map = ow.map.id, class = oppClass })
+    -- CoopStory.finish lifts it (coop_story_release) when the scene ends
+    ctx.coopHoldSent, ctx.coopHoldSent_map = true, ow.map.id
     CoopManager.net:send({ type = "coop_bigbattle_invite", inviteId = inviteId, oppClass = oppClass,
                            partyIndex = partyIndex, trainerName = name, mapId = ow.map.id })
     CoopManager.showStatus("Asked " .. (CoopManager.partner.name or "partner") .. " to join!", 2.5)
