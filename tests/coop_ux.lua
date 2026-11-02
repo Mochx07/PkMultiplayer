@@ -287,4 +287,29 @@ do
   CoopManager.net, CoopManager.connected, CoopManager.isHost = realNet, realConnected, realHost
 end
 
+-- THE WAIT BOX KEEPS START, A AND SELECT OFF THE MAP.  Nothing has to be
+-- "consumed" for that: the engine updates the top state only, so the map
+-- under the box never reads the press.  The box itself asks about B alone.
+do
+  local CoopWaitModal = require("src.coop.CoopWaitModal")
+  local StateStack = require("src.core.StateStack")
+  local asked = {}
+  local input = { wasPressed = function(_, k) asked[#asked + 1] = k return k ~= "b" end,
+                  isDown = function() return false end }
+  local game = { input = input }
+  local stack = setmetatable({}, { __index = StateStack })
+  stack:init()
+  game.stack = stack
+  local mapRead = 0
+  local map = { update = function() mapRead = mapRead + 1; input:wasPressed("start") end }
+  stack:push(map)
+  local wm = CoopWaitModal.new(game, "TOBY", function() end, 22)
+  stack:push(wm)
+  for _ = 1, 30 do stack:update(1 / 60) end
+  T.check(mapRead == 0 and stack:top() == wm, "START, A and SELECT over the wait box never reach the map under it")
+  local others = {}
+  for _, k in ipairs(asked) do if k ~= "b" then others[#others + 1] = k end end
+  T.check(#others == 0, "the wait box reads B and nothing else (" .. table.concat(others, ",") .. ")")
+end
+
 T.finish("co-op joining, menus and extras")
