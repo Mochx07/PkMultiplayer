@@ -195,26 +195,42 @@ do
 end
 
 -- ---------------------------------------------------------------------
--- Pokemon League: partners in different chambers count as together
+-- Pokemon League: each chamber is its own room, as in 1.6.15.  1.6.16
+-- counted the whole corridor (center included) as "here": WILL's CO-OP /
+-- SOLO went straight out with the partner still in the INDIGO PLATEAU
+-- center, the partner got the invite and READ ALONG there, and the GO
+-- warped them through the door that had shut behind you.  Reported from
+-- play; the partner walks in, the scene waits for them.
 -- ---------------------------------------------------------------------
-do
-  CoopManager.partner.map = "KARENS_ROOM"
+for _, case in ipairs({ { "WILLS_ROOM", "INDIGO_PLATEAU_POKECENTER1_F", "OPP_ELITE_FOUR_WILL" },
+                        { "LANCES_ROOM", "KARENS_ROOM", "CHAMPION" } }) do
+  local room, partnerAt, class = case[1], case[2], case[3]
+  CoopManager.partner.map = partnerAt
   menus = {}
   offered = {}
   local gameL = newGame("MOCHI")
-  local owL = { game = gameL, map = { id = "LANCES_ROOM" } }
+  local owL = { game = gameL, map = { id = room } }
   local runnerL = newRunner()
   local ctxL = { game = gameL, save = gameL.save, overworld = owL, runner = runnerL }
-  local scriptLance = { { "g2_load_trainer", "CHAMPION", 1 }, { "start_battle" } }
   local doneL = false
-  runnerL.co = coroutine.create(function() CoopStory.begin(ctxL, scriptLance) doneL = true end)
+  runnerL.co = coroutine.create(function()
+    CoopStory.begin(ctxL, { { "g2_load_trainer", class, 1 }, { "start_battle" } })
+    doneL = true
+  end)
   runnerL:resume()
-  T.check(#menus == 0, "League: no WAIT menu when partner is in the League corridor")
-  T.check(offered[1] == "CHAMPION", "League: asks CO-OP directly for Lance")
-  T.check(doneL and ctxL.coopStory and ctxL.coopStory.here == true, "League: partner in Karen's room counts as here")
-  T.check(CoopManager.leagueTogether("LANCES_ROOM", "KARENS_ROOM") == true, "leagueTogether recognises Lance and Karen")
-  T.check(CoopManager.leagueTogether("LANCES_ROOM", "INDIGO_PLATEAU_POKECENTER_1F") == true, "leagueTogether recognises Indigo Pokecenter")
-  T.check(CoopManager.leagueTogether("LANCES_ROOM", "NEW_BARK_TOWN") == false, "leagueTogether rejects non-league map")
+  T.check(menus[1] ~= nil and #offered == 0,
+          room .. ": partner in " .. partnerAt .. " -> WAIT / SOLO, no CO-OP invite yet")
+  if menus[1] then menus[1].items[2].onSelect() end
+  T.check(doneL and ctxL.coopStory and ctxL.coopStory.here == false,
+          room .. ": a partner in " .. partnerAt .. " is not reading along")
+  T.check(not CoopManager.partnerAvailable(owL, false, true), room .. ": no battle invite reaches " .. partnerAt)
+  -- the lines of the scene stay in its room
+  CoopStory.feed = {}
+  local gameP = newGame("TOBY")
+  gameP.overworld = { map = { id = partnerAt } }
+  CoopStory.onPartnerText(gameP, { map = room, text = "I have trained all\naround the world," })
+  T.check(#CoopStory.feed == 0, room .. ": its lines are not shown in " .. partnerAt)
+  CoopStory.feed = {}
 end
 
 -- ---------------------------------------------------------------------

@@ -73,10 +73,7 @@ local function partnerHere(ow)
   if not (CM and CM.isConnected and CM.isConnected() and CM.storySync) then return false end
   if CM.storyCompatible and not CM.storyCompatible() then return false end
   local map = ow and ow.map and ow.map.id
-  if not map then return false end
-  if CM.mapsMatch(CM.partner.map, map) then return true end
-  if CM.leagueTogether and CM.leagueTogether(CM.partner.map, map) then return true end
-  return false
+  return map ~= nil and CM.mapsMatch(CM.partner.map, map)
 end
 
 -- the outbox holds at most this many events; the oldest go first
@@ -609,9 +606,7 @@ function CoopStory.heldHere(ow, class)
     return false
   end
   local map = ow and ow.map and ow.map.id
-  if not map then return false end
-  local match = CM.mapsMatch(h.map, map) or (CM.leagueTogether and CM.leagueTogether(h.map, map))
-  return match and h.class == class
+  return map ~= nil and CM.mapsMatch(h.map, map) and h.class == class
 end
 
 local Font
@@ -731,10 +726,7 @@ end
 local function sameMap(game, map)
   local CM = manager()
   local ow = game and game.overworld
-  if not (CM and ow and ow.map) then return false end
-  if CM.mapsMatch(ow.map.id, map) then return true end
-  if CM.leagueTogether and CM.leagueTogether(ow.map.id, map) then return true end
-  return false
+  return CM and ow and ow.map and CM.mapsMatch(ow.map.id, map)
 end
 
 function CoopStory.onPartnerText(game, msg)
