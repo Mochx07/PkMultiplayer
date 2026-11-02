@@ -43,6 +43,8 @@ tools/run_tests.sh
 tests/coop_gen1_story.lua
 tools/i18n_check.py
 tests/coop_ux.lua
+tests/pack_contents.lua
+tools/anim_viewer_app/main.lua
 
 # imágenes del README (GitHub), no van en el mod
 docs/img/coop.gif
