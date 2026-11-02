@@ -76,6 +76,11 @@ local function partnerHere(ow)
   return map ~= nil and CM.mapsMatch(CM.partner.map, map)
 end
 
+-- Gold / Silver / Crystal's Elite Four chambers: entering one plays a scene
+-- (walk in, the door shuts) that belongs to whoever walked in
+local LEAGUE_ENTRANCES = { WILLS_ROOM = true, KOGAS_ROOM = true, BRUNOS_ROOM = true,
+                           KARENS_ROOM = true, LANCES_ROOM = true }
+
 -- the outbox holds at most this many events; the oldest go first
 CoopStory.OUTBOX_MAX = 300
 
@@ -223,6 +228,15 @@ function CoopStory.begin(ctx, script)
     before = snapshot(ctx.save),
   }
   CoopStory.current = ctx.coopStory
+  -- A LEAGUE CHAMBER'S DOOR IS EACH PLAYER'S OWN.  Its scene walks you in
+  -- and shuts the door behind you.  Sent across, it set the partner's scene
+  -- and door flag too: they walked in after you with no scene, onto the
+  -- door already shut (reported from play: "he walks through the door").
+  if not class and LEAGUE_ENTRANCES[ctx.coopStory.map or ""] then
+    ctx.coopStory.personal = true
+    ctx.coopStory.here = false
+    return
+  end
   -- A BIG BATTLE WITH THE PARTNER ELSEWHERE: wait for them, or go alone.
   -- Reported from play: the BURNED TOWER's rival walks up the moment you
   -- step in, so the one who got there first always fought him solo.

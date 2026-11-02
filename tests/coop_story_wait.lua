@@ -271,5 +271,38 @@ do
   CoopManager.bigBattle = nil
 end
 
+-- ---------------------------------------------------------------------
+-- A League chamber's entrance scene (walk in, the door shuts) stays with the
+-- one who walked in.  Shared, it set the partner's scene and door flag: the
+-- partner then entered with no scene and stood on the shut door.
+-- ---------------------------------------------------------------------
+do
+  CoopManager.partner.map = "INDIGO_PLATEAU_POKECENTER1_F"
+  menus, offered, sent = {}, {}, {}
+  local gameD = newGame("MOCHI")
+  local owD = { game = gameD, map = { id = "WILLS_ROOM" } }
+  local ctxD = { game = gameD, save = gameD.save, overworld = owD, runner = newRunner() }
+  CoopStory.begin(ctxD, { { "applymovement", 0, "M5A_4D8F" }, { "g2_set_scene", "WILLS_ROOM", 1 } })
+  T.check(#menus == 0 and #offered == 0, "door scene: nothing is asked")
+  gameD.save.g2Scenes = gameD.save.g2Scenes or {}
+  gameD.save.g2Scenes.WILLS_ROOM = 1
+  gameD.save.flags.EVENT_G2_1922 = true
+  CoopStory.finish(ctxD)
+  local shared
+  for _, m in ipairs(sent) do if m.type == "coop_story_rewards" then shared = m end end
+  T.check(shared == nil, "door scene: the partner's WILL door and scene are left alone")
+  T.check(not (gameD.save.coopStoryOutbox and #gameD.save.coopStoryOutbox > 0), "door scene: nothing kept for later either")
+  -- WILL himself is still shared (the partner beat him with you)
+  sent = {}
+  local ctxW = { game = gameD, save = gameD.save, overworld = owD, runner = newRunner() }
+  CoopManager.partner.map = "WILLS_ROOM"
+  CoopStory.begin(ctxW, { { "g2_load_trainer", "OPP_ELITE_FOUR_WILL", 1 }, { "start_battle" } })
+  gameD.save.flags.EVENT_G2_1923 = true
+  CoopStory.finish(ctxW)
+  shared = nil
+  for _, m in ipairs(sent) do if m.type == "coop_story_rewards" then shared = m end end
+  T.check(shared ~= nil, "WILL's own scene still reaches the partner")
+end
+
 CoopManager.offerBigBattle = realOffer
 T.finish("co-op big battle waits for the partner")
