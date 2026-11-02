@@ -146,4 +146,100 @@ do
   T.check(targetBattler == b:battlerAt(2), "animFxBattler resolves partner P2 on friendly fire")
 end
 
+do
+  -- HYPER BEAM'S SEGMENTS STAY EVENLY SPACED IN A DOUBLE (player report:
+  -- "the Hyper Beam animation looks weird").  The boxes are the ones a real
+  -- co-op double on Route 29 hands the player (LUGIA / SNORLAX against two
+  -- PIDGEY, logged by tests/drivers/six_anim_double.lua).  In 1.6.16 the
+  -- first segments bunched over the user (11 px apart) and the beam then
+  -- jumped 24 px into the target's box; on the cartridge they are 18 apart.
+  local function side(from, size, to, k)
+    return { from = from, size = size, to = to, k = k }
+  end
+  local P1 = side({ 8, 48 }, 48, { 47.0, 55.5 }, 0.85)
+  local P2 = side({ 8, 48 }, 48, { 14.0, 51.5 }, 0.83)
+  local E1 = side({ 96, 0 }, 56, { 77.0, 5.0 }, 0.55)
+  local E2 = side({ 96, 0 }, 56, { 119.0, 9.0 }, 0.55)
+  -- the four BATTLE_ANIM_OBJ_HYPER_BEAM rows (OAM), before the end burst
+  local seg = { { 64, 92 }, { 80, 84 }, { 96, 76 }, { 112, 68 } }
+  for _, c in ipairs({
+    { "P1 -> left foe", P1, E1 }, { "P2 -> left foe", P2, E1 },
+    { "P1 -> right foe", P1, E2 }, { "P2 -> right foe", P2, E2 },
+    { "left foe -> P1", P1, E1, true }, { "right foe -> P2", P2, E2, true },
+    { "right foe -> P1", P1, E2, true }, { "left foe -> P2", P2, E1, true },
+  }) do
+    local ap = player({ player = c[2], enemy = c[3] })
+    local pts = {}
+    for i, p in ipairs(seg) do
+      local x, y = p[1], p[2]
+      -- InitBattleAnimBuffer's mirror for the foe's turn (fixY = $98)
+      if c[4] then x, y = 180 - x, 152 - y end
+      local dx, dy = ap:objectOffset(x, y)
+      pts[i] = { x + dx, y + dy }
+    end
+    local lo, hi = math.huge, 0
+    for i = 2, #pts do
+      local g = math.sqrt((pts[i][1] - pts[i - 1][1]) ^ 2 + (pts[i][2] - pts[i - 1][2]) ^ 2)
+      lo, hi = math.min(lo, g), math.max(hi, g)
+    end
+    T.check(hi <= lo * 1.6,
+      ("%s: the beam's segments are evenly spaced (%.1f to %.1f px apart)"):format(c[1], lo, hi))
+  end
+  -- and a single (both pics full size) is still the cartridge, untouched
+  local ap = player({ player = side({ 8, 48 }, 48, { 8, 48 }, 1),
+                      enemy = side({ 96, 0 }, 56, { 96, 0 }, 1) })
+  local ok = true
+  for _, p in ipairs(seg) do
+    local dx, dy = ap:objectOffset(p[1], p[2])
+    if not (near(dx, 0) and near(dy, 0)) then ok = false end
+  end
+  T.check(ok, "a single's beam stays exactly where the cartridge draws it")
+end
+
+do
+  -- (from codex 78c8266)
+  -- attacker's pic to the target's moves a little at every step: the map
+  -- from one box to the other is continuous.  (4763e13 mapped a point by its
+  -- box while inside it and by a separate blend outside, so a Hyper Beam
+  -- crossing the target box's edge jumped 6-18 px in a double and 10 px in a
+  -- single against a 40x40 foe.)
+  local px, py, ex, ey = 40, 88, 132, 44   -- PLAYER_PIC_OAM, ENEMY_PIC_OAM
+  local N = 400
+  local function worstJump(so)
+    local ap = player(so)
+    local lx, ly, w = nil, nil, 0
+    for i = 0, N do
+      local x, y = px + (ex - px) * i / N, py + (ey - py) * i / N
+      local dx, dy = ap:objectOffset(x, y)
+      local sx, sy = x + dx, y + dy
+      if lx then w = math.max(w, math.sqrt((sx - lx) ^ 2 + (sy - ly) ^ 2)) end
+      lx, ly = sx, sy
+    end
+    return w
+  end
+  local function field(enemyW, playerW, double)
+    local b = setmetatable({ data = Data, sides = { { battlers = {} }, { battlers = {} } } },
+                           { __index = BattleState })
+    if double then b.coopDouble = true b.isDouble = function() return true end end
+    b.picImage = function(_, img) return img end
+    b.sides[1].battlers[1] = { sprite = pic(playerW, playerW), mon = {} }
+    b.sides[1].battlers[2] = { sprite = pic(playerW, playerW), mon = {} }
+    b.sides[2].battlers[1] = { sprite = pic(enemyW, enemyW), mon = {} }
+    b.sides[2].battlers[2] = { sprite = pic(enemyW, enemyW), mon = {} }
+    return b
+  end
+  for _, c in ipairs({
+    { "single, 40x40 foe", 40, 48, false, 0, 1 },
+    { "double P1 -> E1", 56, 48, true, 0, 1 },
+    { "double P2 -> E1", 56, 48, true, 2, 1 },
+    { "double P1 -> E2", 56, 48, true, 0, 3 },
+    { "double P2 -> E2", 56, 48, true, 2, 3 },
+  }) do
+    local b = field(c[2], c[3], c[4])
+    local w = worstJump({ player = b:animPicBox(c[5], false), enemy = b:animPicBox(c[6], true) })
+    T.check(w < 4, ("%s: a projectile moves without jumping (worst step %.1f px)"):format(c[1], w))
+  end
+end
+
+
 T.finish("move animations fit the Pokemon")
