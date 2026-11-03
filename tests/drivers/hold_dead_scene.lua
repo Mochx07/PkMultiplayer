@@ -128,12 +128,19 @@ return function(game)
     check(waitMark("host_away", 60), "the host's scene died and they walked out")
     U.wait(90)
     while top() ~= game.overworld do U.tap(game, "b") U.wait(20) end
-    U.teleport(game, "WILLS_ROOM", 5, 8, "up")
-    U.wait(90)
+    -- walk in through the door, as a player would, and up to WILL
+    U.hold(game, "up", 40)
+    for _ = 1, 20 do
+      local o = game.overworld
+      if o and o.map and o.map.id == "WILLS_ROOM" and o.player and o.player.cellY <= 8 then break end
+      U.hold(game, "up", 16)
+      U.wait(4)
+    end
+    U.wait(60)
     local ow = game.overworld
     local p = ow and ow.player
     local front = {}
-    for _, n in ipairs((ow and ow.map and ow.map.npcs) or {}) do
+    for _, n in ipairs((ow and (ow.npcs or (ow.map and ow.map.npcs))) or {}) do
       front[#front + 1] = tostring(n.id) .. "@" .. tostring(n.cellX or n.x) .. "," .. tostring(n.cellY or n.y)
         .. (n.hidden and "(h)" or "")
     end
