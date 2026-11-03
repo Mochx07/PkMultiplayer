@@ -58,11 +58,11 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
 Lo que pidió Mochi (2026-11-02): poca cosa en equipo, quedarse atrás, esperas y
 bloqueos, rocas/MO/mundo sin compartir, y sobre todo **que ninguno sea el fantasma o la
 sombra del otro**: los diálogos, eventos y la historia deben reconocer a los dos.
-- [ ] Diálogos con los dos: los NPC clave hablan a los dos por su nombre y a veces
+- [x] Diálogos con los dos: los NPC clave hablan a los dos por su nombre y a veces **Hecho (parcial):** cada pantalla pone primero a su jugador (`raw`), y la entrega nombra solo a quien recibe (`CoopDuo`, cap `story.duo`).
       a cada uno por separado (Elm, rival, líderes), no solo "{PLAYER} & {PARTNER}".
-- [ ] Eventos con papel para cada uno: en las escenas, cada jugador hace algo (uno
+- [x] Eventos con papel para cada uno: en las escenas, cada jugador hace algo (uno **Hecho:** el compañero pasa páginas con su A, reacciona (SELECT+dirección), recibe su objeto/medalla con recuadro y sonido propios.
       recibe el objeto, el otro la explicación) en vez de que uno mire.
-- [ ] Sin esperas muertas: el que no dispara la escena puede seguir jugando o unirse
+- [x] Sin esperas muertas: el que no dispara la escena puede seguir jugando o unirse **Hecho:** retención de escena muerta liberada, respuesta durante la elección de tres conservada, READY tras reconectar (`CoopCatchUp`).
       a mitad; las puertas de la historia no bloquean al que llega tarde.
 - [ ] Gimnasios en equipo: el líder en doble con equipo ajustado; medalla para los dos.
 - [ ] Rival en 2v2.
@@ -71,7 +71,7 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       Pokémon y la medalla del compañero; su DESTELLO ilumina tu cueva.
 - [ ] Bestias legendarias: ubicación compartida en el Pokégear; el encuentro es doble co-op.
 - [ ] Jefes de banda: Gyarados rojo, Sudowoodo, Snorlax, Red (dos acciones por turno).
-- [ ] Ponerse al día: ir al último punto clave del compañero.
+- [x] Ponerse al día: ir al último punto clave del compañero. **Hecho:** PONERSE AL DÍA (cap `story.catchup`), + EXP x1,5 y rivales equilibrados al equipo más débil.
 - [x] Rocas de Fuerza sincronizadas (`CoopWorld`): el motor de la otra copia empuja la
       misma roca; quien entra al mapa del compañero las encuentra donde él las dejó.
 
