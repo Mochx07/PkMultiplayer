@@ -75,7 +75,7 @@ local MODULES = {
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
   "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance", "src.coop.CoopLogShare",
-  "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary",
+  "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
