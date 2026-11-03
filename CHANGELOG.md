@@ -3,6 +3,27 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.6.17
+
+Compatible con 1.6.0–1.6.16 (mismo protocolo 16). Probado con Gen2Recomped 0.8.49.
+
+### Cambiado
+
+- **Listo para Gen2Recomped 0.8.49.** Los cambios del co-op se aplican ahora sobre el
+  código de la versión nueva del juego, así que se conservan sus arreglos (el bloqueo de
+  Poké Balls en combates co-op convive con el nuevo contador de Poké Balls de Platino).
+  Si usan una versión anterior del juego, actualícenla primero.
+
+### Técnico
+
+- Parches regenerados contra 0.8.49 (`afb1e3cd`): 123/123 funciones reconstruidas
+  exactas, también con cambios de upstream debajo. Un solo conflicto, en
+  `BattleState:throwBall`: primero el bloqueo co-op y luego `ptBallsThrown`.
+- El árbol fusionado vuelve a coincidir con los parches de 1.6.16 (`awardExp` y
+  `objectOffset` se habían editado solo en los parches).
+- Todas las suites pasan sobre 0.8.49; `coop_smoke` y `hyper_beam_double` con dos copias
+  reales de Oro también.
+
 ## 1.6.16
 
 Compatible con 1.6.0–1.6.15 (mismo protocolo 16). Probado con Gen2Recomped 0.8.47.
