@@ -88,3 +88,4 @@ tests/drivers/six_yellow_qa.lua
 tests/coop_world.lua
 tests/drivers/world_boulder.lua
 tests/drivers/world_cut.lua
+tests/drivers/world_flash.lua

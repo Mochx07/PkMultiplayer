@@ -66,11 +66,14 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       a mitad; las puertas de la historia no bloquean al que llega tarde.
 - [ ] Gimnasios en equipo: el líder en doble con equipo ajustado; medalla para los dos.
 - [ ] Rival en 2v2.
-- [ ] MO compartidas: la del compañero sirve a menos de 8 pasos.
+- [x] MO compartidas: la del compañero sirve a menos de 8 pasos (`src/coop/CoopWorld.lua`,
+      cap `world.share`): CORTE, GOLPE ROCA, FUERZA, SURF, TORBELLINO y CASCADA con el
+      Pokémon y la medalla del compañero; su DESTELLO ilumina tu cueva.
 - [ ] Bestias legendarias: ubicación compartida en el Pokégear; el encuentro es doble co-op.
 - [ ] Jefes de banda: Gyarados rojo, Sudowoodo, Snorlax, Red (dos acciones por turno).
 - [ ] Ponerse al día: ir al último punto clave del compañero.
-- [ ] Rocas de Fuerza sincronizadas.
+- [x] Rocas de Fuerza sincronizadas (`CoopWorld`): el motor de la otra copia empuja la
+      misma roca; quien entra al mapa del compañero las encuentra donde él las dejó.
 
 ## M3. Minijuegos (diseño propio)
 - [ ] Marco común `CoopMinigame`: invitación, cuenta atrás, marcador, resultados, premio.
