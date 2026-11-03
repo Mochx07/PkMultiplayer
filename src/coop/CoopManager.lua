@@ -45,6 +45,7 @@ function CoopManager.registerCap(name)
   CoopManager.CAPS[name] = true
 end
 
+CoopManager.registerCap("vs.sleep")     -- src/coop/CoopSleepClause.lua
 CoopManager.registerCap("vs.formats")   -- src/coop/CoopVS.lua
 CoopManager.registerCap("vs.match")     -- src/coop/CoopMatch.lua: best of 3, the VS record
 

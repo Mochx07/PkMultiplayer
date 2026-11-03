@@ -502,6 +502,8 @@ return {
   ["Your team breaks the rules"] = "Tu equipo no cumple las reglas",
   ["Partner's team breaks the rules"] = "Su equipo no cumple las reglas",
   ["%d POKéMON LEFT OUT (RULES)"] = "%d POKéMON FUERA (REGLAS)",
+  -- ----------------------------------- 1.20: cláusula de sueño (CoopSleepClause)
+  ["SLEEP CLAUSE:\nit won't sleep!"] = "CLÁUSULA DE SUEÑO:\n¡no se duerme!",
   -- ------------------------------------------- 1.20: repeticiones (CoopReplay)
   ["REPLAYS"] = "REPETICIONES",
   ["NO REPLAYS YET"] = "SIN REPETICIONES",

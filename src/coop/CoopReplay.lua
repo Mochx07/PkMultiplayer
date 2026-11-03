@@ -37,7 +37,10 @@ end
 function CoopReplay.start(tunnel, info)
   if not tunnel then return nil end
   tunnel.rec = { asker = info.asker and true or false, myName = info.myName, theirName = info.theirName,
-                 format = info.format, game = info.game, best = info.best, log = {} }
+                 format = info.format, game = info.game, best = info.best, log = {},
+                 -- a match's next game on the same tunnel keeps the sleep
+                 -- clause CoopVS.attach armed for the first (CoopSleepClause)
+                 sleepClause = tunnel.sleepClause or nil }
   return tunnel.rec
 end
 
@@ -79,6 +82,7 @@ function CoopReplay.build(rec, when)
     seed = rec.seed,
     forceLevel = rec.forceLevel,
     game = rec.game, best = rec.best,
+    sleepClause = rec.sleepClause or nil,
     log = log,
   }
 end
@@ -183,7 +187,10 @@ function CoopReplay.newFeed(replay)
   for _, e in ipairs(replay.log or {}) do
     q[#q + 1] = { type = "spectate", side = e.side, msg = e.msg }
   end
-  return setmetatable({ queue = q, pos = 1, inbox = {}, closed = false, paired = true }, Feed)
+  -- a battle played under the sleep clause is watched under it too (the
+  -- spectator is armed by its net, lib/Hooks.lua)
+  return setmetatable({ queue = q, pos = 1, inbox = {}, closed = false, paired = true,
+                        sleepClause = replay.sleepClause == true }, Feed)
 end
 
 function Feed:idle()

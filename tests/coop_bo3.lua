@@ -65,6 +65,17 @@ local sent = {}
 CoopManager.net = { send = function(_, msg) sent[#sent + 1] = msg return true end, flush = function() end }
 t:send({ type = "action", kind = "move", slot = 1 })
 T.check(sent[1].type == "coop_link" and sent[1].game == 2, "what goes out says its game")
+-- the sleep clause (CoopVS.attach, src/coop/CoopSleepClause.lua) is armed on
+-- the tunnel for game 1: every later game's recording keeps it
+t.sleepClause = true
+t.recInfo = { asker = true, myName = "A", theirName = "B", format = "lv50", best = 3 }
+CoopMatch.nextGame(t)
+T.check(t.rec and t.rec.game == 3 and t.rec.sleepClause == true, "the next game's recording keeps the sleep clause")
+t.rec.myParty, t.rec.theirParty, t.rec.seed = {}, {}, 1
+t.rec.log = { { me = true, m = { type = "action", kind = "move", slot = 1 } } }
+local sc = CoopReplay.build(t.rec, "2026-11-02 22:00")
+T.check(sc and sc.sleepClause == true and sc.game == 3 and sc.best == 3, "...and so does its replay")
+t.rec, t.sleepClause = nil, nil
 t.match = nil
 t:close()
 sent = {}

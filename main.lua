@@ -75,6 +75,7 @@ local MODULES = {
   "src.coop.CoopWild", "src.coop.CoopCompat",
   "src.coop.CoopWatch", "src.coop.CoopVisit",
   "src.coop.CoopDayCare", "src.coop.CoopTower", "src.coop.CoopBalance", "src.coop.CoopLogShare",
+  "src.coop.CoopSleepClause",
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
