@@ -254,9 +254,30 @@ end
 
 -- "TOBY & MOCHX" while a shared, non-personal script is on screen
 function CoopStory.duoName()
+  if CoopStory.renderDuo then return CoopStory.renderDuo end
   local st = CoopStory.current
   if st and st.here and not st.personal then return st.duo end
   return nil
+end
+
+-- EACH SCREEN NAMES ITS OWN PLAYER FIRST (1.20).  The partner used to get the
+-- line already filled in on our side -- "MOCHI & TOBY" on TOBY's screen too,
+-- always second, the guest in someone else's story.  The line now also goes
+-- over unfilled (`raw`), and each copy fills it in itself: "TOBY & MOCHI"
+-- there.  A partner from before 1.20 reads `text`, as it always did.
+function CoopStory.localDuo(game)
+  local CM = manager()
+  if not CM then return nil end
+  return shortName(CM.getLocalPlayerName(game)) .. " & " .. shortName(CM.partner.name or "PARTNER")
+end
+
+function CoopStory.fillForUs(game, raw)
+  local okTB, TextBox = pcall(require, "src.render.TextBox")
+  if not okTB then return nil end
+  CoopStory.renderDuo = CoopStory.localDuo(game)
+  local ok, shown = pcall(TextBox.substitute, game, raw)
+  CoopStory.renderDuo = nil
+  return ok and type(shown) == "string" and shown or nil
 end
 
 -- called by ScriptRunner:exec after every row that ran
@@ -310,7 +331,7 @@ function CoopStory.onText(ctx, text)
   local okTB, TextBox = pcall(require, "src.render.TextBox")
   local shown = okTB and TextBox.substitute(ctx.game, text) or text
   st.lines = st.lines + 1
-  CM.net:send({ type = "coop_story_text", map = st.map, text = shown,
+  CM.net:send({ type = "coop_story_text", map = st.map, text = shown, raw = text,
                 speaker = CM.getLocalPlayerName(ctx.game) })
 end
 
@@ -747,10 +768,14 @@ function CoopStory.onPartnerText(game, msg)
   local CM = manager()
   if not (CM and CM.storySync) then return end
   if not sameMap(game, msg.map) or type(msg.text) ~= "string" then return end
+  local text = msg.text
+  if type(msg.raw) == "string" and msg.raw ~= "" then
+    text = CoopStory.fillForUs(game, msg.raw) or text
+  end
   local okTB, TextBox = pcall(require, "src.render.TextBox")
   local lines = {}
   if okTB then
-    local okP, pages = pcall(TextBox.paginate, msg.text, 18)
+    local okP, pages = pcall(TextBox.paginate, text, 18)
     if okP and type(pages) == "table" then
       for _, page in ipairs(pages) do
         for _, line in ipairs(page) do lines[#lines + 1] = line end
@@ -758,7 +783,7 @@ function CoopStory.onPartnerText(game, msg)
     end
   end
   if #lines == 0 then
-    for line in (msg.text .. "\n"):gmatch("(.-)[\n\v\f]") do lines[#lines + 1] = line end
+    for line in (text .. "\n"):gmatch("(.-)[\n\v\f]") do lines[#lines + 1] = line end
   end
   for i = 1, #lines, 2 do
     table.insert(CoopStory.feed, { lines[i], lines[i + 1] or "" })

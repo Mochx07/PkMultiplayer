@@ -885,6 +885,7 @@ do
   check(TextBox.substitute(game, "Hello {PLAYER}!") == "Hello TOBY & MOCHX!", "text boxes use both names")
   CoopStory.onText(ctx, "Here, {PLAYER}!")
   check(net:lastOf("coop_story_text") and net:lastOf("coop_story_text").text == "Here, TOBY & MOCHX!", "the line is sent expanded")
+  check(net:lastOf("coop_story_text").raw == "Here, {PLAYER}!", "...and unfilled, for the partner to fill with their own name first")
   ctx.lastCheck = true
   CoopStory.observe(ctx, "give_item", { "give_item", "POTION", 1 })
   -- the rows' own effects on the save, which is what is shared
@@ -1115,6 +1116,21 @@ do
   CoopStory.onPartnerText(recvGame, { map = "ROUTE_29", text = "far away" })
   check(#CoopStory.feed == 1, "lines from another map are ignored")
   CoopStory.feed = {}
+  -- 1.20: the partner's screen names its own player first
+  local wasName = CoopManager.partner.name
+  CoopManager.partner.name = "TOBY"
+  local wasLocal = CoopManager.getLocalPlayerName
+  CoopManager.getLocalPlayerName = function() return "MOCHX" end
+  CoopStory.onPartnerText(recvGame, { map = "ELMS_LAB", text = "Here, TOBY & MOCHX!", raw = "Here, {PLAYER}!" })
+  local page = CoopStory.feed[1]
+  check(page and page[1]:gsub("%s+$", "") == "Here, MOCHX &", "the line is filled in here, this player first: " .. tostring(page and page[1]))
+  check(page and page[2] == "TOBY!", "...then the partner")
+  check(CoopStory.duoName() == nil, "filling it in leaves no duo behind")
+  CoopStory.feed = {}
+  CoopStory.onPartnerText(recvGame, { map = "ELMS_LAB", text = "Old partner line" })
+  check(CoopStory.feed[1] and CoopStory.feed[1][1] == "Old partner line", "a line without raw (a 1.6 partner) shows as sent")
+  CoopStory.feed = {}
+  CoopManager.partner.name, CoopManager.getLocalPlayerName = wasName, wasLocal
 end
 
 -- ---------------------------------------------------------------------
