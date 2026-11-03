@@ -80,3 +80,8 @@ tests/drivers/vs_bo3.lua
 tests/coop_sleep_clause.lua
 tests/drivers/vs_sleep_clause.lua
 .github/workflows/tests.yml
+tests/drivers/six_compat_qa.lua
+tests/drivers/six_formats_qa.lua
+tests/drivers/six_rules_adversarial.lua
+tests/drivers/six_replays_offline_qa.lua
+tests/drivers/six_yellow_qa.lua
