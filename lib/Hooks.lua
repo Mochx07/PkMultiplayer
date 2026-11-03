@@ -247,6 +247,13 @@ Hooks.modules["src.core.Game"] = function(Game)
           end
         end
       end
+      -- the number pad's 1-4 during a shared scene: a reaction, the other
+      -- screen reads a line too (src/coop/CoopDuo.lua)
+      if not delegated then
+        local CoopDuo = package.loaded["src.coop.CoopDuo"]
+        local okR, reacted = pcall(function() return CoopDuo and CoopDuo.onKey(self, key) end)
+        if okR and reacted then return end
+      end
       -- the number pad: one emote per key, no picker (src/coop/CoopEmotes.lua)
       if not delegated then
         local okE, CoopEmotes = pcall(require, "src.coop.CoopEmotes")
@@ -371,6 +378,19 @@ Hooks.modules["src.render.TextBox"] = function(TextBox)
         end
       end
       return self
+    end
+  end)
+  -- 1.20 duo: in a shared scene, the page that hands something over names
+  -- the one who gets it -- "MOCHI received POTION!", not "MOCHI & TOBY"
+  -- (src/coop/CoopDuo.lua); the partner gets their own box
+  wrap(TextBox, "TextBox", "substitute", function(substitute)
+    return function(game, text, ...)
+      local CoopDuo = package.loaded["src.coop.CoopDuo"]
+      if CoopDuo and CoopDuo.substitute then
+        local ok, out = pcall(CoopDuo.substitute, substitute, game, text, ...)
+        if ok and type(out) == "string" then return out end
+      end
+      return substitute(game, text, ...)
     end
   end)
 end

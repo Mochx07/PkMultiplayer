@@ -60,6 +60,10 @@ local function awardLeaderBadge(game, oppClass, partyIndex)
   local Badges = require("src.inventory.Badges")
   if Badges.has(game.save, { id = badge }) then return end
   Badges.set(game.save, { id = badge }, true)
+  -- 1.20 duo: handed over to this player by name, in a box with the badge's
+  -- fanfare, as the leader does on the other screen (src/coop/CoopDuo.lua)
+  local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
+  if okD and CoopDuo.on() and CoopDuo.queueBadge(game, badge) then return end
   CoopManager.showStatus("Earned the " .. badge .. "!", 3)
 end
 

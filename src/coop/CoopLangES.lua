@@ -538,4 +538,15 @@ return {
   ["WON %d  LOST %d"] = "VICT. %d  DERR. %d",
   ["GAMES %d-%d"] = "COMBATES %d-%d",
   ["ELO %d VS %d"] = "ELO %d VS %d",
+  -- ------------------------------------- 1.20: escenas con los dos (CoopDuo)
+  ["Skipped %d pages"] = "%d págs. saltadas",
+  ["SELECT: REACT"] = "SELECT: REACCIONA",
+  ["%s: WOW!"] = "%s: ¡GUAU!",
+  ["%s: HUH?"] = "%s: ¿EH?",
+  ["%s: HA HA!"] = "%s: ¡JA, JA!",
+  ["%s: OH NO..."] = "%s: OH, NO...",
+  ["%s received\n%s!"] = "¡%s recibió\n%s!",
+  ["%s received\n%s."] = "%s recibió\n%s.",
+  ["%s got one too!"] = "¡%s también recibió una!",
+  ["%s got them too!"] = "¡%s también lo recibió todo!",
 }
