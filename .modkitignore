@@ -79,3 +79,4 @@ tests/coop_bo3.lua
 tests/drivers/vs_bo3.lua
 tests/coop_sleep_clause.lua
 tests/drivers/vs_sleep_clause.lua
+.github/workflows/tests.yml

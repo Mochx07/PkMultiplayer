@@ -1,0 +1,82 @@
+name: tests
+
+# The mod is tested against a stock Gen2Recomped checkout at the exact commit
+# its patches were cut from (lib/patches/index.lua `base`), the way
+# tools/run_tests.sh does it on a developer machine.  Nothing is built, signed
+# or published here: this only runs the suites and the text/patch checks.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # lib/patches/index.lua holds the short form ("afb1e3cd")
+      ENGINE_URL: https://github.com/UNDERdecoded/Gen2Recomped
+    steps:
+      - name: Check out the mod
+        uses: actions/checkout@v4
+
+      - name: Install luajit and python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends luajit python3
+          luajit -v
+          python3 --version
+
+      - name: Fetch Gen2Recomped at the base commit of the patches
+        run: |
+          set -euo pipefail
+          ref="$(grep -o 'base = "[0-9a-f]*"' lib/patches/index.lua | head -1 | cut -d'"' -f2)"
+          echo "patches are cut from $ref"
+          # every branch head and tag (an engine release is a tag: v0.8.49)
+          sha="$(git ls-remote "$ENGINE_URL" | awk '{print $1}' | grep "^$ref" | head -1 || true)"
+          if [ -z "$sha" ]; then
+            echo "::error::$ref does not exist in $ENGINE_URL"
+            exit 1
+          fi
+          echo "engine commit $sha"
+          mkdir -p "$RUNNER_TEMP/engine"
+          git -C "$RUNNER_TEMP/engine" init -q
+          git -C "$RUNNER_TEMP/engine" fetch -q --depth 1 "$ENGINE_URL" "$sha"
+          git -C "$RUNNER_TEMP/engine" archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/engine"
+          test -f "$RUNNER_TEMP/engine/main.lua"
+          echo "PKM_BASE=$RUNNER_TEMP/engine" >> "$GITHUB_ENV"
+
+      - name: Suites
+        run: tools/run_tests.sh
+
+      - name: Spanish text
+        run: python3 tools/i18n_check.py --strict
+
+      - name: Patches (only with the merged engine tree)
+        # tools/check_patches.py rebuilds every lib/patches function from the
+        # engine at <base> and compares it with the same function in the tree
+        # the patches were generated from (the co-op branch of Gen2Recomped).
+        # That branch is not public.  Set the repository variable PKM_ENGINE_REF
+        # to a git URL and PKM_ENGINE_COMMIT to a commit in it (secrets are not
+        # usable in `if:`), and the step runs; without them it is skipped.
+        env:
+          ENGINE_REF: ${{ vars.PKM_ENGINE_REF }}
+          ENGINE_COMMIT: ${{ vars.PKM_ENGINE_COMMIT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ENGINE_REF:-}" ] || [ -z "${ENGINE_COMMIT:-}" ]; then
+            echo "::notice::no merged engine tree (vars.PKM_ENGINE_REF + PKM_ENGINE_COMMIT); check_patches.py skipped"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/merged"
+          git -C "$RUNNER_TEMP/merged" init -q
+          # the full history (with its blobs): tooling looks up the base commit
+          # by its short id inside this clone, so a shallow one will not do
+          git -C "$RUNNER_TEMP/merged" fetch -q "$ENGINE_REF" "$ENGINE_COMMIT"
+          echo "fetched $(git -C "$RUNNER_TEMP/merged" rev-parse FETCH_HEAD) from $ENGINE_REF"
+          git -C "$RUNNER_TEMP/merged" checkout -q FETCH_HEAD
+          git -C "$RUNNER_TEMP/merged" rev-parse --short HEAD
+          python3 tools/check_patches.py "$RUNNER_TEMP/merged" "$(grep -o 'base = "[0-9a-f]*"' lib/patches/index.lua | head -1 | cut -d'"' -f2)" HEAD
