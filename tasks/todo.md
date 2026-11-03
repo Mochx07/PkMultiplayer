@@ -29,7 +29,9 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       Nivel por `forceLevel` del motor, sin su menú; equipo enviado por hook a
       `Protocol.packParty`. Menú PARTNER > BATTLE P1 VS P2 > formato (B vuelve por páginas).
       Pruebas: `tests/coop_vs.lua` 35/35; driver real `vs_level50.lua` 0 fallos en las 2 copias.
-- [ ] Cláusula de sueño dentro del combate (necesita hook determinista en el combate de enlace).
+- [x] Cláusula de sueño (cap `vs.sleep`, `src/coop/CoopSleepClause.lua`, agente claude-sleep):
+      en los formatos con reglas; REST no cuenta; también en las repeticiones y en cada juego
+      del mejor de 3. Suite 46/46; drivers reales NIVEL 50 / LIBRE / guest en español OK.
 - [x] Al mejor de 3 (cap `vs.match`, `src/coop/CoopMatch.lua`): MATCH: 1 GAME / BEST OF 3 en
       la página VS; la invitación lo lleva (`best`) y el invitado lo ve. Entre combates siguen en
       el Cable Club sin otra invitación (nueva semilla del host, marcador en pantalla); cada
