@@ -161,9 +161,10 @@ return function(game)
     U.wait(30)
     asked = talkToTree("a", DIR .. "/2_near_want_cut.png")
     check(asked, "the same A now asks \"Want to use CUT?\"")
-    U.wait(40)
+    -- the cut plays its animation first: give it up to 5 s, not a fixed 40 frames
+    local cut = waitFor(60 * 5, function() return not treeStands() end)
     U.shot(game, DIR .. "/3_after_cut.png")
-    check(not treeStands(), "YES: the tree is cut with the host's CUT")
+    check(cut, "YES: the tree is cut with the host's CUT")
   else
     -- wait for the guest's signal, then walk up close
     check(waitFor(60 * 40, function() return CoopManager.partner.emote == "exclaim" end),
