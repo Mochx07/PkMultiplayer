@@ -120,6 +120,8 @@ local function bigBattleGo(pending)
     canLose = battle.canLose or nil,
     seed = pending.seed,
     localMons = pending.wired,
+    -- the difficulty, the host's word for both copies (CoopBalance)
+    foeRules = battle.coopBalanceRules,
   })
   local game = getGame(pending.ow)
   removeState(game, pending.waitModal)
@@ -138,8 +140,23 @@ function CoopManager.hostBigBattle(ow, battle, opts, big)
   local game = getGame(ow)
   local CoopBattleSelect = require("src.coop.CoopBattleSelect")
   local CoopWaitModal = require("src.coop.CoopWaitModal")
-  local function solo() ow:pushBattle(battle, opts) end
+  -- WHILE YOU PICK YOUR THREE, THE INVITE IS STILL LIVE.  promptCoopBattle
+  -- has already taken it off CoopManager.bigBattle, so the partner's word in
+  -- these seconds -- their three picked (coop_bigbattle_ready), or B in their
+  -- READ ALONG box (coop_battle_decline) -- found no invite: the ready was
+  -- answered with a cancel that threw them out, the decline was dropped, and
+  -- either way you then sat 60s in WAITING for nobody.
+  CoopManager.hostingBig = big
+  -- the difficulty this battle is fought at, on both copies (CoopBalance)
+  battle.coopBalanceRules = battle.coopBalanceRules or require("src.coop.CoopBalance").currentRules()
+  local function solo() CoopManager.hostingBig = nil ow:pushBattle(battle, opts) end
   game.stack:push(CoopBattleSelect.new(game, game.save.party, function(chosenMons)
+    CoopManager.hostingBig = nil
+    if big.declined then
+      CoopManager.showStatus(big.declineText or "Partner won't join. Solo!", 2.5)
+      solo()
+      return
+    end
     if not CoopManager.isConnected() then
       CoopManager.showStatus("Partner link lost. Solo!", 2.5)
       solo()
@@ -174,6 +191,11 @@ function CoopManager.onBigBattleReady(ow, msg)
     return
   end
   local big = CoopManager.bigBattle
+  local hosting = CoopManager.hostingBig
+  if not (big and big.inviteId == msg.inviteId) and hosting and hosting.inviteId == msg.inviteId
+     and not hosting.declined then
+    big = hosting
+  end
   if big and big.inviteId == msg.inviteId then
     big.partnerMons = msg.chosenMons or {}
     CoopManager.showStatus((CoopManager.partner.name or "Partner") .. " is ready!", 2.5)

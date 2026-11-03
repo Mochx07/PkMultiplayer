@@ -228,6 +228,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopBalance",
   "src.coop.CoopLogShare",
   "src.coop.CoopWorld",
+  "src.coop.CoopCatchUp",
 }
 CoopManager.render = nil
 
@@ -469,6 +470,7 @@ local function resetSession()
   CoopManager.activeInviteModal = nil
   CoopManager.incomingInviteBuffer = nil
   CoopManager.bigBattle = nil
+  CoopManager.hostingBig = nil
   CoopManager.guestBig = nil
   CoopManager.guestSelect = nil
   CoopManager.partnerEngagingTrainer = nil
