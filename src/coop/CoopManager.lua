@@ -49,6 +49,7 @@ CoopManager.registerCap("vs.sleep")     -- src/coop/CoopSleepClause.lua
 CoopManager.registerCap("vs.formats")   -- src/coop/CoopVS.lua
 CoopManager.registerCap("vs.match")     -- src/coop/CoopMatch.lua: best of 3, the VS record
 CoopManager.registerCap("story.duo")    -- src/coop/CoopDuo.lua: shared scenes with two leads
+CoopManager.registerCap("story.gyms")   -- src/coop/CoopGyms.lua: gym teams for two, the rival 2v2
 
 -- ours, sorted (the hello and the logs read the same)
 function CoopManager.localCaps()
@@ -230,6 +231,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopLogShare",
   "src.coop.CoopWorld",
   "src.coop.CoopCatchUp",
+  "src.coop.CoopGyms",
 }
 CoopManager.render = nil
 

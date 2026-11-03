@@ -109,6 +109,8 @@ function CoopBalance.currentRules()
   local rules = { balancedFoes = CoopManager.balancedFoes == true, hardFoes = CoopManager.hardFoes == true }
   -- only when both copies know the rule (a 1.6.x partner would not apply it)
   if CoopManager.bothHave and CoopManager.bothHave("story.catchup") then rules.catchUp = true end
+  -- a leader's team made for two (src/coop/CoopGyms.lua), the same way
+  if CoopManager.bothHave and CoopManager.bothHave("story.gyms") then rules.gymTeam = true end
   return rules
 end
 
@@ -119,6 +121,9 @@ function CoopBalance.apply(battle, mineList, theirsList)
   -- the one far behind earns boosted EXP (their own copy only: CoopCatchUp)
   pcall(function() require("src.coop.CoopCatchUp").prepareBattle(battle, mineList, theirsList) end)
   if battle.coopWild or battle.battleTower or battle.isLinkBattle then return false end
+  -- a gym leader's team for two, or the two rivals (src/coop/CoopGyms.lua)
+  local okG, CoopGyms = pcall(require, "src.coop.CoopGyms")
+  if okG and CoopGyms.apply(battle, mineList, theirsList) then return true end
   local plan = CoopBalance.plan(battle.enemyParty, mineList, theirsList, battle.coopBalanceRules)
   if not plan then return false end
   local data = (battle.game and battle.game.data) or battle.data

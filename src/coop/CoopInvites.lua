@@ -156,7 +156,12 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
   if type(msg.foeRules) == "table" then
     p2Battle.coopBalanceRules = { balancedFoes = msg.foeRules.balancedFoes == true,
                                   hardFoes = msg.foeRules.hardFoes == true,
-                                  catchUp = msg.foeRules.catchUp == true or nil }
+                                  catchUp = msg.foeRules.catchUp == true or nil,
+                                  gymTeam = msg.foeRules.gymTeam == true or nil }
+  end
+  -- THE RIVAL 2v2: the host's rival and this player's own (src/coop/CoopGyms.lua)
+  if msg.rivals then
+    p2Battle.coopRivalPair = require("src.coop.CoopGyms").checkPair(game.data, msg.oppClass, msg.rivals)
   end
   CoopBattle.initBattle(p2Battle, chosenMons, msg.localMons, CoopManager.partner, msg.seed, msg.inviteId)
   local cOw = game.overworld or ow2
