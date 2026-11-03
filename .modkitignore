@@ -94,3 +94,6 @@ tests/drivers/bigbattle_select_race.lua
 tests/drivers/hold_dead_scene.lua
 tests/drivers/catchup_real.lua
 tests/drivers/level_gap_double.lua
+tests/coop_story_duo.lua
+tests/drivers/duo_scene.lua
+tests/drivers/duo_badge.lua

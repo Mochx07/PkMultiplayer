@@ -167,6 +167,8 @@ H.coop_emote = function(ow, msg)
     CoopManager.partner.emote = msg.emote
     CoopManager.partner.emoteTimer = 2.5
     playSound(getGame(ow), "Collision")
+    -- a reaction during a shared scene also says so in a line (1.20 duo)
+    if msg.react then require("src.coop.CoopDuo").onReaction(msg) end
   end
 end
 
@@ -332,6 +334,11 @@ end
 H.coop_story_rewards = function(ow, msg)
   require("src.coop.CoopStory").onPartnerRewards(getGame(ow), msg)
 end
+
+-- 1.20 duo (src/coop/CoopDuo.lua): the partner's scene is over; the partner
+-- got what our scene handed over
+H.coop_story_end = function(ow, msg) require("src.coop.CoopDuo").onSceneEnd(msg) end
+H.coop_story_got = function(ow, msg) require("src.coop.CoopDuo").onGot(msg) end
 
 -- the partner is holding a big battle's scene until we walk in (CoopStory)
 H.coop_story_hold = function(ow, msg) require("src.coop.CoopStory").onPartnerHold(msg) end

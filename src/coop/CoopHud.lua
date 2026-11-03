@@ -168,6 +168,11 @@ function CoopManager.drawWorld(ow)
       local ballY = headY - 5
       if partner.inBattle then
         CoopManager.drawSpinningPokeball(sx, ballY, 2.0)
+      elseif partner.emote and partner.inDialogue then
+        -- a reaction from inside their scene's dialogue (1.20 duo) shows
+        -- over the "..." it would otherwise hide behind
+        require("src.coop.CoopEmotes").draw(getGame(ow), partner.emote, sx, sy - lift + (partner.hopY or 0),
+                                            2.5 - (partner.emoteTimer or 0))
       elseif partner.inDialogue then
         local bxB = math.floor(sx - 5)
         local byB = math.floor(ballY - 3)
@@ -397,7 +402,15 @@ function CoopManager.drawUI(ow)
     love.graphics.setColor(1, 1, 1, 1)
     MicroFont.draw(who, 10, 95)
     love.graphics.setColor(1, 1, 1, 1)
+    -- 1.20 duo: A turns it, SELECT reacts (src/coop/CoopDuo.lua)
+    pcall(require("src.coop.CoopDuo").drawFeedExtras, game)
+    love.graphics.setColor(1, 1, 1, 1)
     return
+  end
+  -- our own shared scene's box, with the partner in it: SELECT reacts
+  if hasTextBox then
+    pcall(require("src.coop.CoopDuo").drawSceneExtras, game)
+    love.graphics.setColor(1, 1, 1, 1)
   end
 
   if not isTypingChat then

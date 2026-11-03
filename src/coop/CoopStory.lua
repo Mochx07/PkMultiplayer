@@ -271,9 +271,13 @@ function CoopStory.localDuo(game)
   return shortName(CM.getLocalPlayerName(game)) .. " & " .. shortName(CM.partner.name or "PARTNER")
 end
 
-function CoopStory.fillForUs(game, raw)
+function CoopStory.fillForUs(game, raw, speaker)
   local okTB, TextBox = pcall(require, "src.render.TextBox")
   if not okTB then return nil end
+  -- 1.20 duo: a page that hands something over names the one who got it
+  local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
+  local duoFilled = okD and CoopDuo.fillForUs(game, raw, CoopStory.localDuo(game), speaker)
+  if duoFilled then return duoFilled end
   CoopStory.renderDuo = CoopStory.localDuo(game)
   local ok, shown = pcall(TextBox.substitute, game, raw)
   CoopStory.renderDuo = nil
@@ -398,7 +402,13 @@ function CoopStory.finish(ctx)
   if CoopStory.current == st then CoopStory.current = nil end
   -- the scene's flags go first (below), so the partner's own copy of the
   -- scene is already closed by the time the hold on it lifts
-  local function done() releaseHold(ctx) end
+  local function done()
+    releaseHold(ctx)
+    -- 1.20 duo: the partner reading along hears the scene is over
+    if st and st.here then
+      pcall(function() require("src.coop.CoopDuo").sendSceneEnd(st.map) end)
+    end
+  end
   if not st or st.personal then return done() end
   -- flags, scenes and the armed call first, the warp after everything
   for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
@@ -561,6 +571,9 @@ function CoopStory.finishLua(ctx)
   local st = ctx and ctx.coopStory
   if not st then return end
   if CoopStory.current == st then CoopStory.current = nil end
+  if st.here then
+    pcall(function() require("src.coop.CoopDuo").sendSceneEnd(st.map) end)
+  end
   if st.personal then return end
   local more, personal = luaChanges(ctx.save, st.before, st.battled)
   if personal then return end
@@ -773,7 +786,7 @@ function CoopStory.onPartnerText(game, msg)
   if not sameMap(game, msg.map) or type(msg.text) ~= "string" then return end
   local text = msg.text
   if type(msg.raw) == "string" and msg.raw ~= "" then
-    text = CoopStory.fillForUs(game, msg.raw) or text
+    text = CoopStory.fillForUs(game, msg.raw, msg.speaker) or text
   end
   local okTB, TextBox = pcall(require, "src.render.TextBox")
   local lines = {}
@@ -790,6 +803,13 @@ function CoopStory.onPartnerText(game, msg)
   end
   for i = 1, #lines, 2 do
     table.insert(CoopStory.feed, { lines[i], lines[i + 1] or "" })
+  end
+  -- 1.20 duo: the pages wait for this player's A, and the ones left behind
+  -- fold into one (src/coop/CoopDuo.lua)
+  local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
+  if okD and CoopDuo.on() then
+    CoopDuo.onPartnerLine(msg.map)
+    return
   end
   -- never let a long scene pile up behind the player
   while #CoopStory.feed > 12 do table.remove(CoopStory.feed, 1) end
@@ -1000,6 +1020,8 @@ function CoopStory.onPartnerRewards(game, msg)
   local ctx = { game = game, overworld = game.overworld, save = save, coopRemote = true,
                 mapCallback = true }
   local got, changed, resync = {}, false, false
+  -- what was handed over, for the 1.20 duo's boxes (CoopDuo.queueGifts)
+  local gifts = {}
   for _, r in ipairs(msg.rewards) do
     local ok, err = pcall(function()
       if skipGoods and MONEY_KINDS[r.kind] then return end
@@ -1007,10 +1029,14 @@ function CoopStory.onPartnerRewards(game, msg)
       if r.kind == "item" then
         if require("src.inventory.Bag").add(save, r.id, r.count or 1, game.data) then
           got[#got + 1] = itemName(game, r.id)
+          local def = game.data and game.data.items and game.data.items[r.id]
+          gifts[#gifts + 1] = { name = got[#got], count = tonumber(r.count) or 1,
+                                key = def and def.keyItem and true or false }
         end
       elseif r.kind == "money" then
         save.money = math.min(999999, (save.money or 0) + r.amount)
         got[#got + 1] = "MONEY"
+        gifts[#gifts + 1] = { money = r.amount }
       elseif r.kind == "coins" and Commands.g2_give_coins then
         Commands.g2_give_coins(ctx, r.amount)
       elseif r.kind == "take_item" then
@@ -1066,7 +1092,12 @@ function CoopStory.onPartnerRewards(game, msg)
   end
   -- an item ball the partner picked up leaves this screen too
   if resync and ow.syncObjectVisibility then pcall(ow.syncObjectVisibility, ow) end
-  if #got > 0 then
+  local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
+  if #gifts > 0 and here and okD and CoopDuo.on() then
+    -- 1.20 duo: handed over in a box each, with the jingle, as the cartridge
+    -- does -- "TOBY received POTION!" -- once this player is free
+    CoopDuo.queueGifts(game, gifts, msg.eid)
+  elseif #got > 0 then
     -- (the font has no "+": "TM34 +1" read "TM34 1", like a count)
     if #got > 1 then
       CM.showStatus(string.format("You got %s and %d more too!", got[1], #got - 1), 3)
@@ -1115,6 +1146,16 @@ function CoopStory.tick(dt, game)
       local f = type(w.facing) == "string" and w.facing:lower() or "down"
       if f ~= "up" and f ~= "down" and f ~= "left" and f ~= "right" then f = "down" end
       pcall(ow.startWarpTo, ow, w.map, w.x, w.y, f)
+    end
+  end
+  local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
+  if okD then
+    -- gift boxes already applied to the save show even if the link dropped
+    pcall(CoopDuo.tick, dt, game)
+    if CoopDuo.on() then
+      -- 1.20 duo: the page waits for this player's A
+      CoopDuo.tickFeed(dt, game)
+      return
     end
   end
   local page = CoopStory.feed[1]

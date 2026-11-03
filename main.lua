@@ -79,7 +79,7 @@ local MODULES = {
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
-  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopWorld", "src.coop.CoopCatchUp",
+  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
@@ -351,6 +351,13 @@ if mod.hooks and mod.hooks.wrap then
   -- Gold / Silver / Crystal trainers pick their move (src/battle/SinglesAI.lua)
   mod.hooks:wrap("battle.enemy_action", function(next, battle, who)
     return require("src.battle.SinglesAI").enemyAction(next, battle, who)
+  end)
+  -- a shared scene's buttons, before the engine reads them: A turns the
+  -- partner's page, SELECT + a direction reacts (src/coop/CoopDuo.lua)
+  mod.hooks:wrap("input.step", function(next, game, dt)
+    local CoopDuo = package.loaded["src.coop.CoopDuo"]
+    if CoopDuo and CoopDuo.onInputStep then pcall(CoopDuo.onInputStep, game) end
+    return next(game, dt)
   end)
 end
 -- the co-op result's tally: the engine's own battle events
