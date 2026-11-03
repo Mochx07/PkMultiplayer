@@ -32,11 +32,15 @@ end
 -- recording (on CoopLink's tunnel)
 -- ---------------------------------------------------------------------
 
--- info: { asker = bool (the Cable Club's host), myName, theirName, format }
+-- info: { asker = bool (the Cable Club's host), myName, theirName, format,
+--         game, best (a match's game number and length, src/coop/CoopMatch.lua) }
 function CoopReplay.start(tunnel, info)
   if not tunnel then return nil end
   tunnel.rec = { asker = info.asker and true or false, myName = info.myName, theirName = info.theirName,
-                 format = info.format, log = {} }
+                 format = info.format, game = info.game, best = info.best, log = {},
+                 -- a match's next game on the same tunnel keeps the sleep
+                 -- clause CoopVS.attach armed for the first (CoopSleepClause)
+                 sleepClause = tunnel.sleepClause or nil }
   return tunnel.rec
 end
 
@@ -77,6 +81,7 @@ function CoopReplay.build(rec, when)
     guestParty = host and rec.theirParty or rec.myParty,
     seed = rec.seed,
     forceLevel = rec.forceLevel,
+    game = rec.game, best = rec.best,
     sleepClause = rec.sleepClause or nil,
     log = log,
   }
@@ -246,7 +251,13 @@ function CoopReplay.describe(replay, name)
   local day = (replay.date or ""):match("%d+%-(%d+%-%d+)") or ""
   local label = "VS " .. I18n.truncate(tostring(other or "?"):upper(), 7) .. " " .. day
   local fmt = replay.format and require("src.coop.CoopVS").format(replay.format)
-  return label, { fmt and fmt.name or "FREE BATTLE", (replay.date or name or ""):sub(1, 18), "A: WATCH" }
+  local rules = fmt and fmt.name or "FREE BATTLE"
+  -- a game of a best of 3: "LEVEL 50 2/3" (translated here: the number is
+  -- not a word of the catalog)
+  if replay.best == 3 and tonumber(replay.game) then
+    rules = I18n.t(rules) .. " " .. math.floor(tonumber(replay.game)) .. "/3"
+  end
+  return label, { rules, (replay.date or name or ""):sub(1, 18), "A: WATCH" }
 end
 
 return CoopReplay

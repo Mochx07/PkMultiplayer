@@ -218,6 +218,8 @@ H.coop_link_invite = function(ow, msg) link().onInvite(getGame(ow), msg) end
 H.coop_link_accept = function(ow, msg) link().onAccept(getGame(ow), msg) end
 H.coop_link_decline = function(ow, msg) link().onDecline(getGame(ow), msg) end
 H.coop_link_cancel = function(ow, msg) link().onCancel(getGame(ow), msg) end
+-- a P1-vs-P2 match's results and leaving (1.20, src/coop/CoopMatch.lua)
+H.coop_match = function(ow, msg) require("src.coop.CoopMatch").onMessage(msg) end
 
 H.coop_trainer_engaging = function(ow, msg)
   CoopManager.partnerEngagingTrainer = msg

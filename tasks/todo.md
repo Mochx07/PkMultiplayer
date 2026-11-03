@@ -30,7 +30,14 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       `Protocol.packParty`. Menú PARTNER > BATTLE P1 VS P2 > formato (B vuelve por páginas).
       Pruebas: `tests/coop_vs.lua` 35/35; driver real `vs_level50.lua` 0 fallos en las 2 copias.
 - [ ] Cláusula de sueño dentro del combate (necesita hook determinista en el combate de enlace).
-- [ ] Al mejor de 3 con vista previa de equipos.
+- [x] Al mejor de 3 (cap `vs.match`, `src/coop/CoopMatch.lua`): MATCH: 1 GAME / BEST OF 3 en
+      la página VS; la invitación lo lleva (`best`) y el invitado lo ve. Entre combates siguen en
+      el Cable Club sin otra invitación (nueva semilla del host, marcador en pantalla); cada
+      copia dice quién ganó cada combate (`coop_match result`) y las dos aplican la misma regla
+      a los dos informes. Lo del túnel va numerado por combate. Cada combate, su repetición.
+      Salir (B entre combates, RUN, enlace caído) termina la partida en las dos sin resultado.
+      Pruebas: `tests/coop_bo3.lua` 98/98; driver real `vs_bo3.lua` 2-1 completo, 0 fallos en
+      las 2 copias. (Sin vista previa de equipos: queda pendiente.)
 - [x] Repeticiones (`src/coop/CoopReplay.lua`): el túnel anota equipos, semilla, nivel y
       acciones de cada combate P1 VS P2; al cerrar escribe un JSON en
       `modstorage/PkMultiplayer/replays/` (se guardan los 20 últimos). Se ven con el
@@ -38,7 +45,11 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       Menú: VS > REPETICIONES, y REPETICIONES sin conexión. No va nada extra por la red.
       Pruebas: `tests/coop_replay.lua` 25/25; driver real `vs_replay.lua`: en las dos copias
       la repetición termina con los mismos PS y ganador que el combate.
-- [ ] Historial y ELO local por compañero.
+- [x] Historial y ELO local por compañero (`src/coop/CoopRecord.lua`): por id co-op del
+      compañero y formato, victorias/derrotas, combates y ELO (1000, K 32, enteros, calculado
+      desde el id menor: las dos copias guardan números espejo). En
+      `modstorage/PkMultiplayer/vs_record.json` (se escribe al acabar, en las dos copias, sin
+      depender de guardar partida). Menú VS > RECORD.
 - [ ] (después) Equipos de alquiler, draft, 2v2 de 4 jugadores con VISIT, torneo.
 
 ## M2. Historia co-op renovada
