@@ -227,6 +227,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopTower",
   "src.coop.CoopBalance",
   "src.coop.CoopLogShare",
+  "src.coop.CoopWorld",
 }
 CoopManager.render = nil
 

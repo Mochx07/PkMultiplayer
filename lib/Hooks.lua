@@ -1117,6 +1117,24 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
     end
   end)
 
+  -- ONE WORLD FOR TWO (src/coop/CoopWorld.lua): a field move our party
+  -- can't use may be the partner's, when they are close; a boulder we push
+  -- is pushed in the partner's copy too
+  wrap(OverworldState, "OverworldState", "partyKnows", function(partyKnows)
+    return function(self, ...)
+      local W = package.loaded["src.coop.CoopWorld"]
+      if W and W.partyKnows then return W.partyKnows(partyKnows, self, ...) end
+      return partyKnows(self, ...)
+    end
+  end)
+  wrap(OverworldState, "OverworldState", "checkBoulderPush", function(checkBoulderPush)
+    return function(self, ...)
+      local W = package.loaded["src.coop.CoopWorld"]
+      if W and W.checkBoulderPush then return W.checkBoulderPush(checkBoulderPush, self, ...) end
+      return checkBoulderPush(self, ...)
+    end
+  end)
+
   -- a trainer the partner is already fighting on this map does not spot us
   wrap(OverworldState, "OverworldState", "checkTrainerSight", function(checkTrainerSight)
     return function(self, ...)

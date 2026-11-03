@@ -538,4 +538,8 @@ return {
   ["WON %d  LOST %d"] = "VICT. %d  DERR. %d",
   ["GAMES %d-%d"] = "COMBATES %d-%d",
   ["ELO %d VS %d"] = "ELO %d VS %d",
+  -- ------------------------------------------- 1.20: un mundo para los dos (CoopWorld)
+  ["%s lends you %s"] = "%s te presta %s",
+  ["%s borrows your %s"] = "%s usa tu %s",
+  ["%s lights the area with %s"] = "%s ilumina con %s",
 }
