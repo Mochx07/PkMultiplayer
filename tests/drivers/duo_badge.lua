@@ -51,6 +51,18 @@ return function(game)
     end
     return out
   end
+  -- what reaches this copy from the partner's scene, and whether it counts as lived here
+  local CoopStory = require("src.coop.CoopStory")
+  local onRewards = CoopStory.onPartnerRewards
+  CoopStory.onPartnerRewards = function(g, msg)
+    local kinds = {}
+    for _, r in ipairs(msg.rewards or {}) do kinds[#kinds + 1] = r.kind .. ":" .. tostring(r.id or r.map or r.amount or "") end
+    U.log(role .. " rewards in: " .. table.concat(kinds, ", ") .. " lived=" .. tostring(CoopStory.alreadyLived(g.save, msg.rewards or {}))
+          .. " deferred=" .. tostring(msg.deferredAt ~= nil))
+    local a, b = onRewards(g, msg)
+    game.rewardsIn = true
+    return a, b
+  end
   U.teleport(game, "VIOLET_GYM", role == "host" and 5 or 4, 2, "up")
   if role == "host" then CM.host(port) else U.wait(60) CM.join("127.0.0.1", port) end
   for _ = 1, 60 * 30 do
@@ -67,7 +79,16 @@ return function(game)
   local ow = game.overworld
   local battles, lastBattle, shotBadge, gifts, lastGift = 0, nil, false, 0, nil
   local gotLine
-  if role == "host" then U.tap(game, "a") end
+  if role == "host" then
+    -- face FALKNER and talk, until his scene starts
+    for _ = 1, 10 do
+      U.tap(game, "up") U.wait(10)
+      U.tap(game, "a") U.wait(20)
+      local o = game.overworld
+      if (o.runner and o.runner:isRunning()) or game.stack:top() ~= o then break end
+    end
+    U.log("host talking to FALKNER: top=" .. tostring(game.stack:top() ~= game.overworld))
+  end
   local t0 = love.timer.getTime()
   local quietSince
   while love.timer.getTime() - t0 < 200 do
@@ -105,9 +126,11 @@ return function(game)
       U.shot(game, DIR .. "/4_partner_got.png")
     end
     -- done: the battle is over, the scene is over, no box waiting
-    if lastBattle and top == ow and not running and #CoopDuo.handovers == 0 then
+    local CoopStory = require("src.coop.CoopStory")
+    if lastBattle and top == ow and not running and #CoopDuo.handovers == 0 and #CoopStory.deferred == 0 then
       quietSince = quietSince or love.timer.getTime()
-      if love.timer.getTime() - quietSince > 8 then break end
+      -- the guest waits for the host's scene to end (its rewards) as well
+      if love.timer.getTime() - quietSince > 8 and (role == "host" or game.rewardsIn) then break end
     else
       quietSince = nil
     end
@@ -120,6 +143,12 @@ return function(game)
     end
   end
   U.shot(game, DIR .. "/5_end.png")
+  local tm
+  for id, def in pairs(game.data.items) do if def.name == "TM31" then tm = id end end
+  U.log(("%s TM31 (%s) in bag: %s; deferred %d, waiting boxes %d"):format(role, tostring(tm),
+        tostring(save.inventory[tm]), #require("src.coop.CoopStory").deferred, #CoopDuo.handovers))
+  check(tm and (save.inventory[tm] or 0) >= 1, save.player.name .. " has TM31")
+  if role == "guest" then check(gifts >= 2, "the TM was handed to TOBY in a box too (" .. gifts .. " box(es))") end
   check(battles == 1 and lastBattle and lastBattle.coopDouble, "one battle, the co-op double vs FALKNER")
   check(lastBattle and lastBattle.result == "win", "won (" .. tostring(lastBattle and lastBattle.result) .. ")")
   check(Badges.has(save, { id = "ZEPHYRBADGE" }), save.player.name .. " holds the ZEPHYRBADGE")
