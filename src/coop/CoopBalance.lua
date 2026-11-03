@@ -85,6 +85,14 @@ function CoopBalance.plan(enemyParty, mineList, theirsList, rules)
   local want = hard and players or math.ceil(players * 2 / 3)
   want = math.min(CoopBalance.MAX_PARTY, math.max(foes, want))
   local ahead = playerLevels / players - foeLevels / foes
+  -- ONE TEAM FAR BEHIND THE OTHER (rules.catchUp, CoopCatchUp): the foe is
+  -- levelled against the weaker three, not the pair's average -- the
+  -- stronger partner's levels no longer push it up past the one behind
+  if rules.catchUp == true and not hard then
+    local okC, CoopCatchUp = pcall(require, "src.coop.CoopCatchUp")
+    local weak = okC and CoopCatchUp.weakerAverage(mineList, theirsList)
+    if weak then ahead = weak - foeLevels / foes end
+  end
   local boost = 0
   if hard then
     boost = 3
@@ -98,13 +106,18 @@ function CoopBalance.plan(enemyParty, mineList, theirsList, rules)
 end
 
 function CoopBalance.currentRules()
-  return { balancedFoes = CoopManager.balancedFoes == true, hardFoes = CoopManager.hardFoes == true }
+  local rules = { balancedFoes = CoopManager.balancedFoes == true, hardFoes = CoopManager.hardFoes == true }
+  -- only when both copies know the rule (a 1.6.x partner would not apply it)
+  if CoopManager.bothHave and CoopManager.bothHave("story.catchup") then rules.catchUp = true end
+  return rules
 end
 
 -- Applies the plan to battle.enemyParty in place.  Returns true when the
 -- party changed (the caller places the lead foe again).
 function CoopBalance.apply(battle, mineList, theirsList)
   if type(battle) ~= "table" or type(battle.enemyParty) ~= "table" then return false end
+  -- the one far behind earns boosted EXP (their own copy only: CoopCatchUp)
+  pcall(function() require("src.coop.CoopCatchUp").prepareBattle(battle, mineList, theirsList) end)
   if battle.coopWild or battle.battleTower or battle.isLinkBattle then return false end
   local plan = CoopBalance.plan(battle.enemyParty, mineList, theirsList, battle.coopBalanceRules)
   if not plan then return false end

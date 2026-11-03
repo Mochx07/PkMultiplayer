@@ -199,6 +199,20 @@ local function warpLabel()
   return string.format("WARP (%d:%02d)", math.floor(left / 60), left % 60)
 end
 
+-- CATCH UP: offered to the player with fewer badges than the partner; the
+-- row is left out otherwise (false, taken out of the list below)
+local function catchUpRow(menu, ow)
+  local ok, CoopCatchUp = pcall(require, "src.coop.CoopCatchUp")
+  if not (ok and CoopCatchUp.available(menu.game)) then return false end
+  local n = #CoopCatchUp.missing(menu.game)
+  return { label = "CATCH UP",
+           info = { string.format("%d BADGES BEHIND.", n), "FLY TO WHERE YOUR", "PARTNER GOT TO." },
+           run = function()
+             menu:close()
+             CoopCatchUp.open(menu.game, ow)
+           end }
+end
+
 -- A rule row: the name on the left, ON/OFF lined up on the right edge of
 -- the 16 columns a label has.
 local function ruleLabel(name, on)
@@ -400,7 +414,7 @@ function CoopMenu:connectedRows(ow, page)
     end
     return rows
   end
-  return {
+  local rows = {
     -- the way into the chat on a phone, which has no T key
     { label = "CHAT  (KEY T)", run = function()
       menu:close()
@@ -417,6 +431,8 @@ function CoopMenu:connectedRows(ow, page)
       menu:close()
       if ow then CoopManager.warpToPartner(ow) end
     end },
+    -- only for the one behind in badges (src/coop/CoopCatchUp.lua)
+    catchUpRow(menu, ow),
     { label = "PARTNER", sub = "partner", run = open("partner") },
     { label = "POKéDEX", run = function()
       require("src.coop.CoopDex").open(menu.game)
@@ -429,6 +445,10 @@ function CoopMenu:connectedRows(ow, page)
       menu.page, menu.index, menu.pageStack = "main", 1, nil
     end },
   }
+  for i = #rows, 1, -1 do
+    if rows[i] == false then table.remove(rows, i) end
+  end
+  return rows
 end
 
 -- The offline menu, the same way.  RECONNECT leads it when the save

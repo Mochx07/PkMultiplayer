@@ -85,3 +85,4 @@ tests/drivers/six_formats_qa.lua
 tests/drivers/six_rules_adversarial.lua
 tests/drivers/six_replays_offline_qa.lua
 tests/drivers/six_yellow_qa.lua
+tests/coop_catchup.lua

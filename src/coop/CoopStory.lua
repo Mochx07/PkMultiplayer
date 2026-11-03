@@ -390,6 +390,9 @@ local function releaseHold(ctx)
   end
 end
 
+-- also lifted by CoopCatchUp.watchHold when the script dies before its end
+CoopStory.releaseHold = releaseHold
+
 function CoopStory.finish(ctx)
   local st = ctx and ctx.coopStory
   if CoopStory.current == st then CoopStory.current = nil end

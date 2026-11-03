@@ -151,7 +151,8 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
   CoopBattle.useRuleset(p2Battle, msg.ruleset)
   if type(msg.foeRules) == "table" then
     p2Battle.coopBalanceRules = { balancedFoes = msg.foeRules.balancedFoes == true,
-                                  hardFoes = msg.foeRules.hardFoes == true }
+                                  hardFoes = msg.foeRules.hardFoes == true,
+                                  catchUp = msg.foeRules.catchUp == true or nil }
   end
   CoopBattle.initBattle(p2Battle, chosenMons, msg.localMons, CoopManager.partner, msg.seed, msg.inviteId)
   local cOw = game.overworld or ow2
@@ -310,6 +311,15 @@ local DECLINE_TEXT = {
 function CoopManager.onBattleDeclined(ow, msg)
   local pending = CoopManager.pendingBattleInvite
   local big = CoopManager.bigBattle
+  -- ...or while you are picking your three for it (CoopReady.hostBigBattle)
+  local hosting = CoopManager.hostingBig
+  if not pending and hosting and msg and msg.inviteId == hosting.inviteId then
+    hosting.declined = true
+    hosting.partnerMons = nil
+    hosting.declineText = DECLINE_TEXT[msg.reason] or "Partner won't join. Solo!"
+    CoopManager.showStatus(hosting.declineText, 2.5)
+    return
+  end
   if not pending and big and msg and msg.inviteId == big.inviteId then
     -- turned down while the leader is still talking: this battle goes solo
     big.declined = true
