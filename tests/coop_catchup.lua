@@ -292,6 +292,9 @@ T.check(ok and why == "ECRUTEAK_CITY", "rules: free to go, to the partner's key 
 CoopManager.partner.inBattle = true
 T.check(select(2, CoopCatchUp.canCatchUp(gB, owB)) == "Partner is busy", "rules: not while the partner battles")
 CoopManager.partner.inBattle = nil
+CoopManager.partner.lastSeen = -1000
+T.check(select(2, CoopCatchUp.canCatchUp(gB, owB)) == "Partner not responding", "rules: not to a partner gone quiet")
+CoopManager.partner.lastSeen = math.huge
 owB.player.surfing = true
 T.check(not CoopCatchUp.canCatchUp(gB, owB), "rules: not off the water")
 owB.player.surfing = nil
@@ -442,6 +445,24 @@ do
   CoopCatchUp.prepareBattle(b6, game.save.party, team(3, 30))
   pcall(b6.awardExp, b6, {})
   T.check(game.save.party[1].traded == nil, "an error while paying still clears the boost")
+end
+
+-- READY, said again to the partner of a new session
+do
+  sent = {}
+  CoopManager.localReady = true
+  CoopCatchUp.readyFor = nil
+  T.check(CoopCatchUp.resendReady() == true and sentOf("coop_ready")[1] and sentOf("coop_ready")[1].ready == true,
+          "READY: a new session hears we are READY")
+  T.check(CoopCatchUp.resendReady() == false and #sentOf("coop_ready") == 1, "READY: once per session")
+  local old = CoopManager.partner
+  CoopManager.partner = setmetatable({}, { __index = old })   -- the link dropped and came back
+  T.check(CoopCatchUp.resendReady() == true, "READY: said again after a relink")
+  CoopManager.partner = old
+  CoopManager.localReady = false
+  CoopCatchUp.readyFor = nil
+  sent = {}
+  T.check(CoopCatchUp.resendReady() == false and #sent == 0, "READY: nothing to say when not ready")
 end
 
 -- Spanish

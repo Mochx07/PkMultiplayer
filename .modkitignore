@@ -86,3 +86,7 @@ tests/drivers/six_rules_adversarial.lua
 tests/drivers/six_replays_offline_qa.lua
 tests/drivers/six_yellow_qa.lua
 tests/coop_catchup.lua
+tests/drivers/bigbattle_select_race.lua
+tests/drivers/hold_dead_scene.lua
+tests/drivers/catchup_real.lua
+tests/drivers/level_gap_double.lua

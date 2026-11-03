@@ -237,6 +237,12 @@ function CoopCatchUp.canCatchUp(game, ow, answered)
   end
   if CoopManager.mapsMatch(town, ow.map.id) then return false, "You are already there" end
   if p.inBattle or ((p.busy or p.inDialogue) and not answered) then return false, "Partner is busy" end
+  -- heard from lately, on a link that is not stalling (anywhere: they need
+  -- not be near the town)
+  if not answered and CoopManager.partnerReachable then
+    local okR, whyR = CoopManager.partnerReachable(ow, true)
+    if not okR then return false, whyR end
+  end
   if (CoopManager.isLocalInDialogue(ow) and not answered) or (ow.player and ow.player.surfing) then
     return false, "Can't warp now!"
   end
@@ -448,8 +454,22 @@ CoopManager.handlers.coop_catchup_done = function(ow, msg)
   CoopManager.showStatus((CoopManager.partner.name or "Partner") .. " caught up!", 3)
 end
 
+-- READY survives a dropped link on this copy (CoopManager.localReady) but
+-- the partner's copy starts the new session knowing nothing of it: the
+-- menu said READY ON here while they saw no READY over your head.  Said
+-- again once per session (coop_ready is as old as READY: no capability).
+CoopCatchUp.readyFor = nil
+function CoopCatchUp.resendReady()
+  if CoopCatchUp.readyFor == CoopManager.partner then return false end
+  CoopCatchUp.readyFor = CoopManager.partner
+  if not (CoopManager.localReady and CoopManager.net) then return false end
+  CoopManager.net:send({ type = "coop_ready", ready = true })
+  return true
+end
+
 CoopManager.onTick("catchup", function(dt, game)
   CoopCatchUp.watchHold(game)
+  CoopCatchUp.resendReady()
   if game and game.overworld and game.overworld.map and game.save then
     CoopCatchUp.noteTown(game)
     CoopCatchUp.sendInfo(game)
