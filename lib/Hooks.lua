@@ -1358,4 +1358,17 @@ function Hooks.installQuit()
   end
 end
 
+-- VS FORMATS (1.20): in a format battle the Cable Club sends the part of the
+-- party the format allows (src/coop/CoopVS.lua); any other packing -- a
+-- trade, a free battle -- gets the party it was given.
+Hooks.modules["src.link.Protocol"] = function(Protocol)
+  wrap(Protocol, "Protocol", "packParty", function(packParty)
+    return function(party, ...)
+      local ok, CoopVS = pcall(require, "src.coop.CoopVS")
+      if ok and CoopVS.packFor then party = CoopVS.packFor(party) end
+      return packParty(party, ...)
+    end
+  end)
+end
+
 return Hooks

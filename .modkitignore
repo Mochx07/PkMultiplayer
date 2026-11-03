@@ -71,3 +71,5 @@ docs/img/coop-menu-en.png
 tasks/todo.md
 tasks/lessons.md
 tests/coop_caps.lua
+tests/coop_vs.lua
+tests/drivers/vs_level50.lua

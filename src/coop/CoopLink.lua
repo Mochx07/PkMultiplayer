@@ -103,11 +103,21 @@ end
 -- starting the Cable Club on both screens
 -- ---------------------------------------------------------------------
 
-local function openLinkState(game, mode, asker, linkId)
+local function openLinkState(game, mode, asker, linkId, fmt)
   local LinkState = require("src.link.LinkState")
   local ls = LinkState.new(game)
   ls.net = CoopLink.newTunnel(linkId)
   ls.coopTunnel = true
+  -- a VS format (1.20): the party that plays and, on the asker, the level
+  local CoopVS = fmt and require("src.coop.CoopVS")
+  local vs = CoopVS and CoopVS.attach(ls.net, game, fmt)
+  if vs then
+    if asker then CoopVS.skipLevelMenu(ls, fmt) end
+    local CM = manager()
+    if CM and #vs.left > 0 then
+      CM.showStatus(string.format("%d POKéMON LEFT OUT (RULES)", #vs.left), 3)
+    end
+  end
   if asker then
     -- the side that picked the mode is the link "host": it announces the
     -- mode and waits for the partner's hello (LinkState's waitHello)
@@ -140,8 +150,8 @@ function CoopLink.partyReady(game, mode)
   return false
 end
 
--- one player asks
-function CoopLink.invite(game, mode)
+-- one player asks; `fmt` (a CoopVS format, battle only) is the rules
+function CoopLink.invite(game, mode, fmt)
   local CM = manager()
   if not (CM and CM.isConnected and CM.isConnected()) then
     if CM then CM.showStatus("No partner linked", 2) end
@@ -151,6 +161,12 @@ function CoopLink.invite(game, mode)
   if not CoopLink.partyReady(game, mode) then
     CM.showStatus("You have no POKéMON!", 2.5)
     return false
+  end
+  if fmt and mode == "battle" and fmt.id ~= "free" then
+    local _, _, err = require("src.coop.CoopVS").legalParty(game.data, game.save.party, fmt)
+    if err then CM.showStatus(err, 3) return false end
+  else
+    fmt = nil
   end
   local id = string.format("L%d-%d", os.time(), math.random(1, 2 ^ 24))
   local CoopWaitModal = require("src.coop.CoopWaitModal")
@@ -163,9 +179,10 @@ function CoopLink.invite(game, mode)
     end
   end, CoopLink.INVITE_TIMEOUT + 2, { lines = { "ASKING " .. pName, "TO " .. MODE_TEXT[mode] .. "..." },
                                       cancelLabel = "B: CANCEL" })
-  CoopLink.pending = { id = id, mode = mode, modal = modal }
+  CoopLink.pending = { id = id, mode = mode, modal = modal, format = fmt }
   game.stack:push(modal)
-  CM.net:send({ type = "coop_link_invite", id = id, mode = mode, name = CM.getLocalPlayerName(game) })
+  CM.net:send({ type = "coop_link_invite", id = id, mode = mode, name = CM.getLocalPlayerName(game),
+                format = fmt and fmt.id or nil })
   return true
 end
 
@@ -187,12 +204,25 @@ function CoopLink.onInvite(game, msg)
   if not (CM.overworldIdle and CM.overworldIdle(game, ow)) then answer("coop_link_decline", "busy") return end
   local mode = MODE_TEXT[msg.mode] and msg.mode or nil
   if not mode then return end
+  -- a format we do not know is refused, not played as a free battle
+  local fmt
+  if mode == "battle" and msg.format ~= nil then
+    local CoopVS = require("src.coop.CoopVS")
+    fmt = CoopVS.format(msg.format)
+    if not fmt then answer("coop_link_decline", "rules") return end
+    local _, _, err = CoopVS.legalParty(game.data, game.save.party, fmt)
+    if err then
+      CM.showStatus(err, 3)
+      answer("coop_link_decline", "rules")
+      return
+    end
+  end
   local who = string.upper(tostring(msg.name or CM.partner.name or "PARTNER"))
   local Invite = require("src.coop.CoopBattleInviteModal")
   local modal = Invite.new(game, who, "", function()
     CoopLink.asked = nil
     answer("coop_link_accept")
-    openLinkState(game, mode, false, msg.id)
+    openLinkState(game, mode, false, msg.id, fmt)
   end, function()
     CoopLink.asked = nil
     answer("coop_link_decline", "declined")
@@ -200,7 +230,7 @@ function CoopLink.onInvite(game, msg)
   modal.inviteId = msg.id
   modal.timeout = CoopLink.INVITE_TIMEOUT
   modal.lines = { require("src.coop.CoopI18n").truncate(who, 16), mode == "trade" and "WANTS TO TRADE!" or "WANTS TO BATTLE!",
-                  mode == "trade" and "OPEN TRADE ROOM?" or "P1 VS P2 BATTLE?" }
+                  mode == "trade" and "OPEN TRADE ROOM?" or (fmt and fmt.invite) or "P1 VS P2 BATTLE?" }
   CoopLink.asked = modal
   game.stack:push(modal)
 end
@@ -220,7 +250,7 @@ function CoopLink.onAccept(game, msg)
   local p = CoopLink.pending
   if not (p and p.id == msg.id) then return end
   closePending(game)
-  openLinkState(game, p.mode, true, p.id)
+  openLinkState(game, p.mode, true, p.id, p.format)
 end
 
 function CoopLink.onDecline(game, msg)
@@ -231,6 +261,7 @@ function CoopLink.onDecline(game, msg)
   if CM then
     local why = (msg.reason == "busy" and "Partner is busy")
       or (msg.reason == "no_mons" and "Partner has no POKéMON")
+      or (msg.reason == "rules" and "Partner's team breaks the rules")
       or "Partner said no"
     CM.showStatus(why, 2.5)
   end

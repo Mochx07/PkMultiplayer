@@ -22,7 +22,14 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       wild_together, league_door y watch_smoke (0 fallos, logs sin errores).
 
 ## M1. Modo VS (sobre el P1 VS P2 del Cable Club)
-- [ ] Reglas: nivel 50 para todos, Little Cup, monotipo, cláusulas de sueño/objeto, baneos.
+- [x] Formatos (cap `vs.formats`, `src/coop/CoopVS.lua`): COMBATE LIBRE, NIVEL 50, NIVEL 100,
+      PEQUEÑOS (nivel 5, solo primeras etapas que evolucionan), MONOTIPO. Cláusulas de especie
+      y objeto, sin legendarios, sin OHKO ni evasión. Se toma el equipo tal cual y quedan
+      fuera los que no cumplen (se avisa cuántos); solo se rechaza si no queda nadie.
+      Nivel por `forceLevel` del motor, sin su menú; equipo enviado por hook a
+      `Protocol.packParty`. Menú PARTNER > BATTLE P1 VS P2 > formato (B vuelve por páginas).
+      Pruebas: `tests/coop_vs.lua` 35/35; driver real `vs_level50.lua` 0 fallos en las 2 copias.
+- [ ] Cláusula de sueño dentro del combate (necesita hook determinista en el combate de enlace).
 - [ ] Al mejor de 3 con vista previa de equipos.
 - [ ] Repeticiones: semilla + entradas del lockstep a un archivo; visor de repeticiones.
 - [ ] Historial y ELO local por compañero.

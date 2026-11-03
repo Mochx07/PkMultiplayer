@@ -45,6 +45,8 @@ function CoopManager.registerCap(name)
   CoopManager.CAPS[name] = true
 end
 
+CoopManager.registerCap("vs.formats")   -- src/coop/CoopVS.lua
+
 -- ours, sorted (the hello and the logs read the same)
 function CoopManager.localCaps()
   local out = {}

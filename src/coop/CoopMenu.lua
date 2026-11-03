@@ -260,6 +260,9 @@ function CoopMenu:connectedRows(ow, page)
   page = page or self.page or "main"
   local function open(sub)
     return function()
+      -- pages open inside pages (PARTNER > BATTLE P1 VS P2): B walks back
+      menu.pageStack = menu.pageStack or {}
+      table.insert(menu.pageStack, { page = menu.page or "main", index = menu.index })
       menu.parentIndex = menu.index
       menu.page, menu.index, menu.scroll = sub, 1, 1
     end
@@ -277,15 +280,27 @@ function CoopMenu:connectedRows(ow, page)
         menu:close()
         require("src.coop.CoopLink").invite(menu.game, "trade")
       end },
-      { label = "BATTLE P1 VS P2", run = function()
-        menu:close()
-        require("src.coop.CoopLink").invite(menu.game, "battle")
-      end },
+      -- with a 1.20 partner, the rules come first (the "vs" page)
+      CoopManager.bothHave("vs.formats")
+        and { label = "BATTLE P1 VS P2", sub = "vs", run = open("vs") }
+        or { label = "BATTLE P1 VS P2", run = function()
+          menu:close()
+          require("src.coop.CoopLink").invite(menu.game, "battle")
+        end },
       { label = "MYSTERY GIFT", run = function()
         menu:close()
         require("src.coop.CoopGift").ask(menu.game, ow)
       end },
     }
+  elseif page == "vs" then
+    local rows = {}
+    for _, fmt in ipairs(require("src.coop.CoopVS").FORMATS) do
+      rows[#rows + 1] = { label = fmt.name, info = fmt.info, run = function()
+        menu:close()
+        require("src.coop.CoopLink").invite(menu.game, "battle", fmt)
+      end }
+    end
+    return rows
   elseif page == "rules" then
     local function rule(key, name, info)
       return { label = ruleLabel(name, CoopManager[key]), info = info, ruleKey = key, run = function()
@@ -351,7 +366,7 @@ function CoopMenu:connectedRows(ow, page)
     { label = "DISCONNECT", run = function()
       require("src.coop.CoopRejoin").stop(menu.game)
       CoopManager.disconnect()
-      menu.page, menu.index = "main", 1
+      menu.page, menu.index, menu.pageStack = "main", 1, nil
     end },
   }
 end
@@ -548,7 +563,7 @@ function CoopMenu:update(dt)
 
   if self.stage == "main" then
     local isConn = CoopManager.isConnected()
-    if not isConn then self.page = "main" end
+    if not isConn then self.page, self.pageStack = "main", nil end
     local rows = isConn and self:connectedRows(ow) or self:offlineRows()
     local maxItems = #rows
     if self.index > maxItems then self.index = 1 end
@@ -560,7 +575,12 @@ function CoopMenu:update(dt)
     elseif input:wasPressed("b") then
       if self.page and self.page ~= "main" then
         -- back to the row the page was opened from
-        self.page, self.index, self.scroll = "main", self.parentIndex or 1, 1
+        local back = self.pageStack and table.remove(self.pageStack)
+        if back then
+          self.page, self.index, self.scroll = back.page, back.index, 1
+        else
+          self.page, self.index, self.scroll = "main", self.parentIndex or 1, 1
+        end
       else
         self:close()
       end
