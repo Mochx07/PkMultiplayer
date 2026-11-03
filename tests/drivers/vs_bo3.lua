@@ -211,6 +211,16 @@ return function(game)
     local r = CoopReplay.load(n)
     if r and r.best == 3 and r.game then byGame[r.game] = n seeds[r.game] = r.seed end
   end
+  -- LEVEL 50 has the sleep clause (src/coop/CoopSleepClause.lua) when both
+  -- copies have it: every game's replay keeps it, not only the first
+  if CoopManager.bothHave("vs.sleep") then
+    local all = true
+    for g = 1, 3 do
+      local r = byGame[g] and CoopReplay.load(byGame[g])
+      all = all and r and r.sleepClause == true
+    end
+    check(all, "the sleep clause is in all three replays")
+  end
   check(byGame[1] and byGame[2] and byGame[3], "...games 1, 2 and 3 of the best of 3")
   check(seeds[1] ~= seeds[2] and seeds[2] ~= seeds[3] and seeds[1] ~= seeds[3],
         "a new seed each game: " .. tostring(seeds[1]) .. " " .. tostring(seeds[2]) .. " " .. tostring(seeds[3]))
