@@ -46,6 +46,7 @@ function CoopManager.registerCap(name)
 end
 
 CoopManager.registerCap("vs.formats")   -- src/coop/CoopVS.lua
+CoopManager.registerCap("vs.match")     -- src/coop/CoopMatch.lua: best of 3, the VS record
 
 -- ours, sorted (the hello and the logs read the same)
 function CoopManager.localCaps()

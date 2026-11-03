@@ -75,3 +75,5 @@ tests/coop_vs.lua
 tests/drivers/vs_level50.lua
 tests/coop_replay.lua
 tests/drivers/vs_replay.lua
+tests/coop_bo3.lua
+tests/drivers/vs_bo3.lua

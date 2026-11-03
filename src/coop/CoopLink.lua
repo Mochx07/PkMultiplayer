@@ -82,11 +82,20 @@ function Tunnel:send(msg)
   if self.closed then return end
   if self.rec then require("src.coop.CoopReplay").note(self, "out", msg) end
   local CM = manager()
-  if CM and CM.net then CM.net:send({ type = "coop_link", link = self.id, payload = msg }) end
+  -- in a match (src/coop/CoopMatch.lua) every message says which game it is for
+  if CM and CM.net then
+    CM.net:send({ type = "coop_link", link = self.id, payload = msg, game = self.match and self.match.game or nil })
+  end
 end
 
 -- LinkState closes its net when it ends; the co-op link itself stays up
 function Tunnel:close()
+  -- a game of a match ending: its replay is kept, the Cable Club stays
+  if self.match and self.softClose then
+    if self.rec then pcall(require("src.coop.CoopReplay").finish, self) end
+    return
+  end
+  if self.match then require("src.coop.CoopMatch").onClose(self) end
   self.closed = true
   if CoopLink.adapter == self then CoopLink.adapter = nil end
   -- a battle leaves a replay behind (src/coop/CoopReplay.lua)
@@ -97,7 +106,8 @@ function CoopLink.onLinkMessage(msg)
   if type(msg.payload) ~= "table" then return end
   local open = CoopLink.adapter and not CoopLink.adapter.closed and CoopLink.adapter
   if open and open.id == msg.link then
-    table.insert(open.inbox, msg.payload)
+    if open.match then require("src.coop.CoopMatch").route(open, msg)
+    else table.insert(open.inbox, msg.payload) end
   elseif open then
     require("src.coop.CoopLog").info("LINK", "dropped a message from another trade: " .. tostring(msg.link))
   else
@@ -110,18 +120,30 @@ end
 -- starting the Cable Club on both screens
 -- ---------------------------------------------------------------------
 
-local function openLinkState(game, mode, asker, linkId, fmt)
+-- `best` (1 or 3): a match (src/coop/CoopMatch.lua), with a partner that has it
+local function openLinkState(game, mode, asker, linkId, fmt, best)
   local LinkState = require("src.link.LinkState")
   local ls = LinkState.new(game)
   ls.net = CoopLink.newTunnel(linkId)
   ls.coopTunnel = true
   if mode == "battle" then
     local CM = manager()
-    require("src.coop.CoopReplay").start(ls.net, {
+    local info = {
       asker = asker, format = fmt and fmt.id ~= "free" and fmt.id or nil,
       myName = CM and CM.getLocalPlayerName and CM.getLocalPlayerName(game) or "ME",
       theirName = CM and CM.partner and CM.partner.name or "PARTNER",
-    })
+    }
+    if best then
+      local CoopMatch = require("src.coop.CoopMatch")
+      CoopMatch.attach(ls, CoopMatch.new({
+        best = best, asker = asker, format = info.format or "free",
+        myName = info.myName, theirName = info.theirName,
+        myId = CM and CM.coopId and CM.coopId(game.save), partnerId = CM and CM.partner and CM.partner.id,
+      }))
+      info.game, info.best = 1, best
+    end
+    ls.net.recInfo = info
+    require("src.coop.CoopReplay").start(ls.net, info)
   end
   -- a VS format (1.20): the party that plays and, on the asker, the level
   local CoopVS = fmt and require("src.coop.CoopVS")
@@ -165,8 +187,9 @@ function CoopLink.partyReady(game, mode)
   return false
 end
 
--- one player asks; `fmt` (a CoopVS format, battle only) is the rules
-function CoopLink.invite(game, mode, fmt)
+-- one player asks; `fmt` (a CoopVS format, battle only) is the rules and
+-- `best` (1 or 3) the games of the match, when the partner plays matches
+function CoopLink.invite(game, mode, fmt, best)
   local CM = manager()
   if not (CM and CM.isConnected and CM.isConnected()) then
     if CM then CM.showStatus("No partner linked", 2) end
@@ -183,6 +206,12 @@ function CoopLink.invite(game, mode, fmt)
   else
     fmt = nil
   end
+  local CoopMatch = require("src.coop.CoopMatch")
+  if mode == "battle" and CM.bothHave and CM.bothHave(CoopMatch.CAP) then
+    best = best == 3 and 3 or 1
+  else
+    best = nil
+  end
   local id = string.format("L%d-%d", os.time(), math.random(1, 2 ^ 24))
   local CoopWaitModal = require("src.coop.CoopWaitModal")
   local pName = string.upper(CM.partner.name or "PARTNER")
@@ -194,10 +223,10 @@ function CoopLink.invite(game, mode, fmt)
     end
   end, CoopLink.INVITE_TIMEOUT + 2, { lines = { "ASKING " .. pName, "TO " .. MODE_TEXT[mode] .. "..." },
                                       cancelLabel = "B: CANCEL" })
-  CoopLink.pending = { id = id, mode = mode, modal = modal, format = fmt }
+  CoopLink.pending = { id = id, mode = mode, modal = modal, format = fmt, best = best }
   game.stack:push(modal)
   CM.net:send({ type = "coop_link_invite", id = id, mode = mode, name = CM.getLocalPlayerName(game),
-                format = fmt and fmt.id or nil })
+                format = fmt and fmt.id or nil, best = best })
   return true
 end
 
@@ -232,12 +261,22 @@ function CoopLink.onInvite(game, msg)
       return
     end
   end
+  -- a match: 1 or 3 games, and only if this copy plays matches at all
+  local best
+  if mode == "battle" and msg.best ~= nil then
+    local CoopMatch = require("src.coop.CoopMatch")
+    if not (CM.CAPS and CM.CAPS[CoopMatch.CAP] and CoopMatch.validBest(msg.best)) then
+      answer("coop_link_decline", "rules")
+      return
+    end
+    best = msg.best
+  end
   local who = string.upper(tostring(msg.name or CM.partner.name or "PARTNER"))
   local Invite = require("src.coop.CoopBattleInviteModal")
   local modal = Invite.new(game, who, "", function()
     CoopLink.asked = nil
     answer("coop_link_accept")
-    openLinkState(game, mode, false, msg.id, fmt)
+    openLinkState(game, mode, false, msg.id, fmt, best)
   end, function()
     CoopLink.asked = nil
     answer("coop_link_decline", "declined")
@@ -245,7 +284,8 @@ function CoopLink.onInvite(game, msg)
   modal.inviteId = msg.id
   modal.timeout = CoopLink.INVITE_TIMEOUT
   modal.lines = { require("src.coop.CoopI18n").truncate(who, 16), mode == "trade" and "WANTS TO TRADE!" or "WANTS TO BATTLE!",
-                  mode == "trade" and "OPEN TRADE ROOM?" or (fmt and fmt.invite) or "P1 VS P2 BATTLE?" }
+                  mode == "trade" and "OPEN TRADE ROOM?" or (fmt and fmt.invite) or "P1 VS P2 BATTLE?",
+                  best == 3 and "BEST OF 3 GAMES" or nil }
   CoopLink.asked = modal
   game.stack:push(modal)
 end
@@ -265,7 +305,7 @@ function CoopLink.onAccept(game, msg)
   local p = CoopLink.pending
   if not (p and p.id == msg.id) then return end
   closePending(game)
-  openLinkState(game, p.mode, true, p.id, p.format)
+  openLinkState(game, p.mode, true, p.id, p.format, p.best)
 end
 
 function CoopLink.onDecline(game, msg)

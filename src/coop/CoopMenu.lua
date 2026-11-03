@@ -287,6 +287,22 @@ function CoopMenu:replayRows()
   return rows
 end
 
+-- THE VS RECORD against this partner (src/coop/CoopRecord.lua): a row per
+-- format played, its wins, games and ELO in the box above
+function CoopMenu:recordRows()
+  local CoopRecord = require("src.coop.CoopRecord")
+  local partner = CoopManager.partner or {}
+  local rows = {}
+  for _, r in ipairs(CoopRecord.rows(CoopManager.coopId(self.game and self.game.save), partner.id)) do
+    rows[#rows + 1] = { label = r.format.name, info = CoopRecord.describe(r.rec), run = function() end }
+  end
+  if #rows == 0 then
+    rows[1] = { label = "NO MATCHES YET", info = { "WHAT YOU WIN OR", "LOSE AGAINST YOUR", "PARTNER SHOWS HERE" },
+                run = function() end }
+  end
+  return rows
+end
+
 function CoopMenu:connectedRows(ow, page)
   local menu = self
   page = page or self.page or "main"
@@ -320,15 +336,29 @@ function CoopMenu:connectedRows(ow, page)
     }
   elseif page == "vs" then
     local rows = {}
+    -- 1.20 matches (src/coop/CoopMatch.lua): one game or the best of three
+    local CoopMatch = require("src.coop.CoopMatch")
+    local matches = CoopManager.bothHave(CoopMatch.CAP)
+    if matches then
+      rows[#rows + 1] = { label = CoopMatch.wantBest == 3 and "MATCH: BEST OF 3" or "MATCH: 1 GAME",
+                          info = { "A: ONE GAME OR THE", "BEST OF 3. YOUR", "PARTNER SEES IT." },
+                          run = function() CoopMatch.wantBest = CoopMatch.wantBest == 3 and 1 or 3 end }
+    end
     for _, fmt in ipairs(require("src.coop.CoopVS").FORMATS) do
       rows[#rows + 1] = { label = fmt.name, info = fmt.info, run = function()
         menu:close()
-        require("src.coop.CoopLink").invite(menu.game, "battle", fmt)
+        require("src.coop.CoopLink").invite(menu.game, "battle", fmt, CoopMatch.wantBest)
       end }
+    end
+    if matches then
+      rows[#rows + 1] = { label = "RECORD", sub = "record", info = { "WINS, LOSSES AND", "ELO AGAINST YOUR", "PARTNER." },
+                          run = open("record") }
     end
     rows[#rows + 1] = { label = "REPLAYS", sub = "replays", info = { "WATCH YOUR P1 VS", "P2 BATTLES AGAIN." },
                         run = open("replays") }
     return rows
+  elseif page == "record" then
+    return menu:recordRows()
   elseif page == "replays" then
     return menu:replayRows()
   elseif page == "rules" then

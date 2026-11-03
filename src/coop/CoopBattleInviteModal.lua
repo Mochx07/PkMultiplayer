@@ -107,7 +107,8 @@ function CoopBattleInviteModal:draw()
   local pLabel = I18n.truncate(self.partnerName, 16)
   local tLabel = I18n.truncate(self.trainerName, 13)
   local lines = self.lines or { pLabel, "WANTS TO TEAM UP", "VS " .. tLabel }
-  for i = 1, 3 do
+  -- a fourth line fits above JOIN (a VS match's "BEST OF 3 GAMES")
+  for i = 1, 4 do
     Font.draw(I18n.fit(lines[i] or "", 16), x, y + (i - 1) * 8)
   end
 
