@@ -884,6 +884,36 @@ Hooks.modules["src.battle.EffectRegistry"] = function(EffectRegistry)
   end)
 end
 
+-- THE SLEEP CLAUSE OF THE VS FORMATS (1.20, src/coop/CoopSleepClause.lua).
+-- A link battle -- the live one and a replay's spectator -- is armed when
+-- its net says so (the co-op tunnel of a format battle both copies play
+-- under the clause, or a replay that was); a sleep that lands in an armed
+-- battle is asked about first.  Any other battle goes straight through.
+Hooks.modules["src.link.LinkBattle"] = function(LinkBattle)
+  for _, name in ipairs({ "new", "newSpectator" }) do
+    wrap(LinkBattle, "LinkBattle", name, function(make)
+      return function(game, net, ...)
+        local battle, why = make(game, net, ...)
+        if battle and type(net) == "table" and net.sleepClause then
+          require("src.coop.CoopSleepClause").arm(battle)
+        end
+        return battle, why
+      end
+    end)
+  end
+end
+
+Hooks.modules["src.battle.StatusRegistry"] = function(StatusRegistry)
+  wrap(StatusRegistry, "StatusRegistry", "inflict", function(inflict)
+    return function(battle, ...)
+      if type(battle) == "table" and battle.coopSleepClause then
+        return require("src.coop.CoopSleepClause").inflict(inflict, battle, ...)
+      end
+      return inflict(battle, ...)
+    end
+  end)
+end
+
 -- WILD TOGETHER: four Pokemon out, no BALL can be aimed
 Hooks.modules["src.inventory.ItemEffects"] = function(ItemEffects)
   wrap(ItemEffects, "ItemEffects", "use", function(use)

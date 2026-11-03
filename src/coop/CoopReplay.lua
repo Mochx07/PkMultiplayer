@@ -77,6 +77,7 @@ function CoopReplay.build(rec, when)
     guestParty = host and rec.theirParty or rec.myParty,
     seed = rec.seed,
     forceLevel = rec.forceLevel,
+    sleepClause = rec.sleepClause or nil,
     log = log,
   }
 end
@@ -181,7 +182,10 @@ function CoopReplay.newFeed(replay)
   for _, e in ipairs(replay.log or {}) do
     q[#q + 1] = { type = "spectate", side = e.side, msg = e.msg }
   end
-  return setmetatable({ queue = q, pos = 1, inbox = {}, closed = false, paired = true }, Feed)
+  -- a battle played under the sleep clause is watched under it too (the
+  -- spectator is armed by its net, lib/Hooks.lua)
+  return setmetatable({ queue = q, pos = 1, inbox = {}, closed = false, paired = true,
+                        sleepClause = replay.sleepClause == true }, Feed)
 end
 
 function Feed:idle()

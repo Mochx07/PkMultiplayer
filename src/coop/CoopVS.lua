@@ -25,7 +25,8 @@ CoopVS.LEGENDS = { [150] = true, [151] = true, [249] = true, [250] = true, [251]
 CoopVS.OHKO_MOVES = { FISSURE = true, HORN_DRILL = true, GUILLOTINE = true }
 CoopVS.EVASION_MOVES = { DOUBLE_TEAM = true, MINIMIZE = true }
 
-local CUP = { species = true, item = true, legends = true, ohko = true, evasion = true }
+-- sleep: the sleep clause in the battle itself (src/coop/CoopSleepClause.lua)
+local CUP = { species = true, item = true, legends = true, ohko = true, evasion = true, sleep = true }
 
 CoopVS.FORMATS = {
   { id = "free", name = "FREE BATTLE", invite = "P1 VS P2 BATTLE?",
@@ -159,6 +160,12 @@ function CoopVS.attach(tunnel, game, fmt)
   local kept, left, err = CoopVS.legalParty(game.data, game.save.party, fmt)
   if err then return nil, err end
   tunnel.vs = { format = fmt, party = kept, left = left, save = game.save.party }
+  -- the sleep clause, when both copies play it: the battle on this tunnel is
+  -- armed with it (lib/Hooks.lua), and so is its replay
+  if require("src.coop.CoopSleepClause").agreed(fmt) then
+    tunnel.sleepClause = true
+    if tunnel.rec then tunnel.rec.sleepClause = true end
+  end
   return tunnel.vs
 end
 
