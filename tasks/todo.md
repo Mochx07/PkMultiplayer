@@ -31,7 +31,13 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       Pruebas: `tests/coop_vs.lua` 35/35; driver real `vs_level50.lua` 0 fallos en las 2 copias.
 - [ ] Cláusula de sueño dentro del combate (necesita hook determinista en el combate de enlace).
 - [ ] Al mejor de 3 con vista previa de equipos.
-- [ ] Repeticiones: semilla + entradas del lockstep a un archivo; visor de repeticiones.
+- [x] Repeticiones (`src/coop/CoopReplay.lua`): el túnel anota equipos, semilla, nivel y
+      acciones de cada combate P1 VS P2; al cerrar escribe un JSON en
+      `modstorage/PkMultiplayer/replays/` (se guardan los 20 últimos). Se ven con el
+      espectador del motor (`LinkBattle.newSpectator`) alimentado mensaje a mensaje.
+      Menú: VS > REPETICIONES, y REPETICIONES sin conexión. No va nada extra por la red.
+      Pruebas: `tests/coop_replay.lua` 25/25; driver real `vs_replay.lua`: en las dos copias
+      la repetición termina con los mismos PS y ganador que el combate.
 - [ ] Historial y ELO local por compañero.
 - [ ] (después) Equipos de alquiler, draft, 2v2 de 4 jugadores con VISIT, torneo.
 

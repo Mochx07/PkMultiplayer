@@ -71,11 +71,16 @@ end
 function Tunnel:poll()
   local q = self.inbox
   self.inbox = {}
+  if self.rec then
+    local CoopReplay = require("src.coop.CoopReplay")
+    for _, m in ipairs(q) do CoopReplay.note(self, "in", m) end
+  end
   return q
 end
 
 function Tunnel:send(msg)
   if self.closed then return end
+  if self.rec then require("src.coop.CoopReplay").note(self, "out", msg) end
   local CM = manager()
   if CM and CM.net then CM.net:send({ type = "coop_link", link = self.id, payload = msg }) end
 end
@@ -84,6 +89,8 @@ end
 function Tunnel:close()
   self.closed = true
   if CoopLink.adapter == self then CoopLink.adapter = nil end
+  -- a battle leaves a replay behind (src/coop/CoopReplay.lua)
+  if self.rec then pcall(require("src.coop.CoopReplay").finish, self) end
 end
 
 function CoopLink.onLinkMessage(msg)
@@ -108,6 +115,14 @@ local function openLinkState(game, mode, asker, linkId, fmt)
   local ls = LinkState.new(game)
   ls.net = CoopLink.newTunnel(linkId)
   ls.coopTunnel = true
+  if mode == "battle" then
+    local CM = manager()
+    require("src.coop.CoopReplay").start(ls.net, {
+      asker = asker, format = fmt and fmt.id ~= "free" and fmt.id or nil,
+      myName = CM and CM.getLocalPlayerName and CM.getLocalPlayerName(game) or "ME",
+      theirName = CM and CM.partner and CM.partner.name or "PARTNER",
+    })
+  end
   -- a VS format (1.20): the party that plays and, on the asker, the level
   local CoopVS = fmt and require("src.coop.CoopVS")
   local vs = CoopVS and CoopVS.attach(ls.net, game, fmt)

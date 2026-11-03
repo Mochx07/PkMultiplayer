@@ -73,3 +73,5 @@ tasks/lessons.md
 tests/coop_caps.lua
 tests/coop_vs.lua
 tests/drivers/vs_level50.lua
+tests/coop_replay.lua
+tests/drivers/vs_replay.lua

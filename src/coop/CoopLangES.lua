@@ -502,4 +502,12 @@ return {
   ["Your team breaks the rules"] = "Tu equipo no cumple las reglas",
   ["Partner's team breaks the rules"] = "Su equipo no cumple las reglas",
   ["%d POKéMON LEFT OUT (RULES)"] = "%d POKéMON FUERA (REGLAS)",
+  -- ------------------------------------------- 1.20: repeticiones (CoopReplay)
+  ["REPLAYS"] = "REPETICIONES",
+  ["NO REPLAYS YET"] = "SIN REPETICIONES",
+  ["WATCH YOUR P1 VS\nP2 BATTLES AGAIN."] = "VUELVE A VER TUS\nCOMBATES P1 VS P2.",
+  ["A P1 VS P2 BATTLE\nIS KEPT HERE TO\nWATCH AGAIN."] = "AQUÍ SE GUARDAN\nLOS P1 VS P2 PARA\nVERLOS OTRA VEZ.",
+  ["A: WATCH"] = "A: VER",
+  ["Replay can't be read"] = "No se puede leer",
+  ["Replay can't be played"] = "No se puede reproducir",
 }

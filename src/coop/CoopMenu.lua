@@ -255,17 +255,43 @@ end
 -- rules under RULES (`sub` opens a page, B comes back), and each rule says
 -- what it does in the box above while it is highlighted (`info`).  The rules
 -- are shared -- toggling one changes it for both players (coop_rules).
+-- opens a page of the menu; pages open inside pages (PARTNER > BATTLE P1
+-- VS P2 > REPLAYS), and B walks back the way it came
+function CoopMenu:openPage(sub)
+  self.pageStack = self.pageStack or {}
+  table.insert(self.pageStack, { page = self.page or "main", index = self.index })
+  self.parentIndex = self.index
+  self.page, self.index, self.scroll = sub, 1, 1
+end
+
+-- THE REPLAYS (src/coop/CoopReplay.lua), newest first: A watches one
+function CoopMenu:replayRows()
+  local menu = self
+  local CoopReplay = require("src.coop.CoopReplay")
+  local rows = {}
+  for _, name in ipairs(CoopReplay.list()) do
+    local replay = CoopReplay.load(name)
+    if replay then
+      local label, info = CoopReplay.describe(replay, name)
+      rows[#rows + 1] = { label = label, info = info, run = function()
+        menu:close()
+        local ok, why = CoopReplay.play(menu.game, name)
+        if not ok then CoopManager.showStatus(why, 3) end
+      end }
+    end
+  end
+  if #rows == 0 then
+    rows[1] = { label = "NO REPLAYS YET", info = { "A P1 VS P2 BATTLE", "IS KEPT HERE TO", "WATCH AGAIN." },
+                run = function() end }
+  end
+  return rows
+end
+
 function CoopMenu:connectedRows(ow, page)
   local menu = self
   page = page or self.page or "main"
   local function open(sub)
-    return function()
-      -- pages open inside pages (PARTNER > BATTLE P1 VS P2): B walks back
-      menu.pageStack = menu.pageStack or {}
-      table.insert(menu.pageStack, { page = menu.page or "main", index = menu.index })
-      menu.parentIndex = menu.index
-      menu.page, menu.index, menu.scroll = sub, 1, 1
-    end
+    return function() menu:openPage(sub) end
   end
   if page == "partner" then
     return {
@@ -300,7 +326,11 @@ function CoopMenu:connectedRows(ow, page)
         require("src.coop.CoopLink").invite(menu.game, "battle", fmt)
       end }
     end
+    rows[#rows + 1] = { label = "REPLAYS", sub = "replays", info = { "WATCH YOUR P1 VS", "P2 BATTLES AGAIN." },
+                        run = open("replays") }
     return rows
+  elseif page == "replays" then
+    return menu:replayRows()
   elseif page == "rules" then
     local function rule(key, name, info)
       return { label = ruleLabel(name, CoopManager[key]), info = info, ruleKey = key, run = function()
@@ -375,6 +405,7 @@ end
 -- remembers a link (CoopRejoin): the host listens again, the guest dials.
 function CoopMenu:offlineRows()
   local menu = self
+  if self.page == "replays" then return self:replayRows() end
   local rows = {}
   local link = self.game.save and self.game.save.coopLink
   if link then
@@ -434,6 +465,10 @@ function CoopMenu:offlineRows()
     menu:close()
     require("src.coop.CoopEmotes").openPicker(menu.game)
   end }
+  if #require("src.coop.CoopReplay").list() > 0 then
+    rows[#rows + 1] = { label = "REPLAYS", sub = "replays", info = { "WATCH YOUR P1 VS", "P2 BATTLES AGAIN." },
+                        run = function() menu:openPage("replays") end }
+  end
   rows[#rows + 1] = versionRow()
   rows[#rows + 1] = { label = "EXIT", run = function() menu:close() end }
   return rows
@@ -563,7 +598,8 @@ function CoopMenu:update(dt)
 
   if self.stage == "main" then
     local isConn = CoopManager.isConnected()
-    if not isConn then self.page, self.pageStack = "main", nil end
+    -- unlinked, only the pages the offline menu has stay open
+    if not isConn and self.page ~= "replays" then self.page, self.pageStack = "main", nil end
     local rows = isConn and self:connectedRows(ow) or self:offlineRows()
     local maxItems = #rows
     if self.index > maxItems then self.index = 1 end
