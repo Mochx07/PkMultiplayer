@@ -75,3 +75,4 @@ tests/coop_vs.lua
 tests/drivers/vs_level50.lua
 tests/coop_replay.lua
 tests/drivers/vs_replay.lua
+tests/coop_sleep_clause.lua
