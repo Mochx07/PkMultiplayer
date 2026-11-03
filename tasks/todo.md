@@ -12,11 +12,14 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
       `bothHave(name)`. Prueba `tests/coop_caps.lua` (14/14) + smoke real de dos copias.
 - [~] Menú co-op: ya está en páginas (principal 9 filas, PARTNER, RULES) desde 1.6.x;
       la página VS Y MINIJUEGOS se añade con M1/M3 y P1 VS P2 se mueve ahí.
-- [~] Partir `CoopManager.lua` (3875 líneas) sin cambiar comportamiento. Patrón:
-      `require("src.coop.X").install(CoopManager)` + añadir el módulo a `MODULES` de main.lua.
-  - [x] Medicinas al compañero -> `CoopPartnerItems.lua` (-347 líneas; suites + smoke OK)
-  - [ ] Ir con el compañero (warp) · [ ] Invitaciones a combate · [ ] Reloj compartido
-  - [ ] READY y grandes combates · [ ] Chat e interacción · [ ] Dibujo/HUD
+- [x] Partir `CoopManager.lua` (3875 -> 1276 líneas) sin cambiar comportamiento. Cada parte
+      es `require("src.coop.X").install(CoopManager, CMI)` en el sitio donde estaba; `CMI`
+      lleva los locales de archivo que lee y los que pasa a lo siguiente. Módulos (en
+      `MODULES` de main.lua): CoopPartnerItems, CoopClock, CoopPartnerNpc, CoopWarp,
+      CoopInvites (+ grandes combates), CoopReady, CoopChat, CoopHandlers, CoopHud.
+      Se quedan en CoopManager: constantes, helpers, saludo, estado local, bucle por frame.
+      Verificado: todas las suites, i18n_check, y con dos copias reales coop_smoke,
+      wild_together, league_door y watch_smoke (0 fallos, logs sin errores).
 
 ## M1. Modo VS (sobre el P1 VS P2 del Cable Club)
 - [ ] Reglas: nivel 50 para todos, Little Cup, monotipo, cláusulas de sueño/objeto, baneos.
