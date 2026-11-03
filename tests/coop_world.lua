@@ -320,6 +320,11 @@ do
   clear()
   CoopManager.tickers.world(0.016, game, ow)
   T.check(worldSent("req") and worldSent("req").map == "ROUTE_33", "another map: asked again")
+  ow.map = { id = "ROUTE_33" }
+  clear()
+  CoopManager.tickers.world(0.016, game, ow)
+  T.check(worldSent("req") and worldSent("req").map == "ROUTE_33",
+          "the same map loaded again (its objects back at their start): asked again")
   CoopManager.partner.caps = {}
   clear()
   ow.map = { id = "ROUTE_34" }

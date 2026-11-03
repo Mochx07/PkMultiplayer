@@ -86,3 +86,5 @@ tests/drivers/six_rules_adversarial.lua
 tests/drivers/six_replays_offline_qa.lua
 tests/drivers/six_yellow_qa.lua
 tests/coop_world.lua
+tests/drivers/world_boulder.lua
+tests/drivers/world_cut.lua

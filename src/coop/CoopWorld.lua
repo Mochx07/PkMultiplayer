@@ -419,7 +419,7 @@ CoopManager.handlers.coop_world = function(ow, msg)
   end
 end
 
-CoopWorld.state = { serial = nil, sent = nil, timer = 0, map = nil }
+CoopWorld.state = { serial = nil, sent = nil, timer = 0, map = nil, npcs = nil }
 
 CoopManager.onTick("world", function(dt, game, ow)
   ow = ow or (game and game.overworld)
@@ -427,14 +427,16 @@ CoopManager.onTick("world", function(dt, game, ow)
   if st.serial ~= CoopManager.linkSerial then
     -- a new link: nothing of the last partner's is kept
     st.serial = CoopManager.linkSerial
-    st.sent, st.timer, st.map = nil, 0, nil
+    st.sent, st.timer, st.map, st.npcs = nil, 0, nil, nil
     CoopWorld.partnerHms, CoopWorld.partnerLit = nil, false
     CoopWorld.pending = {}
   end
   if not (CoopWorld.on() and ow and ow.map) then return end
-  -- walked onto a map: the partner, if there, says where its boulders are
-  if st.map ~= ow.map.id then
-    st.map = ow.map.id
+  -- walked onto a map -- or the same one loaded again, which puts every
+  -- object back where the map has it: the partner, if there, says where
+  -- its boulders are
+  if st.map ~= ow.map or st.npcs ~= ow.npcs then
+    st.map, st.npcs = ow.map, ow.npcs
     CoopWorld.pending = {}
     send({ k = "req", map = ow.map.id })
   end
