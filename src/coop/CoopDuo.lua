@@ -462,7 +462,7 @@ end
 -- the four bubbles in a cross, while SELECT is held in a scene
 local function drawCross(game)
   local CoopEmotes = require("src.coop.CoopEmotes")
-  local cx, cy = 136, 70
+  local cx, cy = 124, 70
   local at = { up = { 0, -18 }, right = { 18, 0 }, down = { 0, 18 }, left = { -18, 0 } }
   love.graphics.setColor(1, 1, 1, 0.85)
   love.graphics.rectangle("fill", cx - 30, cy - 46, 60, 58)
@@ -493,7 +493,8 @@ function CoopDuo.drawSceneExtras(game)
   if not CoopDuo.on() then return end
   local CS = story()
   if not CS.duoName() then return end
-  drawTab(I18n().t("SELECT: REACT"), 152, 94)
+  -- above the engine's box frame (y 96): the box is drawn over the HUD
+  drawTab(I18n().t("SELECT: REACT"), 152, 88)
   if CoopDuo.selectHeld(game) then drawCross(game) end
   love.graphics.setColor(1, 1, 1, 1)
 end
