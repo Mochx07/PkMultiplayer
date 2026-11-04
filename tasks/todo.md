@@ -76,10 +76,16 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       misma roca; quien entra al mapa del compañero las encuentra donde él las dejó.
 
 ## M3. Minijuegos (diseño propio)
-- [ ] Marco común `CoopMinigame`: invitación, cuenta atrás, marcador, resultados, premio.
-- [ ] Concurso de Magikarp en el Lago de la Furia (gana el más largo, a tiempo).
-- [ ] Contrarreloj en bici por la Ruta Ciclista con el fantasma del compañero.
-- [ ] Búsqueda del tesoro (frío/caliente).
+- [x] Marco común `CoopMinigame` (invitación, cuenta atrás, marcador, resultado igual en las dos
+      copias, salir con B, corte de enlace, semilla compartida, `quietField`, `waitForPartner`,
+      espera mientras el compañero siga mandando puntuación). Menú PARTNER > MINIJUEGOS.
+- [x] Concurso de Magikarp (`mg/MagikarpContest`, cap `minigame.karp`): Lago de la Furia, 2 min,
+      medida del motor, se sueltan, 1 GREAT BALL al día al ganador.
+- [x] Contrarreloj en bici (`mg/BikeTrial`, cap `minigame.bike`): Ruta 16 > 17 > 18, fantasma +
+      barra de avance, récord por partida.
+- [x] Búsqueda del tesoro (`mg/Treasure`, cap `minigame.treasure`): Gen 1 y Gen 2, frío/templado/
+      caliente.
+      Verificado con el árbol mezclado: suites + los tres drivers reales (ocultos) sin fallos.
 
 ## M4. Optimización
 - [ ] Mensajes binarios y posiciones por diferencia en el canal no fiable.
