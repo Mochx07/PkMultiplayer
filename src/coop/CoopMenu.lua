@@ -324,7 +324,8 @@ function CoopMenu:connectedRows(ow, page)
     return function() menu:openPage(sub) end
   end
   if page == "partner" then
-    return {
+    -- (a row that is not there today is nil: the list is packed below)
+    local raw = {
       { label = "ITEM FOR PARTNER", run = function()
         menu:close()
         if ow then CoopManager.useItemOnPartner(menu.game, ow) end
@@ -343,11 +344,18 @@ function CoopMenu:connectedRows(ow, page)
           menu:close()
           require("src.coop.CoopLink").invite(menu.game, "battle")
         end },
+      -- 1.20: minigames both copies have (src/coop/CoopMinigame.lua)
+      #require("src.coop.CoopMinigame").available() > 0
+        and { label = "MINIGAMES", sub = "minigames", info = { "PLAY A SHORT GAME", "AGAINST YOUR", "PARTNER." },
+              run = open("minigames") } or nil,
       { label = "MYSTERY GIFT", run = function()
         menu:close()
         require("src.coop.CoopGift").ask(menu.game, ow)
       end },
     }
+    local rows = {}
+    for i = 1, table.maxn(raw) do if raw[i] then rows[#rows + 1] = raw[i] end end
+    return rows
   elseif page == "vs" then
     local rows = {}
     -- 1.20 matches (src/coop/CoopMatch.lua): one game or the best of three
@@ -373,6 +381,16 @@ function CoopMenu:connectedRows(ow, page)
     return rows
   elseif page == "record" then
     return menu:recordRows()
+  elseif page == "minigames" then
+    local rows = {}
+    for _, def in ipairs(require("src.coop.CoopMinigame").available()) do
+      rows[#rows + 1] = { label = def.name, info = def.info, run = function()
+        menu:close()
+        require("src.coop.CoopMinigame").invite(menu.game, def.id, ow)
+      end }
+    end
+    if #rows == 0 then rows[1] = { label = "NO GAMES", run = function() end } end
+    return rows
   elseif page == "replays" then
     return menu:replayRows()
   elseif page == "rules" then

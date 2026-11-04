@@ -419,6 +419,25 @@ function CoopManager.drawUI(ow)
     CoopManager.drawChatBubble(hasTextBox and (statusUp and 4 or 0) or nil)
   end
   love.graphics.setColor(1, 1, 1, 1)
+  CoopManager.drawOverlays(ow)
+end
+
+-- Feature overlays drawn over the field after the HUD (a minigame's clock
+-- and score, src/coop/CoopMinigame.lua): fn(ow), each under pcall.
+CoopManager.overlays = CoopManager.overlays or {}
+function CoopManager.onDraw(name, fn) CoopManager.overlays[name] = fn end
+function CoopManager.drawOverlays(ow)
+  local names = {}
+  for n in pairs(CoopManager.overlays) do names[#names + 1] = n end
+  table.sort(names)
+  for _, n in ipairs(names) do
+    local ok, err = pcall(CoopManager.overlays[n], ow)
+    if not ok and not CoopManager.overlayErr then
+      CoopManager.overlayErr = err
+      CoopLog.error("HUD", "overlay " .. n .. ": " .. tostring(err))
+    end
+  end
+  love.graphics.setColor(1, 1, 1, 1)
 end
 
 -- What the chat bubble shows: the partner typing live first (that is the
