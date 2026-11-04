@@ -98,3 +98,4 @@ tests/coop_story_duo.lua
 tests/drivers/duo_scene.lua
 tests/drivers/duo_badge.lua
 tests/coop_gyms.lua
+tests/drivers/gym_team.lua
