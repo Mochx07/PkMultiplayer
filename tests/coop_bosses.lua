@@ -382,6 +382,26 @@ do
   T.check(game.save.g2Roam.ENTEI.hp == 37, "RUN together: ENTEI keeps the 37 HP it was left with")
 end
 
+-- the guest's side of an invite: CoopManager.startGuestBattle builds the boss
+do
+  link()
+  local host = newGame("HOST", { "FIXMON_A" }, 22)
+  local hb = BattleState.newWild(host, "FIX_SNORLAX", 30)
+  local guest = newGame("GUEST", { "FIXMON_C" }, 22)
+  local msg = onWire({ type = "coop_battle_invite", inviteId = "G1", battleKind = "wild", species = "FIX_SNORLAX",
+                       level = 30, wildMon = CoopManager.wireMon(hb.enemy.mon), seed = 3, boss = "snorlax",
+                       localMons = { CoopManager.wireMon(host.save.party[1]) } })
+  local gb = CoopManager.startGuestBattle(guest, nil, msg, guest.save.party)
+  T.check(gb and gb.coopBoss == "snorlax" and gb.coopDouble, "the guest's copy of a boss invite is a co-op boss")
+  T.check(gb:battlerAt(P.OPPONENT_RIGHT) == nil and gb.enemyParty[1].stats.hp == math.floor(hb.enemy.mon.stats.hp * 2 + 0.5),
+          "...alone, with the boss's HP")
+  msg.boss = nil
+  CoopBattle.currentBattle = nil
+  local plain = CoopManager.startGuestBattle(newGame("GUEST", { "FIXMON_C" }, 22), nil, msg, guest.save.party)
+  T.check(plain.coopBoss == nil and plain:battlerAt(P.OPPONENT_RIGHT) ~= nil,
+          "an invite with no boss (a 1.6.x host) is the old wild double, twin and all")
+end
+
 -- ------------------------------------------------------------ the POKEGEAR
 do
   local save = SaveData.newGame()

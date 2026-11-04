@@ -21,6 +21,9 @@ return function(game)
   end
 
   U.wait(5)
+  -- the flat world: the voxel one is slow on a virtual screen
+  local Pipelines = require("src.render.Pipelines")
+  for _, id in ipairs({ "voxel", "tiltshift" }) do pcall(Pipelines.setLevel, id, 0) end
   local Pokemon = require("src.pokemon.Pokemon")
   local CoopManager = require("src.coop.CoopManager")
   local BattleState = require("src.battle.BattleState")
@@ -29,7 +32,7 @@ return function(game)
   save.player.name = role == "host" and "MOCHI" or "TOBY"
   local team = role == "host" and { 155, 16, 19 } or { 158, 161, 21 }
   for _, n in ipairs(team) do
-    local m = Pokemon.new(game.data, ("SPECIES_%03d"):format(n), 18)
+    local m = Pokemon.new(game.data, ("SPECIES_%03d"):format(n), 34)
     m.moves = { { id = "TACKLE", pp = 35 } }
     table.insert(save.party, m)
   end
@@ -122,17 +125,19 @@ return function(game)
 
   local shotAgain = false
   local okTurns = 0
-  for turn = 1, 3 do
+  for turn = 1, 2 do
     local want = (battle.coop.turn or 1) + 1
     local moves0 = battle.coopBossMoves or 0
     for _ = 1, 60 * 40 do
       if battle.coop.turn >= want and (battle.phase == "menu" or battle.result) then break end
       if not shotAgain and (battle.coopBossMoves or 0) > moves0 then
-        U.wait(20)
+        U.wait(50)
         U.shot(game, DIR .. "/3_moves_again.png")
         shotAgain = true
       end
-      if battle.phase ~= "waitPartner" then U.tap(game, "a") end
+      if game.stack:top() ~= battle and game.stack:top() ~= game.overworld then
+        U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+      elseif battle.phase ~= "waitPartner" then U.tap(game, "a") end
       U.wait(3)
     end
     if battle.result then break end
@@ -155,16 +160,21 @@ return function(game)
   if role == "host" and not battle.result then
     for _ = 1, 60 * 20 do
       if battle.phase == "menu" then break end
-      if battle.phase == "moveSelect" then U.tap(game, "b")
+      if game.stack:top() ~= battle then U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+      elseif battle.phase == "moveSelect" then U.tap(game, "b")
       elseif battle.phase ~= "waitPartner" then U.tap(game, "a") end
       U.wait(3)
     end
     battle:tryRun()
   end
   local back = false
-  for _ = 1, 60 * 20 do
+  for _ = 1, 60 * 60 do
     if game.stack:top() == game.overworld then back = true break end
-    if game.stack:top() == battle then U.tap(game, "a") end
+    if game.stack:top() == battle then U.tap(game, "a")
+    elseif game.stack:top() ~= game.overworld then
+      -- "Bring out which POKeMON?": the next one down that can fight
+      U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+    end
     U.wait(3)
   end
   check(back, "both back on Route 29")

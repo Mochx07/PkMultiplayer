@@ -24,6 +24,9 @@ return function(game)
   end
 
   U.wait(5)
+  -- the flat world: the voxel one is slow on a virtual screen
+  local Pipelines = require("src.render.Pipelines")
+  for _, id in ipairs({ "voxel", "tiltshift" }) do pcall(Pipelines.setLevel, id, 0) end
   local Pokemon = require("src.pokemon.Pokemon")
   local CoopManager = require("src.coop.CoopManager")
   local CoopBoss = require("src.coop.CoopBoss")
@@ -145,7 +148,9 @@ return function(game)
     local want = battle.coop.turn + 1
     for _ = 1, 60 * 40 do
       if battle.coop.turn >= want and (battle.phase == "menu" or battle.result) then break end
-      if battle.phase ~= "waitPartner" then U.tap(game, "a") end
+      if game.stack:top() ~= battle and game.stack:top() ~= game.overworld then
+        U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+      elseif battle.phase ~= "waitPartner" then U.tap(game, "a") end
       U.wait(3)
     end
     local b = battle:battlerAt(P.OPPONENT_LEFT)
@@ -161,16 +166,21 @@ return function(game)
   if role == "host" then
     for _ = 1, 60 * 20 do
       if battle.phase == "menu" then break end
-      if battle.phase == "moveSelect" then U.tap(game, "b")
+      if game.stack:top() ~= battle then U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+      elseif battle.phase == "moveSelect" then U.tap(game, "b")
       elseif battle.phase ~= "waitPartner" then U.tap(game, "a") end
       U.wait(3)
     end
     battle:tryRun()
   end
   local back = false
-  for _ = 1, 60 * 20 do
+  for _ = 1, 60 * 60 do
     if game.stack:top() == game.overworld then back = true break end
-    if game.stack:top() == battle then U.tap(game, "a") end
+    if game.stack:top() == battle then U.tap(game, "a")
+    elseif game.stack:top() ~= game.overworld then
+      -- "Bring out which POKeMON?": the next one down that can fight
+      U.tap(game, "down"); U.wait(6); U.tap(game, "a")
+    end
     U.wait(3)
   end
   check(back, "both got away, back on Route 29")
