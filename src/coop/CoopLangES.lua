@@ -552,6 +552,8 @@ return {
   ["No town to go to"] = "No hay pueblo al que ir",
   ["You are already there"] = "Ya estás allí",
   ["Asked %s to catch up"] = "Pedido a %s: ponerse al día",
+  -- --------------------------------------- 1.20 M2: gimnasios y rival 2v2
+  ["%s & %s\nwant to fight!"] = "%s & %s\n¡quieren luchar!",
   ["%s caught up!"] = "¡%s te alcanzó!",
   ["Your team is behind: more EXP!"] = "Tu equipo va por detrás: ¡más EXP!",
   ["Waiting for an answer"] = "Esperando respuesta",

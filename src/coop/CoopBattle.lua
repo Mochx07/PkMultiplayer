@@ -697,8 +697,15 @@ function CoopBattle.initBattle(battle, localChosenMons, partnerChosenMons, partn
   end
 
   -- Enemy side: a trainer with 2+ Pokemon sends its second one out beside
-  -- the first; a lone Pokemon is mirrored so the field is 2 v 2.
-  if battle.enemyParty and #battle.enemyParty >= 2 and canMakeBattler then
+  -- the first; a lone Pokemon is mirrored so the field is 2 v 2.  Two
+  -- trainers (the rival 2v2, src/coop/CoopGyms.lua) each send their lead.
+  if battle.enemyPartyB and battle.enemyPartyB[1] then
+    if canMakeBattler then
+      place(BattleState.POS.OPPONENT_RIGHT, battle.enemyPartyB[1], false, nil, false)
+    end
+    battle.enemyIndexRight = nil
+    battle.enemyIndexB = 1
+  elseif battle.enemyParty and #battle.enemyParty >= 2 and canMakeBattler then
     place(BattleState.POS.OPPONENT_RIGHT, battle.enemyParty[2], false, nil, false)
     battle.enemyIndexRight = 2
   elseif battle.enemyParty and battle.enemyParty[1] then
@@ -1476,6 +1483,19 @@ local function benchOf(party)
   return out
 end
 
+-- every foe on the far side: both trainers' teams when there are two
+local function foeParty(battle)
+  if battle.enemyPartyB and battle.foeSummaryParty then return battle:foeSummaryParty() end
+  if battle.enemyPartyB then
+    local out = {}
+    for _, m in ipairs(battle.enemyParty or {}) do out[#out + 1] = m end
+    for _, m in ipairs(battle.enemyPartyB) do out[#out + 1] = m end
+    return out
+  end
+  return battle.enemyParty
+end
+CoopBattle.foeParty = foeParty
+
 local function benchSig(bench)
   local out = {}
   for i, m in ipairs(bench or {}) do
@@ -1502,7 +1522,7 @@ function CoopBattle.syncBattleHP(battle)
   local host = packBattler(battle:battlerAt(P.PLAYER_LEFT), true)
   local enemy1 = packBattler(battle:battlerAt(P.OPPONENT_LEFT), true)
   local enemy2 = packBattler(battle:battlerAt(P.OPPONENT_RIGHT), true)
-  local bench = benchOf(battle.enemyParty)
+  local bench = benchOf(foeParty(battle))
   send({
     type = "coop_battle_sync",
     inviteId = c.inviteId,
@@ -1593,7 +1613,7 @@ end
 -- the foes on the bench: HP and status, by position
 local function applyBench(battle, bench)
   if type(bench) ~= "table" then return end
-  for i, m in ipairs(battle.enemyParty or {}) do
+  for i, m in ipairs(foeParty(battle) or {}) do
     local w = bench[i]
     if type(m) == "table" and type(w) == "table" and w.species == m.species then
       local hp = tonumber(w.hp)
@@ -1614,7 +1634,7 @@ function CoopBattle.applySync(battle, msg)
   local e1, e2 = battle:battlerAt(P.OPPONENT_LEFT), battle:battlerAt(P.OPPONENT_RIGHT)
   if type(msg.sig) == "table" then
     local mine = CoopBattle.signature(packBattler(hostB, true), packBattler(e1, true),
-                                      packBattler(e2, true), benchOf(battle.enemyParty))
+                                      packBattler(e2, true), benchOf(foeParty(battle)))
     local drift = {}
     for _, part in ipairs({ "actives", "volatile", "bench" }) do
       if mine[part] ~= msg.sig[part] then drift[#drift + 1] = part end
@@ -1633,7 +1653,7 @@ function CoopBattle.applySync(battle, msg)
   end
   changed = applyOne(battle, hostB, msg.host, battle.ally and battle.ally.party) or changed
   changed = applyOne(battle, e1, msg.enemy1, battle.enemyParty) or changed
-  changed = applyOne(battle, e2, msg.enemy2, battle.enemyParty) or changed
+  changed = applyOne(battle, e2, msg.enemy2, battle.enemyPartyB or battle.enemyParty) or changed
   if changed then
     CoopLog.battle("SYNC_APPLY", "corrected guest copy after turn " .. tostring(msg.turn))
     for _, pos in ipairs({ P.PLAYER_LEFT, P.PLAYER_RIGHT, P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do

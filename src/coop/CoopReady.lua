@@ -107,6 +107,10 @@ end
 
 local function bigBattleGo(pending)
   local battle = pending.battle
+  -- THE RIVAL 2v2: the partner's own rival beside this one, when both are
+  -- on 1.20 (src/coop/CoopGyms.lua); nil for any other battle
+  local rivals = require("src.coop.CoopGyms").rivalPair(getGame(pending.ow), battle, pending.partnerRival)
+  battle.coopRivalPair = rivals
   CoopManager.net:send({
     type = "coop_bigbattle_go",
     inviteId = pending.inviteId,
@@ -122,6 +126,7 @@ local function bigBattleGo(pending)
     localMons = pending.wired,
     -- the difficulty, the host's word for both copies (CoopBalance)
     foeRules = battle.coopBalanceRules,
+    rivals = rivals,
   })
   local game = getGame(pending.ow)
   removeState(game, pending.waitModal)
@@ -168,6 +173,7 @@ function CoopManager.hostBigBattle(ow, battle, opts, big)
       battle = battle, localChosen = chosenMons, wired = wired, opts = opts, ow = ow,
       seed = (love and love.math and love.math.random) and love.math.random(1, 1000000) or math.random(1, 1000000),
       inviteId = big.inviteId, trainerName = big.name, big = true, partnerMons = big.partnerMons,
+      partnerRival = big.partnerRival,
     }
     CoopManager.pendingBattleInvite = pending
     if pending.partnerMons then
@@ -187,6 +193,7 @@ function CoopManager.onBigBattleReady(ow, msg)
   local pending = CoopManager.pendingBattleInvite
   if pending and pending.big and pending.inviteId == msg.inviteId then
     pending.partnerMons = msg.chosenMons or {}
+    pending.partnerRival = msg.rival
     bigBattleGo(pending)
     return
   end
@@ -198,6 +205,7 @@ function CoopManager.onBigBattleReady(ow, msg)
   end
   if big and big.inviteId == msg.inviteId then
     big.partnerMons = msg.chosenMons or {}
+    big.partnerRival = msg.rival
     CoopManager.showStatus((CoopManager.partner.name or "Partner") .. " is ready!", 2.5)
     return
   end
@@ -260,7 +268,9 @@ function CoopManager.onBigBattleInvite(ow, msg)
       end
       local wired = {}
       for _, m in ipairs(chosenMons) do wired[#wired + 1] = wireMon(m) end
-      CoopManager.net:send({ type = "coop_bigbattle_ready", inviteId = msg.inviteId, chosenMons = wired })
+      CoopManager.net:send({ type = "coop_bigbattle_ready", inviteId = msg.inviteId, chosenMons = wired,
+                             -- which rival this player has (src/coop/CoopGyms.lua; nil but for him)
+                             rival = require("src.coop.CoopGyms").readyInfo(game, msg.oppClass) })
       local gb = { inviteId = msg.inviteId, chosen = chosenMons }
       gb.modal = CoopWaitModal.new(game, pName, function(reason)
         if CoopManager.guestBig == gb then
