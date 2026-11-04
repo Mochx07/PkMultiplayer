@@ -81,6 +81,7 @@ local MODULES = {
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
   "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
   "src.coop.mg.MagikarpContest",
+  "src.coop.mg.BikeTrial",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 

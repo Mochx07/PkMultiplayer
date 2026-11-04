@@ -235,6 +235,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopBoss",
   "src.coop.CoopMinigame",
   "src.coop.mg.MagikarpContest",
+  "src.coop.mg.BikeTrial",
 }
 CoopManager.render = nil
 

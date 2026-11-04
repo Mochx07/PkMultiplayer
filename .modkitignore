@@ -106,3 +106,5 @@ tests/drivers/beast_roam.lua
 tests/coop_minigame.lua
 tests/coop_karp.lua
 tests/drivers/karp_contest.lua
+tests/coop_bike_trial.lua
+tests/drivers/bike_trial.lua
