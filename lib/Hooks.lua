@@ -1186,6 +1186,8 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
   -- a trainer the partner is already fighting on this map does not spot us
   wrap(OverworldState, "OverworldState", "checkTrainerSight", function(checkTrainerSight)
     return function(self, ...)
+      local MG = package.loaded["src.coop.CoopMinigame"]
+      if type(MG) == "table" and MG.fieldQuiet and MG.fieldQuiet() then return end
       local CM = coopManager()
       if CM and CM.connected then
         local partnerEngaging = CM.isPartnerEngaging and CM.isPartnerEngaging(self.map and self.map.id)
@@ -1194,6 +1196,16 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
         end
       end
       return checkTrainerSight(self, ...)
+    end
+  end)
+
+  -- a minigame that asked for a quiet field: no wild Pokemon jumps out
+  -- (src/coop/CoopMinigame.lua fieldQuiet; nil is the engine's "no encounter")
+  wrap(OverworldState, "OverworldState", "rollEncounter", function(rollEncounter)
+    return function(self, ...)
+      local MG = package.loaded["src.coop.CoopMinigame"]
+      if type(MG) == "table" and MG.fieldQuiet and MG.fieldQuiet() then return nil end
+      return rollEncounter(self, ...)
     end
   end)
 

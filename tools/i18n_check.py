@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 MOD = Path(__file__).resolve().parent.parent
-SOURCES = sorted((MOD / "src" / "coop").glob("*.lua")) + [MOD / "src" / "follow" / "FollowMon.lua"]
+SOURCES = sorted((MOD / "src" / "coop").glob("*.lua")) + sorted((MOD / "src" / "coop" / "mg").glob("*.lua")) + [MOD / "src" / "follow" / "FollowMon.lua"]
 SKIP = {"CoopLangES.lua", "CoopI18n.lua", "CoopLog.lua", "CoopNet.lua"}
 
 STRING = r'"((?:[^"\\]|\\.)*)"'
