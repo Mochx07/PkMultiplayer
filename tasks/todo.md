@@ -64,13 +64,13 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       recibe el objeto, el otro la explicación) en vez de que uno mire.
 - [x] Sin esperas muertas: el que no dispara la escena puede seguir jugando o unirse **Hecho:** retención de escena muerta liberada, respuesta durante la elección de tres conservada, READY tras reconectar (`CoopCatchUp`).
       a mitad; las puertas de la historia no bloquean al que llega tarde.
-- [ ] Gimnasios en equipo: el líder en doble con equipo ajustado; medalla para los dos.
-- [ ] Rival en 2v2.
+- [x] Gimnasios en equipo (`CoopGyms`, cap `story.gyms`) —: el líder en doble con equipo ajustado; medalla para los dos.
+- [x] Rival en 2v2 (`CoopGyms`): el rival de cada uno, mismo combate.
 - [x] MO compartidas: la del compañero sirve a menos de 8 pasos (`src/coop/CoopWorld.lua`,
       cap `world.share`): CORTE, GOLPE ROCA, FUERZA, SURF, TORBELLINO y CASCADA con el
       Pokémon y la medalla del compañero; su DESTELLO ilumina tu cueva.
-- [ ] Bestias legendarias: ubicación compartida en el Pokégear; el encuentro es doble co-op.
-- [ ] Jefes de banda: Gyarados rojo, Sudowoodo, Snorlax, Red (dos acciones por turno).
+- [x] Bestias legendarias (`CoopBoss`, cap `story.bosses`) —: ubicación compartida en el Pokégear; el encuentro es doble co-op.
+- [x] Jefes de banda (`CoopBoss`) —: Gyarados rojo, Sudowoodo, Snorlax, Red (dos acciones por turno).
 - [x] Ponerse al día: ir al último punto clave del compañero. **Hecho:** PONERSE AL DÍA (cap `story.catchup`), + EXP x1,5 y rivales equilibrados al equipo más débil.
 - [x] Rocas de Fuerza sincronizadas (`CoopWorld`): el motor de la otra copia empuja la
       misma roca; quien entra al mapa del compañero las encuentra donde él las dejó.
