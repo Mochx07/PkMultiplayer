@@ -319,7 +319,10 @@ function CoopMinigame.onAccept(game, msg)
   if not (p and p.mid == msg.mid) then return end
   CoopMinigame.pending = nil
   closeModal(game, p.modal)
-  local seed = math.random(1, 2 ^ 30)
+  -- love.math, not math.random: nothing seeds the latter, so every first game
+  -- of a launch was dealt the same seed (the same treasure cell each time)
+  local lm = love and love.math and love.math.random
+  local seed = lm and lm(1, 2 ^ 30) or math.random(1, 2 ^ 30)
   local CM = manager()
   CM.net:send({ type = "coop_mg_go", mid = p.mid, game = p.id, seed = seed })
   CoopMinigame.session = newSession(CoopMinigame.GAMES[p.id], p.mid, seed, true)

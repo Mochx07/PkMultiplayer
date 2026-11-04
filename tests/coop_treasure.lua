@@ -183,6 +183,22 @@ copies.A.ow.player.surfing = true
 ok, why = Treasure.def.canStart(copies.A.game, copies.A.ow)
 copies.A.ow.player.surfing = nil
 T.check(not ok and why == "Not while surfing", "not while surfing")
+-- two rooms of 30 cells, a wall between
+local rooms = { "##############" }
+for _ = 1, 5 do rooms[#rooms + 1] = "#......#......#" end
+rooms[#rooms + 1] = "##############"
+local savedMap = copies.A.ow.map
+copies.A.ow.map = fakeMap(rooms, "FAKE_MAP", {})
+copies.A.ow.player.cellX, copies.A.ow.player.cellY = 1, 1
+CoopManager.partner.map = "FAKE_MAP"
+CoopManager.partner.cx, CoopManager.partner.cy = 9, 2
+ok, why = Treasure.def.canStart(copies.A.game, copies.A.ow)
+T.check(not ok and why == "Join your partner first", "the partner in the other room: join them first (" .. tostring(why) .. ")")
+CoopManager.partner.cx, CoopManager.partner.cy = 5, 4
+ok = Treasure.def.canStart(copies.A.game, copies.A.ow)
+T.check(ok, "...in the same room: the hunt is on")
+CoopManager.partner.cx, CoopManager.partner.cy = nil, nil
+copies.A.ow.map = savedMap
 local tiny = fakeMap({ "#####", "#...#", "#...#", "#####" }, "FAKE_MAP")
 local saved = copies.A.ow.map
 copies.A.ow.map = tiny

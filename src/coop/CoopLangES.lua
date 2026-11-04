@@ -610,6 +610,7 @@ return {
   ["Nothing here!"] = "¡Aquí no hay nada!",
   ["Not while surfing"] = "No mientras surfeas",
   ["Too small here"] = "Aquí no hay sitio",
+  ["Join your partner first"] = "Ve antes con tu compañero",
   -- ------------------------------ 1.20: contrarreloj en bici (mg/BikeTrial)
   ["BIKE TRIAL"] = "CONTRARRELOJ",
   ["RIDE CYCLING ROAD"] = "RUTA CICLISTA DE",

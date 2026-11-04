@@ -233,6 +233,16 @@ local function canStart(game, ow)
   if ow.player.surfing then return false, "Not while surfing" end
   local cells = Treasure.candidates(ow.map, ow.player.cellX, ow.player.cellY, field(game))
   if #cells < Treasure.MIN_CELLS then return false, "Too small here" end
+  -- the partner where we see them: the same part of the map, or the two
+  -- copies would deal from different lists
+  local px, py = CM and CM.partner and tonumber(CM.partner.cx), CM and CM.partner and tonumber(CM.partner.cy)
+  if px and py then
+    local theirs = Treasure.candidates(ow.map, px, py, field(game))
+    local a, b = cells[1], theirs[1]
+    if #theirs ~= #cells or not (a and b and a[1] == b[1] and a[2] == b[2]) then
+      return false, "Join your partner first"
+    end
+  end
   return true
 end
 
@@ -243,7 +253,7 @@ local function start(s, game, ow)
   if not cell then error("no cell to hide the treasure in") end
   s.data.map, s.data.cx, s.data.cy, s.data.cells = ow.map.id, cell[1], cell[2], #cells
   s.data.own = { cell[1], cell[2] }
-  s.score = Treasure.NOT_FOUND
+  s:setScore(Treasure.NOT_FOUND)  -- the partner's line reads "--" too
   log("info", string.format("treasure: %s %d,%d of %d cells (%s)", tostring(s.data.map), cell[1], cell[2],
                             #cells, s.asker and "asker" or "guest"))
   local CM = manager()
