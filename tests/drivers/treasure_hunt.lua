@@ -132,8 +132,20 @@ return function(game)
   local function hunt(round, asker)
     -- the invite
     if asker then
-      check(waitFor(60 * 10, function() return CoopManager.overworldIdle(game, game.overworld) end), "idle to ask")
-      check(MG.invite(game, "treasure", game.overworld), round .. ": asked for TREASURE HUNT")
+      -- the partner may still be on the last result: a "busy" answer is
+      -- asked again
+      local asked, tries = false, 0
+      for try = 1, 5 do
+        tries = try
+        waitFor(60 * 10, function() return CoopManager.overworldIdle(game, game.overworld) end)
+        if MG.invite(game, "treasure", game.overworld) then
+          waitFor(60 * 30, function() return MG.pending == nil end)
+          if MG.session then asked = true break end
+          U.log(round .. ": answer: " .. tostring(CoopManager.statusMessage))
+        end
+        U.wait(90)
+      end
+      check(asked, round .. ": asked for TREASURE HUNT, joined (try " .. tries .. ")")
     else
       check(waitFor(60 * 20, function() return MG.asked ~= nil end), round .. ": asked to play")
       U.wait(70)
@@ -145,7 +157,7 @@ return function(game)
     if not s then return end
     U.log(("%s CELL %s %s,%s of %s"):format(round, tostring(s.data.map), tostring(s.data.cx), tostring(s.data.cy),
                                             tostring(s.data.cells)))
-    check(game.overworld.rollEncounter == Treasure.noEncounter, round .. ": no wild Pokemon while hunting")
+    check(MG.fieldQuiet(), round .. ": no wild Pokemon while hunting")
     if not asker then
       check(waitFor(60 * 5, function() return s.data.matched ~= nil end) and s.data.matched == true,
             round .. ": the asker's cell is ours (" .. tostring(s.data.matched) .. ")")
@@ -162,8 +174,7 @@ return function(game)
     U.wait(30)
     U.shot(game, DIR .. "/" .. round .. "_result.png")
     check(waitFor(60 * 10, function() return MG.session == nil end), round .. ": the result goes away")
-    check(game.overworld.rollEncounter ~= Treasure.noEncounter and type(game.overworld.rollEncounter) == "function",
-          round .. ": wild Pokemon are back")
+    check(not MG.fieldQuiet(), round .. ": wild Pokemon are back")
   end
 
   -- ------------------------------------------------------------ round 1

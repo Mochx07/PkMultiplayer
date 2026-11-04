@@ -11,7 +11,7 @@ require("src.render.Font").load(Data)
 local CoopManager = require("src.coop.CoopManager")
 local MG = require("src.coop.CoopMinigame")
 require("src.coop.CoopLog").enabled = false
--- the real games (src/coop/mg) set aside: this suite plays its own two
+-- the real games (src/coop/mg/*) are set aside: this suite is the frame alone
 local realGames, realOrder = MG.GAMES, MG.ORDER
 MG.GAMES, MG.ORDER = {}, {}
 

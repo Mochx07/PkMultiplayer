@@ -24,8 +24,9 @@
 -- own pick differs takes the asker's (and logs it), so the two can never be
 -- hunting different cells for longer than one message.
 --
--- No wild Pokemon during the hunt: the overworld the game runs on gets an
--- encounter roll that finds nothing, put back when the game ends.
+-- No wild Pokemon and no trainer sight during the hunt (the frame's
+-- def.quietField), and a find waits out the partner's clock (waitForPartner),
+-- so a copy that started a little later still gets its say.
 local Treasure = {}
 
 Treasure.ID = "treasure"
@@ -216,28 +217,6 @@ function Treasure.scoreText(v)
 end
 
 -- ---------------------------------------------------------------------
--- no wild Pokemon while hunting
--- ---------------------------------------------------------------------
-
--- The overworld on the stack is the OverworldState module itself (the stack
--- pushes the table, not an instance), so this swaps the method in and puts
--- back exactly what was there (rawget: nil when it was the inherited one).
-local function noEncounter() return nil end
-Treasure.noEncounter = noEncounter
-
-local function calm(s, ow)
-  if s.data.calmOw == ow then return end
-  local old = s.data.calmOw
-  if old and rawget(old, "rollEncounter") == noEncounter then old.rollEncounter = s.data.calmOrig end
-  s.data.calmOw, s.data.calmOrig = nil, nil
-  if type(ow) == "table" and ow.rollEncounter ~= noEncounter then
-    s.data.calmOrig = rawget(ow, "rollEncounter")
-    ow.rollEncounter = noEncounter
-    s.data.calmOw = ow
-  end
-end
-
--- ---------------------------------------------------------------------
 -- the game
 -- ---------------------------------------------------------------------
 
@@ -271,7 +250,6 @@ local function start(s, game, ow)
   if s.asker and CM and CM.net then
     CM.net:send({ type = "coop_mg_treasure", mid = s.mid, map = s.data.map, cx = cell[1], cy = cell[2] })
   end
-  calm(s, ow)
 end
 
 -- the guest checks its pick against the asker's
@@ -292,7 +270,6 @@ end
 local function update(s, dt, game, ow)
   agree(s)
   local CM = manager()
-  if ow then calm(s, ow) end
   -- the partner found it: the hunt is over for us too
   if s.partnerFinal and s.partnerFinal < Treasure.NOT_FOUND then
     s.data.beaten = true
@@ -335,8 +312,7 @@ local function draw(s)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
-local function finish(s)
-  calm(s, nil)
+local function finish()
   Treasure.heard = {}
 end
 
@@ -346,6 +322,8 @@ Treasure.def = {
   info = { "A SPOT ON THIS MAP", "HIDES A TREASURE.", "FIRST TO FIND IT!" },
   duration = Treasure.DURATION,
   lowWins = true,
+  quietField = true,
+  waitForPartner = true,
   canStart = canStart,
   start = start,
   update = update,

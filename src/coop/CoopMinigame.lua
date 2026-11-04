@@ -30,6 +30,8 @@
 --     draw = function(session, ow) end,                  -- over the field
 --     scoreText = function(score) return "84.2 cm" end,  -- optional
 --     finish = function(session, game, result) end,      -- optional, both copies
+--     quietField = true,   -- optional: no wild encounter or trainer sight while on
+--     waitForPartner = true, -- optional: finishing early waits for the partner's whole clock
 --   })
 -- session fields: id, seed, session:random(...) (like math.random, seeded:
 -- the same sequence on both copies), asker (bool), t (seconds played),
@@ -75,6 +77,13 @@ function CoopMinigame.available()
   return out
 end
 
+-- a game that asked for a quiet field (def.quietField) is on: no wild
+-- encounter and no trainer spotting the player (lib/Hooks.lua asks)
+function CoopMinigame.fieldQuiet()
+  local s = CoopMinigame.session
+  return s ~= nil and s.def ~= nil and s.def.quietField == true and s.phase ~= "result"
+end
+
 -- ---------------------------------------------------------------------
 -- the session
 -- ---------------------------------------------------------------------
@@ -118,7 +127,9 @@ function Session:finish()
   if self.phase ~= "play" then return end
   self.phase = "waitResult"
   self.final = self.score
-  self.clock = CoopMinigame.RESULT_GRACE
+  -- def.waitForPartner (a race): the partner may still be playing, and their
+  -- final comes at their time-up at the latest -- wait out the clock too
+  self.clock = CoopMinigame.RESULT_GRACE + (self.def.waitForPartner and math.max(0, self.clock) or 0)
   local CM = manager()
   if CM and CM.net then CM.net:send({ type = "coop_mg_final", mid = self.mid, score = self.final }) end
   CoopMinigame.settle(self)
@@ -213,7 +224,8 @@ function CoopMinigame.draw(ow)
   local I18n = require("src.coop.CoopI18n")
   local fmt = s.def.scoreText or function(v) return tostring(v) end
   love.graphics.setColor(1, 1, 1, 1)
-  Font.drawBox(0, 0, 20, 5)  -- three lines inside the frame
+  -- five rows: the third line (the partner's score) clears the bottom edge
+  Font.drawBox(0, 0, 20, 5)
   love.graphics.setColor(0, 0, 0, 1)
   local top
   if s.phase == "countdown" then
