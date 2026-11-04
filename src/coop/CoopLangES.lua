@@ -597,4 +597,17 @@ return {
   ["WANTS TO PLAY!"] = "¡QUIERE JUGAR!",
   ["Partner can't play there"] = "Allí no puede jugar",
   ["Partner left the game"] = "Tu compañero se fue",
+  -- ------------------------------------- 1.20: búsqueda del tesoro (mg/Treasure)
+  ["TREASURE HUNT"] = "BUSCA EL TESORO",
+  ["A SPOT ON THIS MAP\nHIDES A TREASURE.\nFIRST TO FIND IT!"] = "UN SITIO DEL MAPA\nOCULTA UN TESORO.\n¡ENCUÉNTRALO YA!",
+  ["HOT!"] = "¡CALIENTE!",
+  ["WARM"] = "TEMPLADO",
+  ["COLD"] = "FRÍO",
+  ["WRONG MAP"] = "MAPA EQUIVOCADO",
+  ["A: SEARCH HERE"] = "A: BUSCAR AQUÍ",
+  ["%s found it!"] = "¡%s lo encontró!",
+  ["You found the treasure!"] = "¡Encontraste el tesoro!",
+  ["Nothing here!"] = "¡Aquí no hay nada!",
+  ["Not while surfing"] = "No mientras surfeas",
+  ["Too small here"] = "Aquí no hay sitio",
 }

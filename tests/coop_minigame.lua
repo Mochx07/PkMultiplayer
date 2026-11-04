@@ -11,6 +11,9 @@ require("src.render.Font").load(Data)
 local CoopManager = require("src.coop.CoopManager")
 local MG = require("src.coop.CoopMinigame")
 require("src.coop.CoopLog").enabled = false
+-- the real games (src/coop/mg) set aside: this suite plays its own two
+local realGames, realOrder = MG.GAMES, MG.ORDER
+MG.GAMES, MG.ORDER = {}, {}
 
 -- a test game: score = how many times update ran with A held
 local started, finished = {}, {}
@@ -178,6 +181,6 @@ T.check(not has(without, "MINIGAMES") and has(without, "MYSTERY GIFT"), "without
 CoopManager.partner.caps = allCaps
 
 -- leave no test games behind for other suites
-MG.GAMES.tap, MG.GAMES.time, MG.ORDER = nil, nil, {}
+MG.GAMES, MG.ORDER = realGames, realOrder
 CoopManager.CAPS["minigame.tap"], CoopManager.CAPS["minigame.time"] = nil, nil
 T.finish("co-op minigame frame")
