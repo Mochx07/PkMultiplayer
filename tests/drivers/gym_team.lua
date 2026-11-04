@@ -24,11 +24,19 @@ return function(game)
   local Pipelines = require("src.render.Pipelines")
   for _, id in ipairs({ "voxel", "tiltshift" }) do pcall(Pipelines.setLevel, id, 0) end
   local CM = require("src.coop.CoopManager")
+  -- PKM_NOGYMS=1: the guest plays a partner without story.gyms (a 1.6.x or
+  -- an early 1.20): FALKNER must be BALANCED FOES' own team again
+  local noGyms = os.getenv("PKM_NOGYMS") == "1"
+  if noGyms and role == "guest" then CM.CAPS["story.gyms"] = nil end
   local CoopDuo = require("src.coop.CoopDuo")
   local Badges = require("src.inventory.Badges")
   local Pokemon = require("src.pokemon.Pokemon")
   local save = U.freshSave(game)
   save.player.name = role == "host" and "MOCHI" or "TOBY"
+  -- no move animations, fast text: the badge scene must end before pair.sh's 300 s
+  save.options = save.options or {}
+  save.options.animations = false
+  save.options.textSpeed = 1
   local best
   for id, mv in pairs(game.data.moves or {}) do
     if mv.name == "PSYCHIC" then best = id break end
@@ -69,7 +77,7 @@ return function(game)
   check(CM.isConnected(), "linked in VIOLET GYM")
   U.wait(90)
   check(CoopDuo.on(), "story.duo on for both")
-  check(require("src.coop.CoopGyms").on(), "story.gyms on for both")
+  check(require("src.coop.CoopGyms").on() == not noGyms, "story.gyms on for both: " .. tostring(not noGyms))
   U.shot(game, DIR .. "/0_gym.png")
   local go = os.time() + 2
   while os.time() < go do U.wait(1) end
@@ -89,7 +97,7 @@ return function(game)
   local function nm(m) local d = game.data.pokemon[m.species] return (d and d.name or m.species) .. (m.level or "?") end
   local t0 = love.timer.getTime()
   local quietSince
-  while love.timer.getTime() - t0 < 200 do
+  while love.timer.getTime() - t0 < 255 do
     local top = game.stack:top()
     ow = game.overworld
     local running = ow and ow.runner and ow.runner.isRunning and ow.runner:isRunning()
@@ -136,9 +144,14 @@ return function(game)
   check(battle and battle.coopDouble, "the co-op double vs FALKNER")
   local t = {}
   for _, m in ipairs(battle and battle.enemyParty or {}) do t[#t + 1] = nm(m) end
-  check(table.concat(t, " ") == "PIDGEY21 HOOTHOOT21 SPEAROW21 PIDGEOTTO23",
-        "FALKNER brings four for two, a level above TOBY (" .. table.concat(t, " ") .. ")")
-  check(shotNew == true, "a new one of his type came out (on screen: 2_new_foe.png)")
+  if noGyms then
+    check(table.concat(t, " ") == "PIDGEY9 PIDGEOTTO11 PIDGEY9 PIDGEOTTO11",
+          "without story.gyms: BALANCED FOES' copies, as before (" .. table.concat(t, " ") .. ")")
+  else
+    check(table.concat(t, " ") == "PIDGEY21 HOOTHOOT21 SPEAROW21 PIDGEOTTO23",
+          "FALKNER brings four for two, a level above TOBY (" .. table.concat(t, " ") .. ")")
+    check(shotNew == true, "a new one of his type came out (on screen: 2_new_foe.png)")
+  end
   check(battle and battle.result == "win", "won (" .. tostring(battle and battle.result) .. ")")
   check((CoopBattle.desyncs or 0) == 0, "the copies never drifted (" .. tostring(CoopBattle.desyncs) .. ")")
   check(Badges.has(save, { id = "ZEPHYRBADGE" }), save.player.name .. " holds the ZEPHYRBADGE")
