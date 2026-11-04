@@ -199,8 +199,8 @@ T.check(sa.data.cx == sb.data.cx and sa.data.cy == sb.data.cy and sa.data.map ==
         ("the same cell on both: %s,%s / %s,%s"):format(sa.data.cx, sa.data.cy, sb.data.cx, sb.data.cy))
 T.check(sb.data.matched == true, "the guest heard the asker's cell and it is its own")
 T.check(sa.score == Treasure.NOT_FOUND and sb.score == Treasure.NOT_FOUND, "nobody has a time yet")
-local fnA = copies.A.ow.rollEncounter
-T.check(type(fnA) == "function" and fnA() == nil and copies.B.ow.rollEncounter ~= nil, "no wild Pokemon while hunting")
+T.check(copies.A.ow.rollEncounter == Treasure.noEncounter and copies.B.ow.rollEncounter == Treasure.noEncounter
+        and Treasure.noEncounter() == nil, "no wild Pokemon while hunting")
 local cx, cy = sa.data.cx, sa.data.cy
 -- B far, A near: the hints
 local far = math.abs(cy - 1) > math.abs(cy - 8) and { 1, 1 } or { 1, 8 }
@@ -265,8 +265,12 @@ T.check(ta and tb and ta.result == "draw" and tb.result == "draw", "time up, nob
 for _ = 1, 70 do tick(0.1) end
 copies.B.ow.map = copyB
 
--- B finds it, and the draw of the box does not fail
+-- B finds it, and the draw of the box does not fail; the overworld here has
+-- its own roll (the real one is the OverworldState table itself)
+local ownRoll = function() return "wild" end
+copies.A.ow.rollEncounter = ownRoll
 begin(7, 1, 9, 6)
+T.check(copies.A.ow.rollEncounter == Treasure.noEncounter, "an overworld's own roll is swapped out too")
 sb = sess("B")
 put("B", sb.data.cx, sb.data.cy)
 tick(0.1)
@@ -276,6 +280,7 @@ T.check(drew or not (love and love.graphics), "the hint box draws")
 pressed.B = "a"
 tick(0.1); pump(); tick(0.1)
 T.check(sess("B").result == "win" and sess("A").result == "lose", "the guest can win too")
+T.check(copies.A.ow.rollEncounter == ownRoll, "...and put back as it was")
 for _ = 1, 70 do tick(0.1) end
 
 T.finish("co-op treasure hunt")

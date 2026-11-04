@@ -213,7 +213,7 @@ function CoopMinigame.draw(ow)
   local I18n = require("src.coop.CoopI18n")
   local fmt = s.def.scoreText or function(v) return tostring(v) end
   love.graphics.setColor(1, 1, 1, 1)
-  Font.drawBox(0, 0, 20, 4)
+  Font.drawBox(0, 0, 20, 5)  -- three lines inside the frame
   love.graphics.setColor(0, 0, 0, 1)
   local top
   if s.phase == "countdown" then

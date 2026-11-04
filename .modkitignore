@@ -105,3 +105,4 @@ tests/drivers/boss_double.lua
 tests/drivers/beast_roam.lua
 tests/coop_minigame.lua
 tests/coop_treasure.lua
+tests/drivers/treasure_hunt.lua

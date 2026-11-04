@@ -219,15 +219,19 @@ end
 -- no wild Pokemon while hunting
 -- ---------------------------------------------------------------------
 
+-- The overworld on the stack is the OverworldState module itself (the stack
+-- pushes the table, not an instance), so this swaps the method in and puts
+-- back exactly what was there (rawget: nil when it was the inherited one).
 local function noEncounter() return nil end
+Treasure.noEncounter = noEncounter
 
 local function calm(s, ow)
   if s.data.calmOw == ow then return end
-  if s.data.calmOw and rawget(s.data.calmOw, "rollEncounter") == noEncounter then
-    s.data.calmOw.rollEncounter = nil
-  end
-  s.data.calmOw = nil
-  if type(ow) == "table" and rawget(ow, "rollEncounter") == nil then
+  local old = s.data.calmOw
+  if old and rawget(old, "rollEncounter") == noEncounter then old.rollEncounter = s.data.calmOrig end
+  s.data.calmOw, s.data.calmOrig = nil, nil
+  if type(ow) == "table" and ow.rollEncounter ~= noEncounter then
+    s.data.calmOrig = rawget(ow, "rollEncounter")
     ow.rollEncounter = noEncounter
     s.data.calmOw = ow
   end
