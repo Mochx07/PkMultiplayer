@@ -597,4 +597,16 @@ return {
   ["WANTS TO PLAY!"] = "¡QUIERE JUGAR!",
   ["Partner can't play there"] = "Allí no puede jugar",
   ["Partner left the game"] = "Tu compañero se fue",
+  -- ------------------------------ 1.20: contrarreloj en bici (mg/BikeTrial)
+  ["BIKE TRIAL"] = "CONTRARRELOJ",
+  ["RIDE CYCLING ROAD"] = "RUTA CICLISTA DE",
+  ["GATE TO GATE."] = "PUERTA A PUERTA.",
+  ["LOWEST TIME WINS."] = "GANA EL MÁS RÁPIDO",
+  ["No CYCLING ROAD here"] = "Aquí no hay RUTA CICLISTA",
+  ["You need a BICYCLE"] = "Te falta la BICICLETA",
+  ["Reach CYCLING ROAD first"] = "Antes llega a la RUTA CICLISTA",
+  ["Go to the ROUTE 16 gate"] = "Ve a la puerta de la RUTA 16",
+  ["New best time!"] = "¡Nuevo récord!",
+  ["TIME"] = "TIEMPO",
+  ["BEST"] = "RÉCORD",
 }
