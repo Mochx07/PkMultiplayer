@@ -64,11 +64,13 @@ end
 
 -- the national dex number of a species id ("SPECIES_130", "GYARADOS", ...)
 function CoopBoss.dexOf(data, species)
-  local def = data and data.pokemon and species and data.pokemon[species]
-  local n = type(def) == "table" and tonumber(def.dex or def.nationalDex or def.national)
-  if n then return n end
+  -- the cartridge's own ids are national numbers ("SPECIES_130"); a def's
+  -- `dex` can be a regional one, so it is only the fallback
   local s = tostring(species or ""):upper()
-  return tonumber(s:match("^SPECIES_(%d+)$")) or NAME_DEX[s]
+  local n = tonumber(s:match("^SPECIES_(%d+)$")) or NAME_DEX[s]
+  if n then return n end
+  local def = data and data.pokemon and species and data.pokemon[species]
+  return type(def) == "table" and tonumber(def.nationalDex or def.national or def.dex) or nil
 end
 
 local function mapKey(id) return tostring(id or ""):upper():gsub("_", "") end
@@ -116,7 +118,7 @@ end
 -- OverworldState:pushBattle (CoopManager.promptCoopBattle): a boss is marked
 -- as one when the two of us can fight it that way
 function CoopBoss.mark(ow, battle)
-  if battle.coopBoss or not on() then return end
+  if battle.coopBoss or battle.coopHandled or not on() then return end
   battle.coopBoss = CoopBoss.kindOf(battle, ow)
 end
 
@@ -132,9 +134,10 @@ end
 -- ---------------------------------------------------------------------
 
 local function offerBoss(ow, battle, opts)
-  local ok = CoopManager.partnerAvailable(ow, false, true)
+  local ok, why = CoopManager.partnerAvailable(ow, false, true)
   if not ok then
     battle.coopBoss = nil
+    if why ~= "Partner is far away" then CoopManager.showStatus(tostring(why) .. ". Solo!", 2.5) end
     return false
   end
   local game = CoopManager.getGame(ow)
