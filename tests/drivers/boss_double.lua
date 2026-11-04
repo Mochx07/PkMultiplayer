@@ -30,9 +30,9 @@ return function(game)
   local P = BattleState.POS
   local save = U.freshSave(game)
   save.player.name = role == "host" and "MOCHI" or "TOBY"
-  local team = role == "host" and { 155, 16, 19 } or { 158, 161, 21 }
+  local team = role == "host" and { 159, 160, 158 } or { 158, 159, 160 }
   for _, n in ipairs(team) do
-    local m = Pokemon.new(game.data, ("SPECIES_%03d"):format(n), 34)
+    local m = Pokemon.new(game.data, ("SPECIES_%03d"):format(n), 40)
     m.moves = { { id = "TACKLE", pp = 35 } }
     table.insert(save.party, m)
   end
