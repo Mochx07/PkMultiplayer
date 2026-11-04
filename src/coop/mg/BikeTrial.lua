@@ -45,10 +45,10 @@ local function manager()
   return ok and CM or nil
 end
 
--- tenths -> "0:23.4"; DNF -> "--"
+-- tenths -> "0:23.4"; DNF (or no time yet) -> "--"
 function BikeTrial.timeText(v)
   v = tonumber(v)
-  if not v or v >= BikeTrial.DNF then return "--" end
+  if not v or v <= 0 or v >= BikeTrial.DNF then return "--" end
   v = math.max(0, math.floor(v + 0.5))
   local secs = math.floor(v / 10)
   return string.format("%d:%02d.%d", math.floor(secs / 60), secs % 60, v % 10)
@@ -183,7 +183,7 @@ function BikeTrial.draw(s, ow)
   Font.draw(I18n.fit(T("TIME") .. " " .. BikeTrial.timeText(running or (d.stage == "done" and s.score) or 0), 18), 8, 120)
   Font.draw(I18n.fit(T("BEST") .. " " .. BikeTrial.timeText(d.best), 18), 8, 128)
   -- the course bar: start at the top, the finish gate at the bottom
-  local x, y0, y1 = 150, 36, 108
+  local x, y0, y1 = 150, 46, 106
   love.graphics.setColor(0, 0, 0, 0.6)
   love.graphics.rectangle("fill", x, y0, 3, y1 - y0)
   local CM = manager()

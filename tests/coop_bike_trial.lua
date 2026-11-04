@@ -28,7 +28,8 @@ for _, l in ipairs(Bike.def.info) do T.check(#l <= 18, "info line fits: " .. l) 
 -- ------------------------------------------------------------ the clock
 T.check(Bike.timeText(234) == "0:23.4" and Bike.timeText(1234) == "2:03.4" and Bike.timeText(5) == "0:00.5",
         "tenths read as M:SS.T")
-T.check(Bike.timeText(Bike.DNF) == "--" and Bike.timeText(nil) == "--", "DNF / nothing reads --")
+T.check(Bike.timeText(Bike.DNF) == "--" and Bike.timeText(nil) == "--" and Bike.timeText(0) == "--",
+        "DNF / nothing / not started reads --")
 T.check(Bike.tenths(23.44) == 234 and Bike.tenths(23.45) == 235 and Bike.tenths(0) == 1, "seconds -> whole tenths")
 
 -- ---------------------------------------------------------- canStart
