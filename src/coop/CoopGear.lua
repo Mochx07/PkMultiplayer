@@ -66,6 +66,8 @@ CoopGear.landmarkPoint = landmarkPoint
 -- of each second) so it reads apart from yours
 function CoopGear.drawMap(menu)
   if not linked() then return end
+  -- the partner's roaming beasts (src/coop/CoopBoss.lua)
+  pcall(function() require("src.coop.CoopBoss").drawGear(menu) end)
   local game = menu.game
   local p = CoopManager.partner
   local x, y, landmark = landmarkPoint(game, p.map)

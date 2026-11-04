@@ -122,6 +122,7 @@ local function bigBattleGo(pending)
     localMons = pending.wired,
     -- the difficulty, the host's word for both copies (CoopBalance)
     foeRules = battle.coopBalanceRules,
+    boss = battle.coopBoss,
   })
   local game = getGame(pending.ow)
   removeState(game, pending.waitModal)
@@ -306,7 +307,12 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
   end
   -- Wild battles are solo, unless WILD TOGETHER asks the partner along
   -- (src/coop/CoopWild.lua)
+  -- a boss (Red GYARADOS, SUDOWOODO, SNORLAX, RED) or a roaming beast with
+  -- the partner on its map (src/coop/CoopBoss.lua)
+  local okB, CoopBoss = pcall(require, "src.coop.CoopBoss")
+  if okB then pcall(CoopBoss.mark, ow, battle) end
   if battle.kind == "wild" then
+    if okB and CoopBoss.offer(ow, battle, opts) then return true end
     local okW, CoopWild = pcall(require, "src.coop.CoopWild")
     return okW and CoopWild.offer(ow, battle, opts) or false
   end
@@ -394,6 +400,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
           tower = towerInfo,
           ruleset = require("src.coop.CoopBattle").rulesetName(battle),
           foeRules = battle.coopBalanceRules,
+          boss = battle.coopBoss,
         })
       end, solo))
     end },

@@ -612,6 +612,34 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
     end
   end)
 
+  -- BOSSES AND ROAMING BEASTS IN CO-OP (src/coop/CoopBoss.lua): the foe
+  -- stands alone on its side, a boss moves a second time at the end of each
+  -- turn, and a cornered beast does not run
+  local function boss() return package.loaded["src.coop.CoopBoss"] end
+  wrap(BattleState, "BattleState", "sendOutSecondPair", function(sendOutSecondPair)
+    return function(self, ...)
+      local B = (self.coopBoss or self.coopBeast) and boss()
+      if not (B and B.alone) then return sendOutSecondPair(self, ...) end
+      return B.alone(self, sendOutSecondPair, ...)
+    end
+  end)
+  wrap(BattleState, "BattleState", "resolveTurn", function(resolveTurn)
+    return function(self, ...)
+      local B = self.coopBoss and self.coopDouble and boss()
+      if not (B and B.secondAction) then return resolveTurn(self, ...) end
+      local before = #self.queue
+      local a, b, c = resolveTurn(self, ...)
+      pcall(B.secondAction, self, before)
+      return a, b, c
+    end
+  end)
+  wrap(BattleState, "BattleState", "roamerFlees", function(roamerFlees)
+    return function(self, ...)
+      if self.coopBeast and self.coopDouble then return end
+      return roamerFlees(self, ...)
+    end
+  end)
+
   wrap(BattleState, "BattleState", "drawAnimLayer", function(drawAnimLayer)
     return function(self, ...)
       local ap = self.animPlayer

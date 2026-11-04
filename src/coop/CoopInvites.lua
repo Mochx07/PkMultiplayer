@@ -158,6 +158,8 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
                                   hardFoes = msg.foeRules.hardFoes == true,
                                   catchUp = msg.foeRules.catchUp == true or nil }
   end
+  -- the host's boss or roaming beast, fought the same way here
+  pcall(function() require("src.coop.CoopBoss").guestMark(p2Battle, msg) end)
   CoopBattle.initBattle(p2Battle, chosenMons, msg.localMons, CoopManager.partner, msg.seed, msg.inviteId)
   local cOw = game.overworld or ow2
   if cOw and cOw.pushBattle then
