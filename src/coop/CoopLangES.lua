@@ -609,4 +609,5 @@ return {
   ["New best time!"] = "¡Nuevo récord!",
   ["TIME"] = "TIEMPO",
   ["BEST"] = "RÉCORD",
+  ["Waiting for partner"] = "Esperando al otro",
 }

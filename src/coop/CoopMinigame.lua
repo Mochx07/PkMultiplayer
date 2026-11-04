@@ -234,7 +234,7 @@ function CoopMinigame.draw(ow)
     local secs = math.max(0, math.ceil(s.clock))
     top = I18n.fit(T(s.def.name), 12) .. string.format(" %d:%02d", math.floor(secs / 60), secs % 60)
   elseif s.phase == "waitResult" then
-    top = I18n.fit(T("Waiting for an answer"), 18)
+    top = I18n.fit(T("Waiting for partner"), 18)
   else
     local key = ({ win = "You win!", lose = "%s wins!", draw = "A draw!", none = "Nobody played" })[s.result] or ""
     top = I18n.fit(string.format(T(key), tostring(CM and CM.partner.name or "PARTNER")), 18)
