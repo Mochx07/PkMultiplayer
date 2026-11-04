@@ -100,3 +100,6 @@ tests/drivers/duo_badge.lua
 tests/coop_gyms.lua
 tests/drivers/gym_team.lua
 tests/drivers/rival_2v2.lua
+tests/coop_bosses.lua
+tests/drivers/boss_double.lua
+tests/drivers/beast_roam.lua

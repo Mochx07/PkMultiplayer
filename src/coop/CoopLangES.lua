@@ -573,4 +573,10 @@ return {
   ["%s received\n%s."] = "%s recibió\n%s.",
   ["%s got one too!"] = "¡%s también recibió una!",
   ["%s got them too!"] = "¡%s también lo recibió todo!",
+  -- -------------------------------- 1.20: jefes y bestias en equipo (CoopBoss)
+  ["CO-OP BOSS"] = "JEFE EN EQUIPO",
+  ["%s moves\nagain!"] = "¡%s vuelve\na moverse!",
+  ["Boss battle: it moves twice!"] = "Jefe: ¡actúa dos veces!",
+  ["%s can't run from two!"] = "¡%s no puede huir de dos!",
+  ["%s got away with 1 HP!"] = "¡%s huyó con 1 PS!",
 }

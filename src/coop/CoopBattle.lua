@@ -696,10 +696,18 @@ function CoopBattle.initBattle(battle, localChosenMons, partnerChosenMons, partn
     place(BattleState.POS.OPPONENT_LEFT, battle.enemyParty[1], false, nil, false)
   end
 
+  -- A BOSS OR A ROAMING BEAST (src/coop/CoopBoss.lua) stands alone on its
+  -- side: more HP, and a boss moves twice a turn.  The same on both copies.
+  local okBoss, CoopBoss = pcall(require, "src.coop.CoopBoss")
+  local alone = okBoss and CoopBoss.setup(battle)
+
   -- Enemy side: a trainer with 2+ Pokemon sends its second one out beside
   -- the first; a lone Pokemon is mirrored so the field is 2 v 2.  Two
-  -- trainers (the rival 2v2, src/coop/CoopGyms.lua) each send their lead.
-  if battle.enemyPartyB and battle.enemyPartyB[1] then
+  -- trainers (the rival 2v2, src/coop/CoopGyms.lua) each send their lead;
+  -- a boss or a beast (CoopBoss) stands alone.
+  if alone then
+    battle.enemyIndexRight = nil
+  elseif battle.enemyPartyB and battle.enemyPartyB[1] then
     if canMakeBattler then
       place(BattleState.POS.OPPONENT_RIGHT, battle.enemyPartyB[1], false, nil, false)
     end

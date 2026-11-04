@@ -56,12 +56,21 @@ function CoopWild.offer(ow, battle, opts)
   if not CoopWild.shareable(ow, battle) then return false end
   if not CoopManager.partnerAvailable(ow) then return false end
   if not CoopWild.near(ow) then return false end
+  return CoopWild.invite(ow, battle, opts)
+end
+
+-- ask the partner into this wild battle.  `extra` rides along on the invite
+-- (a boss or a roaming beast: src/coop/CoopBoss.lua); `chosen` is the team
+-- picked for it, else the first three that can fight.
+function CoopWild.invite(ow, battle, opts, extra, chosen)
   local game = CoopManager.getGame(ow)
   if not (game and game.stack and game.save) then return false end
-  local chosen = {}
-  for _, m in ipairs(game.save.party or {}) do
-    if healthy(m) then chosen[#chosen + 1] = m end
-    if #chosen >= CoopWild.TEAM then break end
+  if not chosen then
+    chosen = {}
+    for _, m in ipairs(game.save.party or {}) do
+      if healthy(m) then chosen[#chosen + 1] = m end
+      if #chosen >= CoopWild.TEAM then break end
+    end
   end
   if #chosen == 0 then return false end
   battle.coopHandled = true
@@ -81,7 +90,7 @@ function CoopWild.offer(ow, battle, opts)
   }
   game.stack:push(waitModal)
   local mon = battle.enemy.mon
-  send({
+  local msg = {
     type = "coop_battle_invite",
     inviteId = inviteId,
     battleKind = "wild",
@@ -93,7 +102,9 @@ function CoopWild.offer(ow, battle, opts)
     seed = seed,
     localMons = wired,
     ruleset = require("src.coop.CoopBattle").rulesetName(battle),
-  })
+  }
+  for k, v in pairs(type(extra) == "table" and extra or {}) do msg[k] = v end
+  send(msg)
   CoopLog.info("WILD", "asked partner to join vs " .. tostring(mon.species))
   return true
 end

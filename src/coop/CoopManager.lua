@@ -232,6 +232,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopWorld",
   "src.coop.CoopCatchUp",
   "src.coop.CoopGyms",
+  "src.coop.CoopBoss",
 }
 CoopManager.render = nil
 
@@ -1228,6 +1229,7 @@ function CoopManager.update(ow, dt)
   end
   local game = getGame(ow)
   pcall(function() require("src.coop.CoopStory").tick(dt, game) end)
+  pcall(function() require("src.coop.CoopBoss").tick(dt, game) end)
   pcall(CoopManager.bindStoryPartner, game, ow)
   if CoopManager.pendingPartnerSave and ow and overworldIdle(game, ow) then
     local from = CoopManager.pendingPartnerSave.from

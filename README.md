@@ -108,6 +108,8 @@ original "!" comes back too). The mod ships nothing from the ROM.
 | Extras | Cable Club trades, P1 vs P2, items for your partner's Pokémon, a shared Bug-Catching Contest and Hall of Fame, a shared clock |
 | Warp | only to towns you've already visited (like FLY); your partner has to accept, and it recharges in 10 minutes |
 | Wild Pokémon together | **TEAM UP WILD** rule: a wild Pokémon that jumps you while walking with your partner nearby (8 steps, same map) asks them to join, and you fight a double against it and its twin. Together there are no Poké Balls; **RUN** takes you both out |
+| Roaming beasts | the POKéGEAR map shows your partner's Raikou, Entei and Suicune too (blue blinking frame; yours keep the green one). Each of you keeps your own beasts. Your beast met with **TEAM UP WILD** on and your partner on the same map is a co-op double: the beast alone, it can't run from two, no Poké Balls. Its HP stays in your save, and if you knock it out together it gets away with 1 HP and keeps roaming: catch it later on your own |
+| Bosses | the Red Gyarados, Sudowoodo, Snorlax and Red, with your partner on the same map: **CO-OP BOSS** (or **SOLO BATTLE**, the way to catch the wild ones). The boss fights alone (Red one Pokémon at a time) with more HP (x2, Red's team x1.5) and moves twice every turn |
 | Watch their battle | **WATCH**: a little screen with your partner's battle, live |
 | Visitors | up to 4 more players walk into the host's world with **VISIT** (session port + 1): they walk, chat and emote with everyone; each plays their own game |
 | Soul Link | **SOUL LINK** rule: the two-player Nuzlocke. Each player's first catch in an area is bound to the other's; if one falls, both fall and can't be healed. **SOUL LINKS** shows the pairs |
@@ -248,6 +250,8 @@ no incluye nada del ROM.
 | Extras | intercambios por el Cable Club, P1 vs P2, objetos para los Pokémon del compañero, Concurso de Bichos y Salón de la Fama compartidos, reloj compartido |
 | Warp | solo a pueblos que ya visitaste (como VUELO), tu compañero tiene que aceptar, y se recarga en 10 minutos |
 | Salvajes en pareja | regla **TEAM UP WILD**: un salvaje que te sale al caminar con tu compañero cerca (8 pasos, mismo mapa) le pregunta si se une, y pelean un doble contra el salvaje y su gemelo. Juntos no hay Poké Balls; **RUN** los saca a los dos |
+| Bestias errantes | el mapa del POKéGEAR muestra también el Raikou, Entei y Suicune de tu compañero (marco azul que parpadea; los tuyos, el verde). Cada uno conserva sus bestias. Tu bestia con **TEAM UP WILD** activo y tu compañero en el mismo mapa es un doble co-op: la bestia sola, no puede huir de dos, sin Poké Balls. Sus PS quedan en tu partida y, si la debilitan juntos, huye con 1 PS y sigue errante: atrápala luego tú solo |
+| Jefes | el Gyarados rojo, Sudowoodo, Snorlax y Red, con tu compañero en el mismo mapa: **JEFE EN EQUIPO** (o **SOLO BATTLE**, la forma de atrapar a los salvajes). El jefe pelea solo (Red, un Pokémon cada vez) con más PS (x2; el equipo de Red x1,5) y actúa dos veces por turno |
 | Ver su combate | **WATCH**: una pantallita con el combate de tu compañero en vivo |
 | Visitantes | hasta 4 jugadores más entran al mundo del anfitrión con **VISIT** (puerto de la sesión + 1): caminan, chatean y mandan emotes con todos; cada uno juega su partida |
 | Soul Link | regla **SOUL LINK**: el Nuzlocke de dos. La primera captura de cada uno en un área queda unida a la del otro; si una cae, caen las dos y no se pueden curar. **SOUL LINKS** muestra las parejas |
