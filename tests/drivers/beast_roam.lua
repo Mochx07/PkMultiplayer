@@ -43,14 +43,18 @@ return function(game)
   save.flags = save.flags or {}
   save.flags.EVENT_GOT_MAP_CARD = true
   -- the Burned Tower's release, then each moves its own beast
-  require("src.script.Gen2Commands").g2_init_roam_mons({ save = save, game = game })
+  require("src.script.Gen2Commands")
+  require("src.script.Commands").g2_init_roam_mons({ save = save, game = game })
+  U.teleport(game, "ROUTE29", role == "host" and 10 or 12, 8, "down")
+  U.wait(30)
+  -- after the teleport: a map change hops every beast (UpdateRoamMons)
   local mine = role == "host" and "RAIKOU" or "ENTEI"
   local where = role == "host" and "ROUTE29" or "ROUTE30"
   local lm = game.data.maps[where] and tonumber(game.data.maps[where].landmark)
   save.g2Roam[mine].mapId, save.g2Roam[mine].landmark = where, lm
-  U.log(("%s: my %s on %s (landmark %s); beasts %s"):format(role, mine, where, tostring(lm),
-        table.concat((function() local t = {} for k in pairs(save.g2Roam) do t[#t + 1] = k end table.sort(t) return t end)(), ",")))
-  U.teleport(game, "ROUTE29", role == "host" and 10 or 12, 8, "down")
+  for _, e in ipairs(CoopBoss.beastsOf(save)) do
+    U.log(("%s: my %s on %s (landmark %s)"):format(role, e.n, tostring(e.m), tostring(e.l)))
+  end
 
   if role == "host" then
     check(CoopManager.host(port), "hosting on " .. port)
@@ -89,9 +93,7 @@ return function(game)
   U.shot(game, DIR .. "/1_gear_a.png")
   U.wait(20)
   U.shot(game, DIR .. "/1_gear_b.png")
-  for i = #game.stack.states, 1, -1 do
-    if game.stack.states[i] == gear then table.remove(game.stack.states, i) end
-  end
+  if game.stack:top() == gear then game.stack:pop() end
   U.wait(60)
 
   -- 2. the encounter
@@ -109,6 +111,7 @@ return function(game)
       if fresh() and CoopManager.partnerAvailable(ow) then break end
       U.wait(1)
     end
+    U.log("host: partner available: " .. tostring(select(2, CoopManager.partnerAvailable(ow)) or "yes"))
     local info = save.g2Roam.RAIKOU
     -- as OverworldController's encounter builds it (RoamMons.encounterFor)
     battle = BattleState.newWild(game, info.speciesId, 40, { battleType = "roaming", roamer = "RAIKOU",
