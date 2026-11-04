@@ -558,6 +558,16 @@ end
 -- (EffectRegistry's hit row).
 
 Hooks.modules["src.battle.BattleState"] = function(BattleState)
+  -- a rod's bite is marked on the battle it makes (opts.hooked is not kept),
+  -- so the Magikarp contest knows a fish from any other wild battle
+  wrap(BattleState, "BattleState", "newWild", function(newWild)
+    return function(game, species, level, opts, ...)
+      local battle = newWild(game, species, level, opts, ...)
+      if type(battle) == "table" and type(opts) == "table" and opts.hooked then battle.pkmHooked = true end
+      return battle
+    end
+  end)
+
   -- SELECT opens the chat in a co-op double, on the FIGHT / PKMN / ITEM /
   -- RUN menu or while waiting on the partner: the touch layout has no T key.
   -- (SELECT keeps its own job in the move list, where it reorders moves.)
@@ -1154,6 +1164,10 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
 
   wrap(OverworldState, "OverworldState", "pushBattle", function(pushBattle)
     return function(self, battle, opts, ...)
+      -- THE MAGIKARP CONTEST (src/coop/mg/MagikarpContest.lua): a fish hooked
+      -- while it is on is measured and let go, no battle
+      local Karp = package.loaded["src.coop.mg.MagikarpContest"]
+      if Karp and Karp.onHooked and Karp.onHooked(self, battle) then return end
       local CoopStory = package.loaded["src.coop.CoopStory"]
       if CoopStory and CoopStory.onBattle then pcall(CoopStory.onBattle, battle) end
       local CM = coopManager()

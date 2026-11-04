@@ -104,3 +104,4 @@ tests/coop_bosses.lua
 tests/drivers/boss_double.lua
 tests/drivers/beast_roam.lua
 tests/coop_minigame.lua
+tests/coop_karp.lua

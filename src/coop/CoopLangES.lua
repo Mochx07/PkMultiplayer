@@ -597,4 +597,18 @@ return {
   ["WANTS TO PLAY!"] = "¡QUIERE JUGAR!",
   ["Partner can't play there"] = "Allí no puede jugar",
   ["Partner left the game"] = "Tu compañero se fue",
+  -- ------------------------------ 1.20: concurso de Magikarp (mg/MagikarpContest)
+  ["MAGIKARP CONTEST"] = "CONC. MAGIKARP",
+  ["FISH 2 MIN AT THE\nLAKE OF RAGE. THE\nLONGEST ONE WINS!"] = "PESCA 2 MIN EN EL\nLAGO DE LA FURIA.\nGANA EL MÁS LARGO.",
+  ["Only in Gen 2"] = "Solo en Gen 2",
+  ["Go to the LAKE OF RAGE"] = "Ve al LAGO DE LA FURIA",
+  ["You need a ROD"] = "Necesitas una CAÑA",
+  ["It got away...\nNo contest now."] = "Se escapó...\nNo hay concurso.",
+  ["%s\ngot away!\fOnly MAGIKARP\ncount here."] = "¡%s\nse escapó!\fSolo cuentan\nlos MAGIKARP.",
+  ["MAGIKARP: %s!\nYour longest yet!\fIt swims back into\nthe lake."] = "MAGIKARP: ¡%s!\n¡Tu mejor marca!\fVuelve nadando\nal lago.",
+  ["MAGIKARP: %s.\nNot your longest.\fIt swims back into\nthe lake."] = "MAGIKARP: %s.\nNo es tu mejor.\fVuelve nadando\nal lago.",
+  ["CATCH %d"] = "PECES %d",
+  ["Prize: a GREAT BALL!"] = "Premio: SUPER BALL",
+  ["No room for the prize"] = "No cabe el premio",
+  ["Today's prize is won"] = "Premio de hoy ya dado",
 }

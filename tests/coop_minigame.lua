@@ -12,6 +12,10 @@ local CoopManager = require("src.coop.CoopManager")
 local MG = require("src.coop.CoopMinigame")
 require("src.coop.CoopLog").enabled = false
 
+-- the real games (CoopManager.FEATURES) registered on load: this suite
+-- plays its own two only
+MG.GAMES, MG.ORDER = {}, {}
+
 -- a test game: score = how many times update ran with A held
 local started, finished = {}, {}
 MG.register({ id = "tap", name = "TAP RACE", info = { "TAP A!", "", "" }, duration = 2,
