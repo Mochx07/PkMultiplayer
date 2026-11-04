@@ -160,7 +160,8 @@ return function(game)
   check(#save.party == partySize, "nothing joined the party")
 
   -- the result on both
-  for _ = 1, 60 * 15 do
+  -- a copy whose frames come slower is still fishing: wait for it
+  for _ = 1, 60 * 240 do
     if s.phase == "result" then break end
     if game.stack:top() ~= ow then U.tap(game, "a") U.wait(6) else U.wait(1) end
   end
@@ -171,8 +172,9 @@ return function(game)
   local winner = ({ win = me, lose = them, draw = "DRAW", none = "NONE" })[s.result] or "?"
   U.log(("%s: RESULT %s mine=%s theirs=%s winner=%s"):format(role, tostring(s.result), tostring(s.final),
         tostring(s.partnerFinal), winner))
+  check(s.partnerFinal ~= nil, "the partner's final length arrived before the result: " .. tostring(s.partnerFinal))
   CoopManager.net:send({ type = "drv_karp_winner", winner = winner })
-  for _ = 1, 60 * 10 do
+  for _ = 1, 60 * 240 do
     if theirWinner then break end
     U.wait(1)
   end

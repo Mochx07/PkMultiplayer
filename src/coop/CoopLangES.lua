@@ -598,7 +598,7 @@ return {
   ["Partner can't play there"] = "Allí no puede jugar",
   ["Partner left the game"] = "Tu compañero se fue",
   -- ------------------------------ 1.20: concurso de Magikarp (mg/MagikarpContest)
-  ["MAGIKARP CONTEST"] = "CONC. MAGIKARP",
+  ["KARP CONTEST"] = "CONC. KARP",
   ["FISH 2 MIN AT THE\nLAKE OF RAGE. THE\nLONGEST ONE WINS!"] = "PESCA 2 MIN EN EL\nLAGO DE LA FURIA.\nGANA EL MÁS LARGO.",
   ["Only in Gen 2"] = "Solo en Gen 2",
   ["Go to the LAKE OF RAGE"] = "Ve al LAGO DE LA FURIA",

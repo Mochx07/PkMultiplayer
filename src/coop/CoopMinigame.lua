@@ -43,6 +43,8 @@ CoopMinigame.ORDER = {}
 CoopMinigame.COUNTDOWN = 3
 CoopMinigame.RESULT_GRACE = 8     -- seconds to wait for the partner's final score
 CoopMinigame.RESULT_SHOW = 6
+CoopMinigame.HEARTBEAT = 2        -- a score at least this often while playing (seconds)
+CoopMinigame.MAX_WAIT = 2         -- x def.duration: the longest a partner still sending is waited for
 CoopMinigame.INVITE_TIMEOUT = 25
 CoopMinigame.session = nil
 CoopMinigame.pending = nil        -- our invite, waiting for an answer
@@ -127,6 +129,7 @@ function Session:finish()
   if self.phase ~= "play" then return end
   self.phase = "waitResult"
   self.final = self.score
+  self.waitStart = now()
   -- def.waitForPartner (a race): the partner may still be playing, and their
   -- final comes at their time-up at the latest -- wait out the clock too
   self.clock = CoopMinigame.RESULT_GRACE + (self.def.waitForPartner and math.max(0, self.clock) or 0)
@@ -204,10 +207,17 @@ function CoopMinigame.update(dt, game, ow)
       local ok, err = pcall(s.def.update, s, dt, game, ow)
       if not ok then require("src.coop.CoopLog").error("MINIGAME", s.id .. " update: " .. tostring(err)) end
     end
+    -- the partner hears we are still at it even when the score stands still
+    if s.phase == "play" and (not s.lastSent or now() - s.lastSent > CoopMinigame.HEARTBEAT) then s:setScore(s.score) end
     if s.phase == "play" and s.clock <= 0 then s:finish() end
   elseif s.phase == "waitResult" then
     s.clock = s.clock - dt
-    if s.clock <= 0 then CoopMinigame.settle(s, true) end
+    -- a partner whose copy runs behind ours (a slow machine, a hitch) is
+    -- still playing while its scores keep coming: their final is waited for,
+    -- so both copies settle on the same two numbers.  A silent one is not.
+    local alive = s.partnerHeard and now() - s.partnerHeard < CoopMinigame.RESULT_GRACE
+                  and now() - (s.waitStart or now()) < CoopMinigame.MAX_WAIT * (s.def.duration or 60)
+    if s.clock <= 0 and not alive then CoopMinigame.settle(s, true) end
   elseif s.phase == "result" then
     s.clock = s.clock - dt
     if s.clock <= 0 then CoopMinigame.session = nil end
@@ -351,7 +361,10 @@ end
 
 function CoopMinigame.onScore(msg)
   local s = CoopMinigame.session
-  if s and s.mid == msg.mid and tonumber(msg.score) then s.partnerScore = tonumber(msg.score) end
+  if s and s.mid == msg.mid and tonumber(msg.score) then
+    s.partnerScore = tonumber(msg.score)
+    s.partnerHeard = now()
+  end
 end
 
 function CoopMinigame.onFinal(msg)

@@ -139,7 +139,7 @@ use("A")
 T.check(MG.invite(copies.A.game, "karp"), "A asks B to the MAGIKARP CONTEST")
 pump()
 use("B")
-T.check(MG.asked and MG.asked.lines[3] == "MAGIKARP CONTEST", "B is asked, the box names the contest")
+T.check(MG.asked and MG.asked.lines[3] == "KARP CONTEST", "B is asked, the box names the contest")
 MG.asked.onAccept()
 pump()
 -- a bite in the countdown is let go, uncounted
@@ -202,6 +202,45 @@ use("A"); MG.invite(copies.A.game, "karp"); pump()
 use("B"); MG.asked.onAccept(); pump()
 for _ = 1, 1300 do tick(0.1) end
 T.check(inv.GREAT_BALL == 2, "a draw at 0 gives no prize")
+
+-- A COPY RUNNING BEHIND (seen in the two-copy driver: one game at a third of
+-- the other's frame rate).  A's two minutes end long before B's; while B's
+-- scores keep coming A waits for B's final instead of settling without it,
+-- so both name the same winner.
+CoopManager.realDate = function(f) return os.date(f, 86400 * 403) end
+use("A"); MG.invite(copies.A.game, "karp"); pump()
+use("B"); MG.asked.onAccept(); pump()
+for _ = 1, 31 do tick(0.1) end
+bite("B", "SPECIES_129", { attack = 15, defense = 15, speed = 15, special = 15 })
+bite("A", "SPECIES_129", { attack = 0, defense = 0, speed = 0, special = 0 })
+local function tickOne(n, dt) use(n); MG.update(dt, copies[n].game, copies[n].game.overworld); pump() end
+for i = 1, 1400 do
+  tickOne("A", 0.1)
+  if i % 3 == 0 then tickOne("B", 0.1) end
+  use("B"); MG.session:setScore(MG.session.score)   -- B's copy: a score now and then
+  MG.session.lastSent = nil
+end
+use("A"); local waiting = MG.session and MG.session.phase
+T.check(waiting == "waitResult", "A's time is up but B is still fishing: A waits (" .. tostring(waiting) .. ")")
+for _ = 1, 900 do
+  tickOne("B", 0.1)
+  use("B"); if MG.session and MG.session.phase == "result" then break end
+end
+for _ = 1, 3 do tickOne("A", 0.1) end
+use("A"); local slowA = MG.session and MG.session.result
+use("B"); local slowB = MG.session and MG.session.result
+T.check(slowA == "lose" and slowB == "win", "...and both copies settle on B's win (" .. tostring(slowA) .. "/" .. tostring(slowB) .. ")")
+for _ = 1, 80 do tick(0.1) end
+-- a partner gone silent is not waited for past the grace
+use("A"); MG.invite(copies.A.game, "karp"); pump()
+use("B"); MG.asked.onAccept(); pump()
+for _ = 1, 31 do tick(0.1) end
+for _ = 1, 1200 do tickOne("A", 0.1) end
+use("A"); MG.session.partnerHeard = -1e9
+for _ = 1, 90 do tickOne("A", 0.1) end
+use("A"); T.check(MG.session and MG.session.phase == "result", "a silent partner: the grace runs out and A settles")
+MG.session = nil
+use("B"); MG.session = nil
 
 -- leaving mid-contest: the hook lets the next bite be a battle again
 use("A"); MG.invite(copies.A.game, "karp"); pump()

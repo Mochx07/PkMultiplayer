@@ -190,10 +190,11 @@ end
 
 Karp.def = CoopMinigame.register({
   id = "karp",
-  name = "MAGIKARP CONTEST",
+  name = "KARP CONTEST",   -- the top line of the score box keeps 12
   info = { "FISH 2 MIN AT THE", "LAKE OF RAGE. THE", "LONGEST ONE WINS!" },
   duration = 120,
   lowWins = false,
+  quietField = true,     -- standing on the shore: no wild mon from the grass, no trainer
   canStart = Karp.canStart,
   start = function(session)
     session.data.catches = 0
@@ -204,9 +205,9 @@ Karp.def = CoopMinigame.register({
     local Font = require("src.render.Font")
     local I18n = require("src.coop.CoopI18n")
     love.graphics.setColor(1, 1, 1, 1)
-    Font.drawBox(0, 4, 10, 3)
+    Font.drawBox(0, 5, 10, 3)
     love.graphics.setColor(0, 0, 0, 1)
-    Font.draw(I18n.fit(string.format(T("CATCH %d"), session.data.catches or 0), 8), 8, 40)
+    Font.draw(I18n.fit(string.format(T("CATCH %d"), session.data.catches or 0), 8), 8, 48)
     love.graphics.setColor(1, 1, 1, 1)
   end,
   scoreText = function(score)
