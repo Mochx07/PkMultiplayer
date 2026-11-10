@@ -964,6 +964,10 @@ function CoopNet:onReceive(peer, data, t)
     if peer ~= self.peer or not self.resumed then return end
     self.lastHeartbeat = t
     self.stalled = false
+    if not self.wire.said then
+      self.wire.said = true
+      CoopLog.info("NET", "Position snapshots arrive in the short form (" .. #data .. " bytes)")
+    end
     local pos = CoopWire.decodePos(self.wire, data)
     if pos then table.insert(self.inbox, pos) end
     return
