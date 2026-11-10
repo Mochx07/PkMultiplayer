@@ -6,6 +6,11 @@
 package.path = "./?.lua;./?/init.lua;" .. package.path
 local T = require("tests.modkit")
 local Data = T.fixtures.fresh()
+-- eggs are Gen 2's: say so, or the engine's own wire (0.8.57: MonCodec, which
+-- a Gen 1/2 game speaks to a peer that reads it) takes the fixture for Gen 1,
+-- where an egg is refused outright
+Data.constants = Data.constants or {}
+Data.constants.gen = Data.constants.gen or 2
 require("src.render.Font").load(Data)
 local Pokemon = require("src.pokemon.Pokemon")
 local SaveData = require("src.core.SaveData")
@@ -134,17 +139,24 @@ do
   CoopManager.showStatus = realStatus
 end
 
--- an egg stays an egg over the cable (a traded egg used to arrive hatched)
+-- an egg stays an egg over the cable (a traded egg used to arrive hatched):
+-- in the old wire, where the co-op patch adds the flag, and in the engine's
+-- own since 0.8.57 (MonCodec), which a Gen 2 game speaks to a peer that reads it
 do
   local Protocol = require("src.link.Protocol")
-  local egg = Pokemon.new(Data, "FIXMON_C", 5)
-  egg.isEgg, egg.nickname, egg.eggSteps = true, "EGG", 2560
-  local packed = Protocol.packMon(egg)
-  T.check(packed.isEgg == true and packed.eggSteps == 2560, "the packed egg says it is one")
-  local back = Protocol.unpackMon(Data, packed)
-  T.check(back and back.isEgg == true and back.eggSteps == 2560, "...and is rebuilt as an egg")
-  local mon = Protocol.unpackMon(Data, Protocol.packMon(Pokemon.new(Data, "FIXMON_A", 20)))
-  T.check(mon and not mon.isEgg and mon.eggSteps == nil, "a Pokemon is rebuilt as a Pokemon")
+  local wires = { 2 }
+  if Protocol.wireFor then wires[2] = 3 end
+  for _, wire in ipairs(wires) do
+    local opts = { wire = wire, data = Data }
+    local egg = Pokemon.new(Data, "FIXMON_C", 5)
+    egg.isEgg, egg.nickname, egg.eggSteps = true, "EGG", 2560
+    local packed = Protocol.packMon(egg, opts)
+    T.check(packed.isEgg == true and packed.eggSteps == 2560, "wire " .. wire .. ": the packed egg says it is one")
+    local back = Protocol.unpackMon(Data, packed)
+    T.check(back and back.isEgg == true and back.eggSteps == 2560, "wire " .. wire .. ": ...and is rebuilt as an egg")
+    local mon = Protocol.unpackMon(Data, Protocol.packMon(Pokemon.new(Data, "FIXMON_A", 20), opts))
+    T.check(mon and not mon.isEgg and mon.eggSteps == nil, "wire " .. wire .. ": a Pokemon is rebuilt as a Pokemon")
+  end
 end
 
 -- a dropped link is not a pulled cable; a message from another trade is not this one's

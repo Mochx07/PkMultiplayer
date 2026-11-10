@@ -15,7 +15,9 @@ local function check(ok, msg)
 end
 
 local report = STATE.reports["src.battle.BattleState"]
-check(report and report.wrapped == 2, "two units went in under the other mod's wrappers")
+-- (at least: since 0.8.57 the engine wraps a few of its own BattleState
+-- methods from another file, and the co-op copies go in under those too)
+check(report and report.wrapped >= 2, "the two units went in under the other mod's wrappers")
 check(report and #report.drift == 0, "no false 'changed upstream'")
 for name, wrapper in pairs(W) do
   check(BattleState[name] == wrapper, name .. ": the other mod's wrapper is still on the module")
