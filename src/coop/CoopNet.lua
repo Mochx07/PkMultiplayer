@@ -733,6 +733,17 @@ end
 
 -- percent of the recent pings that never came back; pings younger than
 -- two seconds may still be on their way and are not counted yet
+-- How long a message takes to reach the partner, in seconds: half the
+-- smoothed round trip, never more than ONE_WAY_MAX.  Whoever starts
+-- something both copies should begin together waits this long itself
+-- (CoopMinigame's countdown).  0 until the first pong.
+CoopNet.ONE_WAY_MAX = 1.0
+function CoopNet:oneWay()
+  local ms = tonumber(self.rttSmooth)
+  if not ms or ms <= 0 then return 0 end
+  return math.min(CoopNet.ONE_WAY_MAX, ms / 2000)
+end
+
 function CoopNet:lossPercent()
   local sent, lost = 0, 0
   local cutoff = now() - 2
@@ -793,6 +804,7 @@ function CoopNet:onPeerConnected(peer, t)
   self.peer = peer
   configurePeer(peer)
   self.wire = CoopWire.newState() -- key frames belong to the connection that carried them
+  self.rttSmooth = nil            -- ...and so does the ping
   self.paired = true
   self.resumed = false
   self.resumeTimer = 0
@@ -978,6 +990,8 @@ function CoopNet:onReceive(peer, data, t)
   elseif kind == "coop_pong" then
     if tonumber(msg.t) then
       self.rttMs = math.max(0, math.floor((t - msg.t) * 1000 + 0.5))
+      -- the steady figure (oneWay): one late pong moves it an eighth of the way
+      self.rttSmooth = self.rttSmooth and (self.rttSmooth + (self.rttMs - self.rttSmooth) / 8) or self.rttMs
       for _, p in ipairs(self.pingLog or {}) do
         if p.t == tonumber(msg.t) then p.back = true end
       end

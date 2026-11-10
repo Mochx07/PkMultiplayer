@@ -180,6 +180,53 @@ local without = m:connectedRows(nil, "partner")
 T.check(not has(without, "MINIGAMES") and has(without, "MYSTERY GIFT"), "without a common game the row is not there")
 CoopManager.partner.caps = allCaps
 
+-- BOTH REACH "GO" TOGETHER: the asker's countdown is longer by the time its
+-- GO takes to arrive (half the smoothed ping), so the race starts as one
+do
+  local CoopNet = require("src.coop.CoopNet")
+  local net = CoopNet.new()
+  T.check(net:oneWay() == 0, "no pong yet: no lead")
+  local function pong(ms)
+    net.peer = net.peer or {}
+    net.resumed = true
+    net:onReceive(net.peer, require("src.link.Json").encode({ type = "coop_pong", t = 10 }), 10 + ms / 1000)
+  end
+  for _ = 1, 40 do pong(180) end
+  T.check(math.abs(net:oneWay() - 0.09) < 0.002, "a steady 180 ms ping is a 90 ms trip")
+  pong(2000)
+  T.check(net:oneWay() < 0.21, "one late pong barely moves it (" .. net:oneWay() .. ")")
+  for _ = 1, 80 do pong(5000) end
+  T.check(net:oneWay() == CoopNet.ONE_WAY_MAX, "a hopeless link waits a second at most")
+
+  for _, c in pairs(copies) do c.state.session, c.state.pending, c.state.asked = nil, nil, nil end
+  active = nil
+  MG.session, MG.pending, MG.asked = nil, nil, nil
+  CoopManager.net.oneWay = function() return 0.25 end
+  use("A"); MG.invite(copies.A.game, "tap"); pump()
+  use("B"); MG.asked.onAccept(); pump()
+  use("A"); local a = MG.session
+  use("B"); local b = MG.session
+  T.check(a and b and math.abs((a.clock - b.clock) - 0.25) < 1e-9,
+          "the asker's countdown is longer by the trip of its GO")
+  -- B's clock started 0.25 s after A's: step A alone that long, then both
+  use("A"); MG.update(0.25, copies.A.game, copies.A.game.overworld)
+  local goA, goB
+  for step = 1, 40 do
+    for _, name in ipairs({ "A", "B" }) do
+      use(name)
+      MG.update(0.1, copies[name].game, copies[name].game.overworld)
+      if MG.session and MG.session.phase == "play" then
+        if name == "A" then goA = goA or step else goB = goB or step end
+      end
+    end
+  end
+  T.check(goA ~= nil and goA == goB, "both copies start playing on the same moment")
+  CoopManager.net.oneWay = nil
+  use("A"); MG.session = nil
+  use("B"); MG.session = nil
+  use("A")
+end
+
 -- leave no test games behind for other suites
 MG.GAMES, MG.ORDER = realGames, realOrder
 CoopManager.CAPS["minigame.tap"], CoopManager.CAPS["minigame.time"] = nil, nil

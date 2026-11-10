@@ -6,9 +6,11 @@
 --     asked (JOIN / DECLINE).  A game is offered only when BOTH copies have
 --     its capability ("minigame.<id>"), so a partner without it never sees it.
 --   * start: on JOIN the asker deals the seed and both start a 3-second
---     countdown when they hear about it (the two clocks are not one; a
---     minigame is not lockstep -- each copy plays its own player and sends
---     its score, so a few frames between the two starts do not matter).
+--     countdown when they hear about it.  The partner hears about it one
+--     trip of the link later, so the asker's countdown is that much longer
+--     (CoopNet:oneWay, half the ping): both reach GO together, on a LAN and
+--     across an ocean.  (A minigame is not lockstep -- each copy plays its
+--     own player and sends its score -- but a race should start as one.)
 --   * play: the game's own update/draw run on each copy; the frame keeps the
 --     clock (def.duration seconds) and both scores (each copy reports its
 --     own with session:setScore; the partner's arrives as coop_mg_score).
@@ -93,12 +95,12 @@ end
 local Session = {}
 Session.__index = Session
 
-local function newSession(def, mid, seed, asker)
+local function newSession(def, mid, seed, asker, lead)
   -- its own generator (Park-Miller; exact in a double), so the sequence is
   -- the same on both copies whatever the engine or love.math do
   local state = (math.floor(tonumber(seed) or 1) % 2147483646) + 1
   return setmetatable({ def = def, id = def.id, mid = mid, seed = seed, rngState = state, asker = asker,
-                        phase = "countdown", clock = CoopMinigame.COUNTDOWN, t = 0,
+                        phase = "countdown", clock = CoopMinigame.COUNTDOWN + (tonumber(lead) or 0), t = 0,
                         score = 0, partnerScore = nil, final = nil, partnerFinal = nil,
                         data = {}, holdB = 0 }, Session)
 end
@@ -239,7 +241,7 @@ function CoopMinigame.draw(ow)
   love.graphics.setColor(0, 0, 0, 1)
   local top
   if s.phase == "countdown" then
-    top = I18n.fit(T(s.def.name), 12) .. "  " .. tostring(math.max(1, math.ceil(s.clock)))
+    top = I18n.fit(T(s.def.name), 12) .. "  " .. tostring(math.min(CoopMinigame.COUNTDOWN, math.max(1, math.ceil(s.clock))))
   elseif s.phase == "play" then
     local secs = math.max(0, math.ceil(s.clock))
     top = I18n.fit(T(s.def.name), 12) .. string.format(" %d:%02d", math.floor(secs / 60), secs % 60)
@@ -335,7 +337,9 @@ function CoopMinigame.onAccept(game, msg)
   local seed = lm and lm(1, 2 ^ 30) or math.random(1, 2 ^ 30)
   local CM = manager()
   CM.net:send({ type = "coop_mg_go", mid = p.mid, game = p.id, seed = seed })
-  CoopMinigame.session = newSession(CoopMinigame.GAMES[p.id], p.mid, seed, true)
+  -- our GO takes a moment to arrive: wait that long ourselves
+  local lead = CM.net.oneWay and CM.net:oneWay() or 0
+  CoopMinigame.session = newSession(CoopMinigame.GAMES[p.id], p.mid, seed, true, lead)
 end
 
 function CoopMinigame.onGo(game, msg)
