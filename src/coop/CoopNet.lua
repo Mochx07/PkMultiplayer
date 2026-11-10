@@ -33,6 +33,7 @@
 
 local Json = require("src.link.Json")
 local CoopLog = require("src.coop.CoopLog")
+local CoopWire = require("src.coop.CoopWire")
 
 local hasEnet, enet = pcall(require, "enet")
 if not hasEnet then enet = nil end
@@ -478,7 +479,8 @@ function CoopNet.new()
     ackDirty = false,
     ackTimer = 0,
     resumeTimer = 0,
-    stats = { resent = 0, dupes = 0, reconnects = 0 },
+    stats = { resent = 0, dupes = 0, reconnects = 0, fastBytes = 0, fastSent = 0 },
+    wire = CoopWire.newState(),   -- short position snapshots: one per connection
 
     pingTimer = 0,
     rttMs = 0,
@@ -661,8 +663,15 @@ function CoopNet:send(msg, opts)
 
   if fast then
     if not linked then return false end
-    local ok, text = pcall(Json.encode, out)
-    if not ok then return false end
+    -- opts.bin: the partner reads the short form of coop_pos (CoopWire)
+    local text = opts.bin and CoopWire.encodePos(self.wire, out) or nil
+    if not text then
+      local ok
+      ok, text = pcall(Json.encode, out)
+      if not ok then return false end
+    end
+    self.stats.fastBytes = (self.stats.fastBytes or 0) + #text
+    self.stats.fastSent = (self.stats.fastSent or 0) + 1
     rawSend(self.peer, text, CoopNet.CH_FAST, "unreliable")
     return true
   end
@@ -783,6 +792,7 @@ function CoopNet:onPeerConnected(peer, t)
 
   self.peer = peer
   configurePeer(peer)
+  self.wire = CoopWire.newState() -- key frames belong to the connection that carried them
   self.paired = true
   self.resumed = false
   self.resumeTimer = 0
@@ -834,6 +844,7 @@ function CoopNet:onResume(peer, msg, t)
     if self.peer then pcall(self.peer.reset, self.peer) end
     self.candidate = nil
     self.peer = peer
+    self.wire = CoopWire.newState()
     self.paired = true
     self.lastHeartbeat = t
     self.connectTimer = 0
@@ -936,6 +947,15 @@ function CoopNet:onPeerDisconnected(peer, data)
 end
 
 function CoopNet:onReceive(peer, data, t)
+  if CoopWire.isPacket(data) then
+    -- a position snapshot in its short form: nothing else comes this way
+    if peer ~= self.peer or not self.resumed then return end
+    self.lastHeartbeat = t
+    self.stalled = false
+    local pos = CoopWire.decodePos(self.wire, data)
+    if pos then table.insert(self.inbox, pos) end
+    return
+  end
   local okJson, msg = pcall(Json.decode, data)
   if not (okJson and type(msg) == "table" and type(msg.type) == "string") then
     CoopLog.warn("NET", "Dropped undecodable packet")

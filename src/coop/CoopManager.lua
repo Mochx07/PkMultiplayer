@@ -50,6 +50,7 @@ CoopManager.registerCap("vs.formats")   -- src/coop/CoopVS.lua
 CoopManager.registerCap("vs.match")     -- src/coop/CoopMatch.lua: best of 3, the VS record
 CoopManager.registerCap("story.duo")    -- src/coop/CoopDuo.lua: shared scenes with two leads
 CoopManager.registerCap("story.gyms")   -- src/coop/CoopGyms.lua: gym teams for two, the rival 2v2
+CoopManager.registerCap("net.binpos")   -- src/coop/CoopWire.lua: position snapshots in a few bytes
 
 -- ours, sorted (the hello and the logs read the same)
 function CoopManager.localCaps()
@@ -1128,7 +1129,7 @@ local function broadcastPosition(ow, dt, force)
   CoopManager.posN = CoopManager.posN + 1
   snapshot.n = CoopManager.posN
   CoopManager.lastSentPos = snapshot
-  CoopManager.net:send(snapshot, { fast = true })
+  CoopManager.net:send(snapshot, { fast = true, bin = CoopManager.bothHave("net.binpos") })
 end
 
 local function tickTimers(dt)

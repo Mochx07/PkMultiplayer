@@ -80,7 +80,7 @@ local MODULES = {
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
   "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
-  "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
+  "src.coop.CoopWire", "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
 
