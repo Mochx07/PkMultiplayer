@@ -464,9 +464,31 @@ function Transplant.apply(module, spec, log)
     return f, nil
   end
 
+  -- THE BUILT TEXTS ARE KEPT BETWEEN RUNS (1.20).  Placing every edit by
+  -- its context lines is most of what loading the mod costs, and its result
+  -- only depends on the engine file and on the patch.  With a cache
+  -- (Transplant.cache, set by main.lua) a unit's text is taken from the last
+  -- run when the engine file and the patch are byte for byte what they were
+  -- and the function it edits still starts on the same line of that file --
+  -- which a function another mod replaced does not.
+  local key, kept, fresh = nil, nil, false
+  if Transplant.cache and Transplant.hash and spec.patchKey then
+    local text = readSource(spec.file)
+    if text then
+      key = Transplant.hash(text) .. "-" .. spec.patchKey
+      local ok, hit = pcall(Transplant.cache.get, spec.module, key)
+      kept = ok and type(hit) == "table" and hit or nil
+    end
+  end
+  local keep = { units = {} }
+  local function lineIn(fn)
+    local info = type(fn) == "function" and getinfo(fn, "S")
+    return info and isFile(info.source, spec.file) and info.linedefined or nil
+  end
+
   -- build every unit's text from the engine as it is now
   local texts, wrapped, fwd = {}, {}, {}
-  for _, u in ipairs(units) do
+  for unitIndex, u in ipairs(units) do
     local text, why
     if u.text then
       text = table.concat(u.text, "\n")
@@ -477,11 +499,23 @@ function Transplant.apply(module, spec, log)
         report.missing[#report.missing + 1] = srcName
         why = "not found"
       else
-        local src = Transplant.sourceOf(fn)
-        if src and u.base and Transplant.fnv(src) ~= u.base then
-          report.drift[#report.drift + 1] = srcName
+        local line = key and lineIn(fn)
+        local old = line and kept and kept.units[unitIndex]
+        if type(old) == "table" and old.line == line and type(old.text) == "string" then
+          text = old.text
+          if old.drift then report.drift[#report.drift + 1] = srcName end
+          keep.units[unitIndex] = old
+          report.cached = (report.cached or 0) + 1
+        else
+          local src = Transplant.sourceOf(fn)
+          local drift = src and u.base and Transplant.fnv(src) ~= u.base or false
+          if drift then report.drift[#report.drift + 1] = srcName end
+          text, why = Transplant.build(src, u)
+          if text and line then
+            keep.units[unitIndex] = { line = line, text = text, drift = drift or nil }
+            fresh = true
+          end
         end
-        text, why = Transplant.build(src, u)
         if w and not u.from then
           w.unit = u
           wrapped[#wrapped + 1] = w
@@ -507,6 +541,8 @@ function Transplant.apply(module, spec, log)
     end
     return report
   end
+
+  if key and fresh then pcall(Transplant.cache.put, spec.module, key, keep) end
 
   local prelude = spec.patch.prelude or {}
   local source = {}
@@ -621,8 +657,8 @@ function Transplant.apply(module, spec, log)
   report.env = env
   report.refs = refs
   if log then
-    log("patched %s: %d functions (%d under another mod's wrapper), %d locals%s",
-        spec.module, report.replaced, report.wrapped, report.injected, #report.drift > 0 and
+    log("patched %s: %d functions (%d under another mod's wrapper, %d from the cache), %d locals%s",
+        spec.module, report.replaced, report.wrapped, report.cached or 0, report.injected, #report.drift > 0 and
         (" -- engine changed since the patch was made, edits placed by context: "
          .. table.concat(report.drift, ", ")) or "")
   end

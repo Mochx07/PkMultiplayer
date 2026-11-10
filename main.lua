@@ -207,6 +207,44 @@ local function record(fn) undo[#undo + 1] = fn end
 Transplant.record, Hooks.record = record, record
 local index = chunkFor("lib/patches/index.lua")()
 
+-- The texts Transplant builds, kept between runs (lib/Transplant.lua): one
+-- file per engine module under modstorage, good for as long as the engine
+-- file and the patch are byte for byte the same.  Only where LOVE hashes for
+-- us; PKM_NO_PATCH_CACHE=1 turns it off.
+local CACHE_DIR = "modstorage/PkMultiplayer/patchcache"
+local CACHE_FORMAT = 1
+do
+  local lf, ld = love and love.filesystem, love and love.data
+  if lf and lf.write and ld and ld.hash and ld.encode and os.getenv("PKM_NO_PATCH_CACHE") ~= "1" then
+    Transplant.hash = function(text) return ld.encode("string", "hex", ld.hash("md5", text)) end
+    local function fileOf(module) return CACHE_DIR .. "/" .. module:gsub("[^%w]", "_") .. ".lua" end
+    Transplant.cache = {
+      get = function(module, key)
+        local text = lf.read(fileOf(module))
+        if type(text) ~= "string" then return nil end
+        local fn = loadstring(text, "=patchcache")
+        if not fn then return nil end
+        setfenv(fn, {})
+        local ok, data = pcall(fn)
+        if ok and type(data) == "table" and data.format == CACHE_FORMAT and data.key == key
+           and type(data.units) == "table" then
+          return data
+        end
+      end,
+      put = function(module, key, data)
+        local out = { ("return { format = %d, key = %q, units = {"):format(CACHE_FORMAT, key) }
+        for i, u in pairs(data.units) do
+          out[#out + 1] = (" [%d] = { line = %d, drift = %s, text = %q },"):format(
+            i, u.line, u.drift and "true" or "nil", u.text)
+        end
+        out[#out + 1] = "} }"
+        lf.createDirectory(CACHE_DIR)
+        lf.write(fileOf(module), table.concat(out, "\n"))
+      end,
+    }
+  end
+end
+
 -- module name -> list of { kind, run(module) }
 local work = {}
 local function add(name, fn)
@@ -219,6 +257,7 @@ for _, spec in ipairs(index.modules) do
     local s = {}
     for k, v in pairs(spec) do s[k] = v end
     s.patch = chunkFor(spec.patch)()
+    if Transplant.hash then s.patchKey = Transplant.hash(source(spec.patch)) end
     s.chunkname = "@" .. mod.path .. "/" .. spec.patch .. " (applied)"
     local report = Transplant.apply(module, s, function(fmt, ...) log("info", fmt, ...) end)
     STATE.reports[spec.module] = report

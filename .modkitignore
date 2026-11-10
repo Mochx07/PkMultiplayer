@@ -110,3 +110,6 @@ tests/coop_karp.lua
 tests/drivers/karp_contest.lua
 tests/coop_bike_trial.lua
 tests/drivers/bike_trial.lua
+tests/coop_wire.lua
+tests/patch_cache.lua
+tests/patch_cache_pre.lua
