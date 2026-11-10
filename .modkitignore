@@ -113,3 +113,4 @@ tests/drivers/bike_trial.lua
 tests/coop_wire.lua
 tests/patch_cache.lua
 tests/patch_cache_pre.lua
+tasks/gen3-informe.md

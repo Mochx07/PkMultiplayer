@@ -3,6 +3,63 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 1.20.0
+
+Compatible con 1.6.x (mismo protocolo 16): se pueden enlazar, pero lo nuevo solo aparece
+cuando **los dos** tienen 1.20. **Necesita Gen2Recomped 0.8.57 o posterior**; con una
+versión anterior del juego los combates co-op no se parchean: actualicen el juego primero.
+
+### Añadido
+
+- **Modo VS.** COMPAÑERO > COMBATE P1 VS P2 abre ahora una página con formatos: COMBATE
+  LIBRE, NIVEL 50, NIVEL 100, PEQUEÑOS y MONOTIPO, con cláusulas de especie, objeto y
+  sueño, sin legendarios, sin ataques fulminantes ni evasión. Los Pokémon que no cumplen
+  se quedan fuera y se avisa cuántos.
+- **Al mejor de 3**, con marcador entre combates, sin volver a invitar.
+- **Repeticiones** de los combates P1 VS P2 (las 20 últimas), también sin conexión.
+- **Historial y ELO** contra cada compañero, por formato.
+- **Minijuegos** (COMPAÑERO > MINIJUEGOS): concurso de Magikarp en el Lago de la Furia,
+  contrarreloj en bici por la Ruta Ciclista y busca el tesoro (también en Rojo/Azul/Amarillo).
+- **Historia para dos de verdad.** Los personajes nombran a los dos jugadores; el
+  compañero pasa las páginas con su A, reacciona durante la escena y recibe su objeto o
+  medalla con su propio recuadro y sonido.
+- **Gimnasios en equipo y rival en 2 contra 2.** El líder pelea en doble con un equipo
+  ajustado y la medalla es para los dos.
+- **Jefes y bestias legendarias en co-op**: Gyarados rojo, Sudowoodo, Snorlax y Rojo; la
+  ubicación de las bestias del compañero se ve en el Pokégear.
+- **MO compartidas.** CORTE, GOLPE ROCA, FUERZA, SURF, TORBELLINO y CASCADA sirven con el
+  Pokémon y la medalla del compañero si está a menos de 8 pasos; su DESTELLO ilumina la
+  cueva de los dos, y las rocas de FUERZA se mueven en las dos partidas.
+- **PONERSE AL DÍA**: ir al último punto clave del compañero, con EXP x1,5 y rivales
+  equilibrados al equipo más débil. Ya nadie se queda esperando en una escena muerta.
+
+### Cambiado
+
+- **Listo para Gen2Recomped 0.8.57.** El juego trae desde 0.8.50 su propio online
+  (combates, intercambios, mundos); el co-op de historia convive con él.
+- **Menos datos por la red.** La posición de cada jugador pesaba unos 280 bytes, hasta 15
+  veces por segundo; ahora son unos 20 mientras se camina. Con un compañero en 1.6.x se
+  sigue enviando como antes.
+- **El mod carga más rápido** desde la segunda vez: los parches ya construidos se guardan
+  y solo se rehacen si cambia el juego o el mod.
+- **Los minijuegos empiezan a la vez** en las dos pantallas: quien invita espera medio
+  ping antes de su cuenta atrás.
+
+### Técnico
+
+- Capacidades en el saludo (`caps`) en lugar de subir el protocolo: `registerCap`,
+  `bothHave`. `CoopManager.lua` partido en módulos (3875 → 1292 líneas).
+- `src/coop/CoopWire.lua` (cap `net.binpos`): fotograma clave o diferencia sobre un
+  fotograma clave que el compañero confirmó tener; una pérdida nunca congela al compañero.
+- Caché del Transplant en `modstorage/PkMultiplayer/patchcache/`, por hash del archivo del
+  juego y del parche (`PKM_NO_PATCH_CACHE=1` la apaga).
+- Parches regenerados contra 0.8.57 (`b205bf4e`): 123/123 funciones exactas. Conflictos
+  en `BattleState` (orden del invitado con `linkInvertTie` del juego, Garra Rápida, Premonición,
+  relevo de Platino) y en `BagMenu` (ánimo del Pokémon de HGSS).
+- `tools/run_tests.sh` devuelve error si una suite falla (la CI lo usaba y siempre salía
+  en verde). 47 suites; drivers de dos copias reales sobre 0.8.57.
+- Informe sobre Gen 3 en `tasks/gen3-informe.md`.
+
 ## 1.6.17
 
 Compatible con 1.6.0–1.6.16 (mismo protocolo 16). Probado con Gen2Recomped 0.8.49.

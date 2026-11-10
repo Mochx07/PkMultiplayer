@@ -8,7 +8,7 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
 <p align="center">
   <a href="https://github.com/Mochx07/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?label=release&color=39ff88"></a>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx07/PkMultiplayer/total"></a>
-  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Tested on Gen2Recomped 0.8.49" src="https://img.shields.io/badge/Gen2Recomped-0.8.49-blue"></a>
+  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Needs Gen2Recomped 0.8.57 or later" src="https://img.shields.io/badge/Gen2Recomped-0.8.57%2B-blue"></a>
   <img alt="2 players" src="https://img.shields.io/badge/players-2%20(%2B4%20visitors)-orange">
   <img alt="English and Spanish" src="https://img.shields.io/badge/language-EN%20%7C%20ES-lightgrey">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
@@ -40,6 +40,9 @@ no fork of the game to download, just this zip.
 
 - 📖 **The story, together**: events, world items and badges happen in both saves at once.
 - ⚔️ **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
+- 🏅 **Gyms as a team and the rival in 2-vs-2**; your partner's HMs work for you when they are close.
+- 🆚 **VS mode**: formats with clauses, best of 3, replays and an ELO record against your partner.
+- 🎣 **Minigames**: a Magikarp contest, a bike time trial and a treasure hunt.
 - 🔗 **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
 - 🐾 **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
 - 🌐 **English and Spanish**, switchable in the mod's options.
@@ -110,6 +113,11 @@ original "!" comes back too). The mod ships nothing from the ROM.
 | Wild Pokémon together | **TEAM UP WILD** rule: a wild Pokémon that jumps you while walking with your partner nearby (8 steps, same map) asks them to join, and you fight a double against it and its twin. Together there are no Poké Balls; **RUN** takes you both out |
 | Roaming beasts | the POKéGEAR map shows your partner's Raikou, Entei and Suicune too (blue blinking frame; yours keep the green one). Each of you keeps your own beasts. Your beast met with **TEAM UP WILD** on and your partner on the same map is a co-op double: the beast alone, it can't run from two, no Poké Balls. Its HP stays in your save, and if you knock it out together it gets away with 1 HP and keeps roaming: catch it later on your own |
 | Bosses | the Red Gyarados, Sudowoodo, Snorlax and Red, with your partner on the same map: **CO-OP BOSS** (or **SOLO BATTLE**, the way to catch the wild ones). The boss fights alone (Red one Pokémon at a time) with more HP (x2, Red's team x1.5) and moves twice every turn |
+| Gyms and rival | with both players in the gym, the leader fights a double with a team fitted for two and the badge goes to both; the rival is a 2-vs-2 |
+| Shared HMs | CUT, ROCK SMASH, STRENGTH, SURF, WHIRLPOOL and WATERFALL work with your partner's Pokémon and badge when they stand within 8 steps; their FLASH lights your cave; STRENGTH boulders move in both games |
+| Catch up | **CATCH UP**: go to your partner's last key point of the story, with EXP x1.5 and foes balanced to the weaker team |
+| VS mode | **BATTLE P1 VS P2** opens the formats: FREE BATTLE, LEVEL 50, LEVEL 100, LITTLE CUP and MONOTYPE (species, item and sleep clauses; no legendaries, OHKO or evasion moves). **MATCH: BEST OF 3**, **REPLAYS** of the last 20 battles and a **RECORD** with ELO per partner |
+| Minigames | **MINIGAMES**: the Magikarp contest at the Lake of Rage, a bike time trial down Cycling Road and a treasure hunt on the map you both stand on (Red/Blue/Yellow too) |
 | Watch their battle | **WATCH**: a little screen with your partner's battle, live |
 | Visitors | up to 4 more players walk into the host's world with **VISIT** (session port + 1): they walk, chat and emote with everyone; each plays their own game |
 | Soul Link | **SOUL LINK** rule: the two-player Nuzlocke. Each player's first catch in an area is bound to the other's; if one falls, both fall and can't be healed. **SOUL LINKS** shows the pairs |
@@ -177,6 +185,9 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 
 - 📖 **La historia, juntos**: los eventos, objetos del mundo y medallas se viven a la vez en las dos partidas.
 - ⚔️ **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
+- 🏅 **Gimnasios en equipo y el rival en 2 contra 2**; las MO de tu compañero te sirven si está cerca.
+- 🆚 **Modo VS**: formatos con cláusulas, al mejor de 3, repeticiones e historial con ELO contra tu compañero.
+- 🎣 **Minijuegos**: concurso de Magikarp, contrarreloj en bici y busca el tesoro.
 - 🔗 **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
 - 🐾 **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
 - 🌐 **Español e inglés**, a elegir en las opciones del mod.
@@ -252,6 +263,11 @@ no incluye nada del ROM.
 | Salvajes en pareja | regla **TEAM UP WILD**: un salvaje que te sale al caminar con tu compañero cerca (8 pasos, mismo mapa) le pregunta si se une, y pelean un doble contra el salvaje y su gemelo. Juntos no hay Poké Balls; **RUN** los saca a los dos |
 | Bestias errantes | el mapa del POKéGEAR muestra también el Raikou, Entei y Suicune de tu compañero (marco azul que parpadea; los tuyos, el verde). Cada uno conserva sus bestias. Tu bestia con **TEAM UP WILD** activo y tu compañero en el mismo mapa es un doble co-op: la bestia sola, no puede huir de dos, sin Poké Balls. Sus PS quedan en tu partida y, si la debilitan juntos, huye con 1 PS y sigue errante: atrápala luego tú solo |
 | Jefes | el Gyarados rojo, Sudowoodo, Snorlax y Red, con tu compañero en el mismo mapa: **JEFE EN EQUIPO** (o **SOLO BATTLE**, la forma de atrapar a los salvajes). El jefe pelea solo (Red, un Pokémon cada vez) con más PS (x2; el equipo de Red x1,5) y actúa dos veces por turno |
+| Gimnasios y rival | con los dos en el gimnasio, el líder pelea en doble con un equipo ajustado para dos y la medalla es para ambos; el rival es un 2 contra 2 |
+| MO compartidas | CORTE, GOLPE ROCA, FUERZA, SURF, TORBELLINO y CASCADA sirven con el Pokémon y la medalla de tu compañero si está a menos de 8 pasos; su DESTELLO ilumina tu cueva; las rocas de FUERZA se mueven en las dos partidas |
+| Ponerse al día | **PONERSE AL DÍA**: ir al último punto clave de la historia de tu compañero, con EXP x1,5 y rivales equilibrados al equipo más débil |
+| Modo VS | **COMBATE P1 VS P2** abre los formatos: COMBATE LIBRE, NIVEL 50, NIVEL 100, PEQUEÑOS y MONOTIPO (cláusulas de especie, objeto y sueño; sin legendarios, ataques fulminantes ni evasión). **AL MEJOR DE 3**, **REPETICIONES** de los 20 últimos combates e **HISTORIAL** con ELO por compañero |
+| Minijuegos | **MINIJUEGOS**: concurso de Magikarp en el Lago de la Furia, contrarreloj en bici por la Ruta Ciclista y busca el tesoro en el mapa donde estén los dos (también en Rojo/Azul/Amarillo) |
 | Ver su combate | **WATCH**: una pantallita con el combate de tu compañero en vivo |
 | Visitantes | hasta 4 jugadores más entran al mundo del anfitrión con **VISIT** (puerto de la sesión + 1): caminan, chatean y mandan emotes con todos; cada uno juega su partida |
 | Soul Link | regla **SOUL LINK**: el Nuzlocke de dos. La primera captura de cada uno en un área queda unida a la del otro; si una cae, caen las dos y no se pueden curar. **SOUL LINKS** muestra las parejas |

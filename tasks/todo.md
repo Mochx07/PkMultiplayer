@@ -10,8 +10,9 @@ Regla de cada hito: suites verdes + al menos un driver de dos copias reales + te
 - [x] Capacidades en el saludo (`caps`), **sin subir el protocolo** (sigue en 16): un 1.20
       conecta con un 1.6.x y lo nuevo queda apagado. `CoopManager.registerCap(name)`,
       `bothHave(name)`. Prueba `tests/coop_caps.lua` (14/14) + smoke real de dos copias.
-- [~] Menú co-op: ya está en páginas (principal 9 filas, PARTNER, RULES) desde 1.6.x;
-      la página VS Y MINIJUEGOS se añade con M1/M3 y P1 VS P2 se mueve ahí.
+- [x] Menú co-op en páginas: PARTNER > BATTLE P1 VS P2 abre la página VS (formatos, MATCH,
+      RECORD, REPLAYS) y PARTNER > MINIGAMES la de minijuegos. Revisado el 2026-11-10: no
+      hace falta una página aparte "VS Y MINIJUEGOS".
 - [x] Partir `CoopManager.lua` (3875 -> 1276 líneas) sin cambiar comportamiento. Cada parte
       es `require("src.coop.X").install(CoopManager, CMI)` en el sitio donde estaba; `CMI`
       lleva los locales de archivo que lee y los que pasa a lo siguiente. Módulos (en
@@ -88,17 +89,36 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       Verificado con el árbol mezclado: suites + los tres drivers reales (ocultos) sin fallos.
 
 ## M4. Optimización
-- [ ] Mensajes binarios y posiciones por diferencia en el canal no fiable.
-- [ ] Caché del Transplant por hash del archivo del motor.
-- [ ] Retardo de entrada que se ajusta al ping.
-- [ ] CI en GitHub Actions con las suites.
+- [x] Posiciones binarias y por diferencia en el canal no fiable (`src/coop/CoopWire.lua`,
+      cap `net.binpos`): 284 bytes de JSON -> 96 el fotograma clave, 19 un paso. La
+      diferencia se apoya en un fotograma clave que el compañero confirmó, así que una
+      pérdida no congela a nadie. Los demás mensajes rápidos (WATCH, visitantes, chat en
+      vivo) siguen en JSON. Suite `coop_wire` 31/31; visto en el coop.log de dos copias reales.
+- [x] Caché del Transplant por hash del archivo del motor y del parche
+      (`modstorage/PkMultiplayer/patchcache/`). Carga del mod medida con luajit: 77 ms sin
+      caché; con caché ~22 ms más el hash (md5 nativo de LÖVE; en la prueba el hash es Lua
+      y pesa 40 ms, así que el número real con md5 no está medido). Suite `patch_cache`
+      15/15; en el juego real, segunda carga: 57 de 71 funciones de BattleState desde la caché.
+- [x] Retardo que se ajusta al ping: no hay retardo de entrada que ajustar (los combates
+      son por turnos). Lo que sí dependía del ping era el arranque de los minijuegos: quien
+      invita espera medio ping suavizado (`CoopNet:oneWay`, máx. 1 s) y las dos copias
+      llegan al YA a la vez.
+- [x] CI en GitHub Actions: ya existía (`.github/workflows/tests.yml`), pero
+      `tools/run_tests.sh` salía siempre con 0. Ahora devuelve error si algo falla.
+
+## M4b. Motor 0.8.57 (no estaba en el plan)
+- [x] Los parches de 1.6.17 no entran en Gen2Recomped 0.8.57 (`BattleState` sin parchear).
+      Árbol fusionado mezclado con v0.8.57 (commit 07aadf99; conflictos en BattleState x5
+      y BagMenu x1), parches regenerados contra `b205bf4e`, 123/123 exactos.
+      1.20 deja de funcionar en 0.8.49: `game_version` del manifest lo exige.
 
 ## M5. Gen 3 (investigación, sin promesa)
-- [ ] Ver qué expone la Esmeralda en alfa de Gen2Recomped (combate, guardado, mapas).
-- [ ] Informe: qué partes del co-op se podrían reutilizar y qué falta en el upstream.
+- [x] Qué expone la Esmeralda en alfa y qué se reutiliza: `tasks/gen3-informe.md`.
+      Lectura de código; sin caché de Esmeralda aquí, nada ejecutado.
 
 ## Cierre
-- [ ] CHANGELOG + notas EN/ES, README, insignia, zip, Release.
+- [x] CHANGELOG, README, insignia, versión del manifest, zip.
+- [ ] Notas EN/ES y Release: las publica Mochi o las publico cuando lo diga.
 
 ## Revisión
 (se rellena al cerrar cada hito)
