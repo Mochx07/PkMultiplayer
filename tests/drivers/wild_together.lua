@@ -31,6 +31,12 @@ return function(game)
     m.moves = { { id = "TACKLE", pp = 35 } }
     table.insert(save.party, m)
   end
+  -- the flat world: the voxel one is slow on a virtual screen (frames take
+  -- seconds there, and the link then reads as "Partner not responding")
+  do
+    local okP, Pipelines = pcall(require, "src.render.Pipelines")
+    if okP then for _, id in ipairs({ "voxel", "tiltshift" }) do pcall(Pipelines.setLevel, id, 0) end end
+  end
   U.teleport(game, "ROUTE29", role == "host" and 10 or 12, 8, "down")
 
   if role == "host" then

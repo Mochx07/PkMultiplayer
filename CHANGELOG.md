@@ -3,10 +3,13 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
-## 1.20.0
+## 2.0.0-nightly.1
+
+**Nightly** (versión de prueba) de la 2.0, que es lo que se venía preparando como 1.20.
+Puede traer fallos: la estable sigue siendo la 1.6.17.
 
 Compatible con 1.6.x (mismo protocolo 16): se pueden enlazar, pero lo nuevo solo aparece
-cuando **los dos** tienen 1.20. **Necesita Gen2Recomped 0.8.57 o posterior**; con una
+cuando **los dos** tienen 2.0. **Necesita Gen2Recomped 0.8.58 o posterior**; con una
 versión anterior del juego los combates co-op no se parchean: actualicen el juego primero.
 
 ### Añadido
@@ -35,7 +38,7 @@ versión anterior del juego los combates co-op no se parchean: actualicen el jue
 
 ### Cambiado
 
-- **Listo para Gen2Recomped 0.8.57.** El juego trae desde 0.8.50 su propio online
+- **Listo para Gen2Recomped 0.8.58** (Nuzlocke, Soul Link, randomizer y personaje a medida del juego). El juego trae desde 0.8.50 su propio online
   (combates, intercambios, mundos); el co-op de historia convive con él.
 - **Menos datos por la red.** La posición de cada jugador pesaba unos 280 bytes, hasta 15
   veces por segundo; ahora son unos 20 mientras se camina. Con un compañero en 1.6.x se
@@ -53,11 +56,12 @@ versión anterior del juego los combates co-op no se parchean: actualicen el jue
   fotograma clave que el compañero confirmó tener; una pérdida nunca congela al compañero.
 - Caché del Transplant en `modstorage/PkMultiplayer/patchcache/`, por hash del archivo del
   juego y del parche (`PKM_NO_PATCH_CACHE=1` la apaga).
-- Parches regenerados contra 0.8.57 (`b205bf4e`): 123/123 funciones exactas. Conflictos
+- Parches regenerados contra 0.8.58 (`85512413`): 123/123 funciones exactas. Al pasar por
+  0.8.57, conflictos
   en `BattleState` (orden del invitado con `linkInvertTie` del juego, Garra Rápida, Premonición,
   relevo de Platino) y en `BagMenu` (ánimo del Pokémon de HGSS).
 - `tools/run_tests.sh` devuelve error si una suite falla (la CI lo usaba y siempre salía
-  en verde). 47 suites; drivers de dos copias reales sobre 0.8.57.
+  en verde). 47 suites; drivers de dos copias reales sobre 0.8.58.
 - Informe sobre Gen 3 en `tasks/gen3-informe.md`.
 
 ## 1.6.17

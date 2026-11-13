@@ -8,7 +8,7 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
 <p align="center">
   <a href="https://github.com/Mochx07/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?label=release&color=39ff88"></a>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx07/PkMultiplayer/total"></a>
-  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Needs Gen2Recomped 0.8.57 or later" src="https://img.shields.io/badge/Gen2Recomped-0.8.57%2B-blue"></a>
+  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Needs Gen2Recomped 0.8.58 or later" src="https://img.shields.io/badge/Gen2Recomped-0.8.58%2B-blue"></a>
   <img alt="2 players" src="https://img.shields.io/badge/players-2%20(%2B4%20visitors)-orange">
   <img alt="English and Spanish" src="https://img.shields.io/badge/language-EN%20%7C%20ES-lightgrey">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>

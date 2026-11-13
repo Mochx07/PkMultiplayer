@@ -112,13 +112,22 @@ sombra del otro**: los diálogos, eventos y la historia deben reconocer a los do
       y BagMenu x1), parches regenerados contra `b205bf4e`, 123/123 exactos.
       1.20 deja de funcionar en 0.8.49: `game_version` del manifest lo exige.
 
+## M4c. Motor 0.8.58 y paso a 2.0 (2026-11-13)
+- [x] Gen2Recomped sacó 0.8.58 (`85512413`: Nuzlocke, Soul Link, randomizer, personaje a
+      medida). Árbol fusionado mezclado (commit c03461f8; un conflicto en
+      `OverworldState:update`, que el mod no trasplanta), parches regenerados, 123/123 exactos.
+      Con estos parches 0.8.57 ya no sirve (`patch_scope` y `foreign_wrapper` fallan ahí):
+      `game_version` exige 0.8.58 (`0.7.6` es lo que dice el juego corrido desde el código).
+- [x] La 1.20 sale como **2.0**: primero `2.0.0-nightly.1`, pre-release en GitHub.
+- [ ] Sin probar: co-op con los modos de partida de 0.8.58 (Nuzlocke, Soul Link, randomizer).
+
 ## M5. Gen 3 (investigación, sin promesa)
 - [x] Qué expone la Esmeralda en alfa y qué se reutiliza: `tasks/gen3-informe.md`.
       Lectura de código; sin caché de Esmeralda aquí, nada ejecutado.
 
 ## Cierre
 - [x] CHANGELOG, README, insignia, versión del manifest, zip.
-- [ ] Notas EN/ES y Release: las publica Mochi o las publico cuando lo diga.
+- [x] Notas EN/ES y Release: publicada como Nightly `v2.0.0-nightly.1` (pre-release) el 2026-11-13.
 
 ## Revisión
 (se rellena al cerrar cada hito)
