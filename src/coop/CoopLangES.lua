@@ -12,6 +12,11 @@ return {
   ["FNT"] = "DEB",
   ["LV"] = "NV",
   ["CO-OP"] = "CO-OP",
+  -- lo que hace el compañero (CoopFeed)
+  ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",
+  ["%s CAUGHT A SHINY %s!"] = "¡%s ATRAPÓ UN %s VARIOCOLOR!",
+  ["%s: %s EVOLVED INTO %s!"] = "%s: ¡%s EVOLUCIONÓ A %s!",
+  ["%s'S EGG HATCHED: %s!"] = "¡EL HUEVO DE %s ERA %s!",
   -- captura conjunta (CoopCatch)
   ["%s and %s\nthrew together!"] = "¡%s y %s\nlanzan a la vez!",
   ["Who keeps\n%s?"] = "¿Quién se queda\ncon %s?",

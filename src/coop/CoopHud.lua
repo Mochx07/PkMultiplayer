@@ -367,7 +367,9 @@ function CoopManager.drawUI(ow)
   local summary = not (CoopManager.statusMessage and CoopManager.statusTimer > 0) and not hasTextBox
                   and CoopSummary and CoopSummary.current(now())
   -- status first, at the top, so it never sits on the dialogue box
+  local feedTop = 12
   if summary then
+    feedTop = (#summary + 2) * 8
     local I18n = require("src.coop.CoopI18n")
     love.graphics.setColor(1, 1, 1, 1)
     Font.drawBox(0, 0, 20, #summary + 2)
@@ -377,6 +379,7 @@ function CoopManager.drawUI(ow)
   elseif CoopManager.statusMessage and CoopManager.statusTimer > 0 then
     -- three rows: a Spanish notice is often longer than its English one
     local lines = wrap(CoopManager.statusMessage, 18, 3)
+    feedTop = (#lines + 2) * 8
     love.graphics.setColor(1, 1, 1, 1)
     Font.drawBox(0, 0, 20, #lines + 2)
     love.graphics.setColor(0, 0, 0, 1)
@@ -387,6 +390,9 @@ function CoopManager.drawUI(ow)
   else
     drawHud(ow)
   end
+  -- what the partner just did (src/coop/CoopFeed.lua)
+  local Feed = package.loaded["src.coop.CoopFeed"]
+  if Feed and Feed.draw and not hasTextBox and CoopManager.connected then pcall(Feed.draw, game, feedTop) end
 
   -- the partner's event, read along without being frozen by it
   local okStory, CoopStory = pcall(require, "src.coop.CoopStory")

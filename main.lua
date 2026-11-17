@@ -79,7 +79,7 @@ local MODULES = {
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
-  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
+  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopFeed", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
   "src.coop.CoopWire", "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
@@ -412,6 +412,16 @@ if mod.events and mod.events.on then
   end
   mod.events:on("battle.fainted", relay("onFainted"))
   mod.events:on("battle.exp_gained", relay("onExpGained"))
+  -- the partner's feed (src/coop/CoopFeed.lua): our catches, evolutions, eggs
+  local function feed(name)
+    return function(payload)
+      local ok, CoopFeed = pcall(require, "src.coop.CoopFeed")
+      if ok and CoopFeed[name] then pcall(CoopFeed[name], payload) end
+    end
+  end
+  mod.events:on("pokemon.caught", feed("onCaught"))
+  mod.events:on("pokemon.evolved", feed("onEvolved"))
+  mod.events:on("pokemon.egg_hatched", feed("onHatched"))
 end
 Hooks.installQuit()
 
