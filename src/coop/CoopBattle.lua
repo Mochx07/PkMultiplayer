@@ -152,7 +152,9 @@ function CoopBattle.encodeAction(battle, action, opts)
   end
   if action.special == "playerItem" then
     return { kind = "item", id = action.id, targetNick = action.targetNick,
-             messages = action.messages, heal = action.heal, boost = action.boost }
+             messages = action.messages, heal = action.heal, boost = action.boost,
+             -- a thrown BALL (src/coop/CoopCatch.lua; only with catch.together)
+             ball = action.coopBall }
   end
   if action.special then return { kind = "locked" } end
   local P = BattleStatePos()
@@ -206,7 +208,8 @@ function CoopBattle.decodeAction(battle, w)
   elseif w.kind == "item" then
     return { special = "playerItem", id = w.id, targetNick = w.targetNick, messages = w.messages,
              heal = type(w.heal) == "table" and w.heal or nil,
-             boost = type(w.boost) == "table" and w.boost or nil }
+             boost = type(w.boost) == "table" and w.boost or nil,
+             coopBall = type(w.ball) == "string" and w.ball or nil }
   end
   return nil
 end
@@ -890,6 +893,9 @@ function CoopBattle.executeTurn(battle)
     CoopBattle.forceFinishBattle(battle, "win")
     return
   end
+  -- this turn's BALLs, one throw for both (src/coop/CoopCatch.lua)
+  local CC = package.loaded["src.coop.CoopCatch"]
+  if CC and CC.beginTurn then CC.beginTurn(battle, localAction, battle.coopPartnerAction) end
   reseed(battle, turn)
   CoopLog.battle("TURN", string.format("resolve turn %d (partner %s)", turn,
                  c.partnerLost and "AI" or tostring(wire and wire.kind)))

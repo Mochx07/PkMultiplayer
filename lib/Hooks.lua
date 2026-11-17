@@ -643,6 +643,26 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
       return a, b, c
     end
   end)
+  -- CATCHING TOGETHER (src/coop/CoopCatch.lua): a ball rides an item
+  -- action and is thrown inside the turn; once it catches, the rest of the
+  -- turn -- every other action and the end of turn -- stands down.
+  wrap(BattleState, "BattleState", "executeAction", function(executeAction)
+    return function(self, user, target, action, ...)
+      if self.coopCaught then return end
+      if type(action) == "table" and action.coopBall and self.coopWild then
+        local CC = package.loaded["src.coop.CoopCatch"]
+        if CC and CC.execute then return CC.execute(self, user, action) end
+      end
+      return executeAction(self, user, target, action, ...)
+    end
+  end)
+  wrap(BattleState, "BattleState", "endOfTurn", function(endOfTurn)
+    return function(self, ...)
+      if self.coopCaught then return end
+      return endOfTurn(self, ...)
+    end
+  end)
+
   -- ONE FOE DOWN IS NOT THE WIN.  The engine starts the wild jingle as each
   -- wild mon's faint slide lands (FaintEnemyPokemon .wild_win), which in a
   -- single battle is the end; in a double (a co-op wild pair, Gen 1 and 2)
@@ -669,7 +689,13 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
     return function(self, ...)
       local ap = self.animPlayer
       if ap then ap.stageNudge = Hooks.stageNudge(self) end
-      return drawAnimLayer(self, ...)
+      local a, b, c = drawAnimLayer(self, ...)
+      -- a co-op catch: the twin goes into a ball of its own (CoopCatch)
+      if self.coopTwinCatch then
+        local CC = package.loaded["src.coop.CoopCatch"]
+        if CC and CC.drawTwin then pcall(CC.drawTwin, self, drawAnimLayer, ...) end
+      end
+      return a, b, c
     end
   end)
 
@@ -1022,6 +1048,12 @@ Hooks.modules["src.inventory.ItemEffects"] = function(ItemEffects)
         return "failed", { "Not while you\nbattle together!" }
       end
       local result, a, b, c = use(data, save, id, target, battle, ...)
+      local CC = package.loaded["src.coop.CoopCatch"]
+      if result == "ball" and CC and CC.allowed and CC.allowed(battle) then
+        -- catching together (src/coop/CoopCatch.lua): the bag throws it as
+        -- the turn's action
+        return result, a, b, c
+      end
       if result == "ball" and type(battle) == "table" and (battle.coopDouble or battle.coopWild) then
         if battle.kind ~= "wild" then
           local t = data and data.text

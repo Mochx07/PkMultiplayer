@@ -6,9 +6,11 @@
 -- twin against one Pokemon of each of you, in the same lockstep as a trainer
 -- double.  No answer, or a no, and it is your battle alone.
 --
--- Together you fight; you don't catch.  A BALL can't be aimed with four
--- Pokemon out ("Not while you battle together!") -- pick SOLO-style play by
--- leaving the rule off when you are hunting.  RUN gets both of you away.
+-- Catching: with both on catch.together (nightly.2) a BALL is a turn's
+-- action and two in one turn are one joint throw; then WHO KEEPS IT?
+-- (src/coop/CoopCatch.lua).  With an older partner the old rule stands: a
+-- BALL can't be aimed with four Pokemon out ("Not while you battle
+-- together!").  RUN gets both of you away.
 --
 -- Wire: coop_battle_invite with battleKind = "wild" and the wild Pokemon as
 -- it stands (wildMon), so both copies fight the same one; coop_wild_run.

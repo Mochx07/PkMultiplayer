@@ -223,6 +223,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopSoulLink",
   "src.coop.CoopGear",
   "src.coop.CoopWild",
+  "src.coop.CoopCatch",
   "src.coop.CoopCompat",
   "src.coop.CoopWatch",
   "src.coop.CoopVisit",

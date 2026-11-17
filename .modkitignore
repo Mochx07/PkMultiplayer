@@ -117,3 +117,4 @@ tasks/gen3-informe.md
 tests/coop_victory_music.lua
 tests/coop_levelup_corner.lua
 tests/coop_title_menu.lua
+tests/coop_catch.lua
