@@ -79,7 +79,7 @@ local MODULES = {
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
-  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
+  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
   "src.coop.CoopWire", "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
@@ -381,6 +381,7 @@ end
 -- ------------------------------------------------- 3. menu and goodbye
 if mod.hooks and mod.hooks.wrap then
   mod.hooks:wrap("ui.start_menu.items", Hooks.startMenuItems)
+  mod.hooks:wrap("ui.title_menu.items", Hooks.titleMenuItems)
   -- the title screen's co-op rows go through the engine's own Strings()
   local function overrides()
     local okI, I18n = pcall(require, "src.coop.CoopI18n")

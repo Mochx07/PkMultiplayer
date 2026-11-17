@@ -1509,6 +1509,47 @@ function Hooks.startMenuItems(next, game, items)
   return items
 end
 
+-- ONE CO-OP ROW ON THE TITLE SCREEN (nightly.2).  CONTINUE CO-OP and NEW
+-- CO-OP GAME were two rows of their own (a patch of TitleState:openMenu);
+-- now the engine's own hook adds one, CO-OP, right under NEW GAME, which
+-- asks which of the two -- CONTINUE only when there is a save to continue.
+-- The co-op link comes first either way (CoopNewGame); the game then starts
+-- through the title screen's own callbacks, as before.  Gen 1 and 2 only.
+function Hooks.titleMenuItems(next, game, items)
+  items = next(game, items)
+  if type(items) ~= "table" then return items end
+  local GV = package.loaded["src.core.GameVersion"]
+  local gen = GV and GV.generation and GV.generation()
+  if gen and gen > 2 then return items end
+  local title = game and game.stack and game.stack.top and game.stack:top()
+  if type(title) ~= "table" then return items end
+  local Strings = require("src.core.Strings")
+  local I18n = require("src.coop.CoopI18n")
+  local hasContinue, at = false, nil
+  for i, item in ipairs(items) do
+    if item.label == Strings("CONTINUE") then hasContinue = true end
+    if item.label == Strings("NEW GAME") then at = i + 1 end
+  end
+  local function start(mode)
+    local CoopNewGame = require("src.coop.CoopNewGame")
+    local done = mode == "continue" and title.onContinue or title.onNewGame
+    game.stack:push(CoopNewGame.new(game, function() if done then done() end end, mode))
+  end
+  local row = { label = I18n.t(Strings("CO-OP")), onSelect = function()
+    if not hasContinue then return start("new") end
+    local Menu = require("src.ui.Menu")
+    -- (the menu closes itself before a row's onSelect runs)
+    local sub = Menu.new(game, {
+      { label = I18n.t(Strings("CONTINUE")), onSelect = function() start("continue") end },
+      { label = I18n.t(Strings("NEW GAME")), onSelect = function() start("new") end },
+    }, { tx = 4, ty = 2, tw = 16, th = 6 })
+    sub.coopTitleChoice = true
+    game.stack:push(sub)
+  end }
+  table.insert(items, at or (#items + 1), row)
+  return items
+end
+
 -- Closing the window says goodbye as well.
 function Hooks.installQuit()
   if not love or Hooks._quitWrapped then return end

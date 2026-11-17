@@ -572,6 +572,11 @@ function CoopManager.getLocalPlayerName(game)
     if good(save.playerName) then return save.playerName end
     if save.party and save.party[1] and good(save.party[1].ot) then return save.party[1].ot end
   end
+  -- no trainer name yet (a new co-op game): the name given on the link
+  -- screen (src/coop/CoopProfile.lua)
+  local okP, Profile = pcall(require, "src.coop.CoopProfile")
+  local kept = okP and Profile.name and Profile.name()
+  if good(kept) then return kept end
   return CoopManager.isHost and "HOST" or "GUEST"
 end
 

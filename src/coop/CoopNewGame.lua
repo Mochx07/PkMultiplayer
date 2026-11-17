@@ -37,12 +37,18 @@ local function clearGB()
 end
 
 local function getLocalPlayerName(game)
+  return CoopManager.getLocalPlayerName(game)
+end
+
+-- the name to start the name screen with: the trainer's (a save being
+-- continued), else the co-op name kept from last time, else none
+local function startingName(game, mode)
+  local Profile = require("src.coop.CoopProfile")
   local save = game and game.save
-  local pName = save and save.player and save.player.name
-  if pName and pName ~= "" and pName ~= "TRAINER" then
-    return pName
-  end
-  return CoopManager.isHost and "HOST" or "GUEST"
+  local trainer = mode == "continue" and save and save.player and save.player.name
+  local n = Profile.clean(trainer)
+  if n ~= "" and n ~= "TRAINER" then return n end
+  return Profile.name() or ""
 end
 
 local CoopNewGame = {}
@@ -56,7 +62,8 @@ function CoopNewGame.new(game, onStartGame, mode)
     onStartGame = onStartGame,
     onStartNewGame = onStartGame, -- backward compatibility
     mode = mode or "new",
-    stage = "role", -- "role", "ipEntry", "connecting", "confirm"
+    -- "name", "role", "ipEntry", "codeEntry", "connecting", "confirm"
+    stage = "name",
     roleCursor = 1,
     addr = ipDigits(defaultIP),
     addrPos = 1,
@@ -76,18 +83,95 @@ function CoopNewGame.new(game, onStartGame, mode)
   -- The lobby never touches the transport itself: CoopManager.update (run
   -- every frame by Game:update) pumps it and offers each message here first.
   CoopManager.lobby = self
+  -- YOUR NAME FIRST (nightly.2, src/coop/CoopProfile.lua): what the partner
+  -- will see, until the save has a trainer name of its own
+  self.name = startingName(game, self.mode)
+  self.nameEdit = nil
+  if self.name == "" then self:editName() end
   return self
+end
+
+function CoopNewGame:editName()
+  local n = self.name ~= "" and self.name or "A"
+  self.nameEdit = { buf = n, pos = math.max(1, #n) }
+end
+
+-- done editing: the buffer becomes the name (an empty one is not taken)
+function CoopNewGame:finishName()
+  local Profile = require("src.coop.CoopProfile")
+  local n = Profile.clean(self.nameEdit and self.nameEdit.buf or self.name)
+  if n == "" then return false end
+  self.name, self.nameEdit = n, nil
+  return true
+end
+
+function CoopNewGame:confirmName()
+  local Profile = require("src.coop.CoopProfile")
+  if self.nameEdit and not self:finishName() then return end
+  if Profile.clean(self.name) == "" then return self:editName() end
+  Profile.setName(self.name)
+  self.stage = "role"
+end
+
+-- the D-pad editor: up/down step the letter under the cursor, left/right
+-- move it (right past the end adds a letter, up to the cartridge's seven)
+function CoopNewGame:nameKey(op)
+  local e = self.nameEdit
+  if not e then return end
+  local Profile = require("src.coop.CoopProfile")
+  local buf = e.buf
+  if op == "up" or op == "down" then
+    local ch = buf:sub(e.pos, e.pos)
+    ch = Profile.step(ch ~= "" and ch or " ", op == "up" and 1 or -1)
+    e.buf = buf:sub(1, e.pos - 1) .. ch .. buf:sub(e.pos + 1)
+  elseif op == "left" then
+    e.pos = math.max(1, e.pos - 1)
+  elseif op == "right" then
+    if e.pos < #buf then
+      e.pos = e.pos + 1
+    elseif #buf < Profile.MAX then
+      e.buf = buf .. "A"
+      e.pos = #e.buf
+    end
+  elseif op == "erase" then
+    if #buf > 0 then
+      e.buf = buf:sub(1, -2)
+      e.pos = math.max(1, math.min(e.pos, #e.buf))
+    end
+  end
 end
 
 -- THE HOST'S INVITE CODE, typed or pasted instead of the twelve digits
 -- (CoopNet.inviteCode).  While one is typed, the keyboard is the code's.
 function CoopNewGame:onTextInput(text)
+  if self.stage == "name" and self.nameEdit and type(text) == "string" then
+    local Profile = require("src.coop.CoopProfile")
+    local e = self.nameEdit
+    for ch in text:upper():gmatch("[A-Z0-9 ]") do
+      if #e.buf < Profile.MAX then e.buf = e.buf .. ch end
+    end
+    e.pos = math.max(1, #e.buf)
+    return
+  end
   if self.stage ~= "codeEntry" or type(text) ~= "string" then return end
   local clean = text:upper():gsub("[^%w%-]", "")
   if #self.code + #clean <= 12 then self.code = self.code .. clean end
 end
 
 function CoopNewGame:onKeyPressed(key)
+  -- typing a name: the keyboard is the name's, not the buttons'
+  if self.stage == "name" and self.nameEdit then
+    if key == "backspace" then
+      self:nameKey("erase")
+    elseif key == "return" or key == "kpenter" then
+      self:confirmName()
+    elseif key == "escape" then
+      if self.name ~= "" then self.nameEdit = nil end
+    elseif key == "up" or key == "down" or key == "left" or key == "right" then
+      self:nameKey(key)
+    end
+    return
+  end
   if self.stage ~= "codeEntry" then
     require("src.core.Input"):keypressed(key)
     return
@@ -222,7 +306,40 @@ function CoopNewGame:update(dt)
   local input = self.game.input
   if not input then return end
 
-  if self.stage == "role" then
+  if self.stage == "name" then
+    if self.nameEdit then
+      for _, d in ipairs({ "up", "down", "left", "right" }) do
+        if input:wasPressed(d) then
+          self:nameKey(d)
+          pcall(Sound.play, self.game.data, "Menu")
+        end
+      end
+      if input:wasPressed("a") or input:wasPressed("start") then
+        pcall(Sound.play, self.game.data, "Menu")
+        self:confirmName()
+      elseif input:wasPressed("b") then
+        pcall(Sound.play, self.game.data, "Menu")
+        -- B erases, as on the cartridge's name screen; with nothing left
+        -- and a name to go back to, it stops editing
+        if #self.nameEdit.buf > 0 then
+          self:nameKey("erase")
+        elseif self.name ~= "" then
+          self.nameEdit = nil
+        end
+      end
+    elseif input:wasPressed("a") or input:wasPressed("start") then
+      pcall(Sound.play, self.game.data, "Menu")
+      self:confirmName()
+    elseif input:wasPressed("select") then
+      pcall(Sound.play, self.game.data, "Menu")
+      self:editName()
+    elseif input:wasPressed("b") then
+      pcall(Sound.play, self.game.data, "Menu")
+      self:leave()
+      self.game.stack:pop()
+    end
+
+  elseif self.stage == "role" then
     if input:wasPressed("down") or input:wasPressed("up") then
       self.roleCursor = (self.roleCursor == 1) and 2 or 1
       pcall(Sound.play, self.game.data, "Menu")
@@ -240,8 +357,7 @@ function CoopNewGame:update(dt)
       end
     elseif input:wasPressed("b") then
       pcall(Sound.play, self.game.data, "Menu")
-      self:leave()
-      self.game.stack:pop()
+      self.stage = "name"
     end
 
   elseif self.stage == "codeEntry" then
@@ -378,7 +494,26 @@ function CoopNewGame:draw()
   Font.drawBox(0, 14, 20, 4)
   local footer
 
-  if self.stage == "role" then
+  if self.stage == "name" then
+    Font.draw("YOUR NAME:", 8, 32)
+    local e = self.nameEdit
+    local shown = e and e.buf or self.name
+    Font.draw(shown, 24, 48)
+    if e then
+      local blink = math.floor(self.timer * 3) % 2 == 0
+      if blink then Font.drawCode(DOWN_ARROW, 24 + (e.pos - 1) * 8, 56) end
+      Font.draw("TYPE IT, OR", 8, 72)
+      Font.draw("UP/DOWN: LETTER", 8, 80)
+      Font.draw("B: ERASE", 8, 96)
+      footer = "A:DONE"
+    else
+      Font.draw("YOUR PARTNER", 8, 72)
+      Font.draw("SEES THIS NAME.", 8, 80)
+      Font.draw("SELECT: CHANGE IT", 8, 96)
+      footer = "A:OK  B:BACK"
+    end
+
+  elseif self.stage == "role" then
     Font.draw("SELECT ROLE:", 8, 32)
     Font.draw("HOST GAME", 24, 48)
     Font.draw("JOIN GAME", 24, 64)

@@ -1951,4 +1951,103 @@ function CoopBattle.drawWaitPrompt(battle)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+-- ---------------------------------------------------------------------
+-- LEVEL-UPS IN THE CORNER (nightly.2).  In a co-op double the engine's
+-- "X grew to level N!" box and the stats window held the turn -- and the
+-- partner with it -- once per level; and the partner's Pokemon levelled in
+-- silence.  BattleState:awardExp (co-op patch) hands every level-up of both
+-- teams to noteLevelUp instead, and they slide into the top-right corner as
+-- the newer games show them: name, a green arrow, the new level.  A move to
+-- learn still asks in the text box as before.
+-- ---------------------------------------------------------------------
+CoopBattle.LEVELUP_SHOW = 2.6   -- seconds each card stays
+CoopBattle.LEVELUP_ROWS = 3     -- cards on screen at once
+
+local function clock() return love and love.timer and love.timer.getTime() or os.clock() end
+
+function CoopBattle.noteLevelUp(battle, mon, level, owner)
+  if type(battle) ~= "table" or type(mon) ~= "table" then return end
+  local list = battle.coopLevelUps or {}
+  battle.coopLevelUps = list
+  -- the same Pokemon climbing again while its card shows: the card moves on
+  for _, e in ipairs(list) do
+    if e.mon == mon and not e.gone then
+      e.level, e.at = level, math.max(e.at, clock() - 0.3)
+      e.bump = clock()
+      return e
+    end
+  end
+  local def = battle.data and battle.data.pokemon and battle.data.pokemon[mon.species]
+  local e = { mon = mon, level = level, owner = owner or "you",
+              name = string.upper(tostring(mon.nickname or (def and def.name) or mon.species or "?")) }
+  list[#list + 1] = e
+  local Sound = package.loaded["src.core.Sound"]
+  if Sound and Sound.play and battle.data then pcall(Sound.play, battle.data, "Level_Up") end
+  return e
+end
+
+-- the cards to show at time t (each one's clock starts when it reaches the
+-- screen, so a burst of three waits its turn rather than flashing by)
+function CoopBattle.levelUpCards(battle, t)
+  local list = type(battle) == "table" and battle.coopLevelUps
+  if not list then return {} end
+  local live = {}
+  for i = #list, 1, -1 do
+    local e = list[i]
+    if e.at and t - e.at > CoopBattle.LEVELUP_SHOW then table.remove(list, i) end
+  end
+  for i, e in ipairs(list) do
+    if i > CoopBattle.LEVELUP_ROWS then break end
+    e.at = e.at or t
+    live[#live + 1] = e
+  end
+  return live
+end
+
+function CoopBattle.drawLevelUps(battle)
+  if not (love and love.graphics) then return end
+  local cards = CoopBattle.levelUpCards(battle, clock())
+  if #cards == 0 then return end
+  local MicroFont = require("src.render.MicroFont")
+  local I18n = require("src.coop.CoopI18n")
+  local CM = package.loaded["src.coop.CoopManager"]
+  local g = love.graphics
+  local t = clock()
+  for i, e in ipairs(cards) do
+    local label = I18n.truncate(e.name, 10)
+    local lv = I18n.t("LV") .. tostring(e.level)
+    local w = MicroFont.width(label) + MicroFont.width(lv) + 20
+    local age = t - e.at
+    -- slides in from the right edge and back out
+    local slide = math.min(1, age / 0.18, (CoopBattle.LEVELUP_SHOW - age) / 0.18)
+    if slide < 0 then slide = 0 end
+    local x = math.floor(160 - (w + 2) * slide)
+    local y = 2 + (i - 1) * 11
+    if CM and CM.drawPill then CM.drawPill(x, y, w, 10) end
+    -- whose: a dot in the owner's colour (the partner's outfit, or yours)
+    local col = { 40, 40, 40 }
+    if CM and CM.partnerPalette then
+      if e.owner == "partner" then
+        col = CM.partnerPalette()[3]
+      else
+        local GV = package.loaded["src.core.GameVersion"]
+        local mine = GV and GV.get and GV.get()
+        col = CM.partnerPalette(type(mine) == "string" and mine or nil)[3]
+      end
+    end
+    g.setColor(col[1] / 255, col[2] / 255, col[3] / 255, 1)
+    g.rectangle("fill", x + 3, y + 3, 4, 4)
+    g.setColor(0, 0, 0, 1)
+    MicroFont.draw(label, x + 9, y + 3)
+    -- the green up arrow, bigger for a moment when it climbed again
+    local ax = x + 9 + MicroFont.width(label) + 2
+    local big = e.bump and t - e.bump < 0.25 and 1 or 0
+    g.setColor(32 / 255, 168 / 255, 56 / 255, 1)
+    g.polygon("fill", ax + 2, y + 2 - big, ax - big, y + 6, ax + 4 + big, y + 6)
+    g.setColor(0, 0, 0, 1)
+    MicroFont.draw(lv, ax + 6, y + 3)
+  end
+  g.setColor(1, 1, 1, 1)
+end
+
 return CoopBattle

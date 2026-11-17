@@ -114,3 +114,6 @@ tests/coop_wire.lua
 tests/patch_cache.lua
 tests/patch_cache_pre.lua
 tasks/gen3-informe.md
+tests/coop_victory_music.lua
+tests/coop_levelup_corner.lua
+tests/coop_title_menu.lua

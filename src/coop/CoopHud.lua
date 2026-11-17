@@ -496,6 +496,8 @@ end
 
 -- a co-op double draws the bubble across the top of the battle screen
 function CoopManager.drawBattleChat(battle)
+  local CB = package.loaded["src.coop.CoopBattle"]
+  if CB and CB.drawLevelUps and battle and battle.coopLevelUps then pcall(CB.drawLevelUps, battle) end
   local overlay = CoopManager.chatOverlay
   if overlay and overlay.game == (battle and battle.game) then
     overlay:draw()
