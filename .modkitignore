@@ -119,3 +119,4 @@ tests/coop_levelup_corner.lua
 tests/coop_title_menu.lua
 tests/coop_catch.lua
 tests/coop_feed.lua
+tests/coop_tower_multi.lua

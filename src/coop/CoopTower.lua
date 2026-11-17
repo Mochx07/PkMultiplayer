@@ -16,6 +16,67 @@ local CoopManager = require("src.coop.CoopManager")
 
 local CoopTower = {}
 
+-- THE CHALLENGE IN DUO (nightly.2, capability "tower.multi").  Asked at
+-- every one of the seven battles, the partner had to answer and pick a
+-- team seven times.  Now the first CO-OP DOUBLE of a challenge carries a
+-- run id; once the partner joins it, the next battles of the same run go
+-- straight in with the same two teams -- no CO-OP/SOLO, no team screen --
+-- until the challenge ends (a loss, or leaving the tower) or someone says
+-- no.  The challenger's streak and prizes stay the challenger's.
+CoopTower.CAP = "tower.multi"
+CoopManager.registerCap(CoopTower.CAP)
+CoopTower.run = nil     -- challenger: { id, partnerIn, team }
+CoopTower.joined = nil  -- partner: { id, team }
+
+-- the challenger's run for this battle: the same while the challenge goes
+-- on (its counter unchanged, its beaten count not gone back), a fresh one
+-- once a new challenge starts
+function CoopTower.runFor(game)
+  local BattleTower = require("src.world.BattleTower")
+  local s = BattleTower.state(game.save)
+  if not s then return nil end
+  local run = CoopTower.run
+  local beaten = s.beaten or 0
+  if not run or run.challenge ~= s.challenge or beaten < (run.last or 0) or run.lost then
+    run = { id = string.format("T%d-%d", os.time(), math.random(1000, 9999)), partnerIn = false,
+            challenge = s.challenge }
+    CoopTower.run = run
+  end
+  run.last = beaten
+  return run
+end
+
+-- a lost battle ends the challenge: the next one asks again
+function CoopTower.onLost()
+  if CoopTower.run then CoopTower.run.lost = true end
+end
+
+-- the challenger's team to send again without asking, or nil
+function CoopTower.autoTeam(game, battle)
+  if not (CoopTower.isTower(battle) and CoopManager.bothHave(CoopTower.CAP)) then return nil end
+  local run = CoopTower.runFor(game)
+  if not (run and run.partnerIn and type(run.team) == "table") then return nil end
+  local ok = {}
+  for _, m in ipairs(run.team) do
+    if (tonumber(m.hp) or 0) > 0 then ok[#ok + 1] = m end
+  end
+  return #ok > 0 and ok or nil
+end
+
+-- the partner's side: the same run they joined, and their team still able
+function CoopTower.autoAccept(msg, eligible)
+  local t = type(msg) == "table" and msg.tower
+  local j = CoopTower.joined
+  if not (type(t) == "table" and t.run and j and j.id == t.run) then return nil end
+  local able = {}
+  for _, m in ipairs(j.team or {}) do
+    for _, e in ipairs(eligible or {}) do
+      if e == m then able[#able + 1] = m break end
+    end
+  end
+  return #able > 0 and able or nil
+end
+
 function CoopTower.isTower(battle)
   return type(battle) == "table" and battle.battleTower == true
 end
@@ -33,6 +94,8 @@ function CoopTower.inviteInfo(game, battle)
     opponent = { name = opp.name, class = opp.class, classKey = opp.classKey,
                  sprite = opp.sprite, female = opp.female, party = party },
     cap = BattleTower.maxLevel(s.group),
+    run = CoopManager.bothHave(CoopTower.CAP) and CoopTower.runFor(game).id or nil,
+    battleNo = (s.beaten or 0) + 1,
   }
 end
 

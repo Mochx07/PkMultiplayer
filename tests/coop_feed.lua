@@ -54,4 +54,17 @@ T.check(#cards == CoopFeed.ROWS, "at most " .. CoopFeed.ROWS .. " cards at once"
 local later = CoopFeed.cards(50 + CoopFeed.SHOW + 0.1)
 T.check(#later == CoopFeed.ROWS and later[1] ~= cards[1], "the shown ones go after " .. CoopFeed.SHOW .. " s and the next come in")
 
+-- the partner's contest, live
+CoopManager.partner.contest = { active = true, secondsLeft = 200, at = (love and love.timer and love.timer.getTime()) or os.clock() }
+local now0 = CoopManager.partnerContestSecondsLeft
+CoopManager.partnerContestSecondsLeft = function() return 125 end
+local l1 = CoopFeed.contestLine(game)
+T.check(l1 and l1:find("02:05") and l1:find("TOBY"), "the partner's contest: their time left (" .. tostring(l1) .. ")")
+CoopManager.partner.contest.species, CoopManager.partner.contest.score = "FIXMON_A", 312
+local l2 = CoopFeed.contestLine(game)
+T.check(l2 and l2:find("312"), "...and their best catch's score (" .. tostring(l2) .. ")")
+CoopManager.partner.contest.active = false
+T.check(CoopFeed.contestLine(game) == nil, "their run over: no card")
+CoopManager.partnerContestSecondsLeft = now0
+
 T.finish("the partner's feed")

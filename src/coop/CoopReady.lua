@@ -357,6 +357,70 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
     ow:pushBattle(battle, opts)
   end
 
+  local function sendInvite(chosenMons)
+    local stillOk, whyNot = CoopManager.partnerAvailable(ow, tower, true)
+    if not stillOk then
+      CoopManager.showStatus(whyNot .. ". Solo!", 2.5)
+      solo()
+      return
+    end
+    local wired = {}
+    for _, m in ipairs(chosenMons) do wired[#wired + 1] = wireMon(m) end
+
+    local seed = (love and love.math and love.math.random) and love.math.random(1, 1000000) or math.random(1, 1000000)
+    local inviteId = newInviteId()
+    local waitModal = CoopWaitModal.new(game, CoopManager.partner.name, function(reason)
+      CoopManager.cancelPendingInvite(ow, reason)
+    end, INVITE_TIMEOUT + 2)
+
+    -- the difficulty this battle is fought at, on both copies (CoopBalance)
+    battle.coopBalanceRules = require("src.coop.CoopBalance").currentRules()
+    CoopManager.pendingBattleInvite = {
+      battle = battle,
+      localChosen = chosenMons,
+      opts = opts,
+      seed = seed,
+      inviteId = inviteId,
+      waitModal = waitModal,
+      ow = ow,
+    }
+    game.stack:push(waitModal)
+
+    CoopManager.net:send({
+      type = "coop_battle_invite",
+      inviteId = inviteId,
+      battleKind = "trainer",
+      oppClass = battle.oppClass,
+      partyIndex = battle.partyIndex or 1,
+      trainerName = (battle.trainer and battle.trainer.name) or battle.trainerName or "TRAINER",
+      npcId = battle.npcId or (battle.npc and battle.npc.id),
+      headerEvent = battle.headerEvent,
+      trainerIndex = battle.trainerIndex,
+      canLose = battle.canLose or nil,
+      mapId = battle.mapId or (ow and ow.map and ow.map.id),
+      seed = seed,
+      localMons = wired,
+      tower = towerInfo,
+      ruleset = require("src.coop.CoopBattle").rulesetName(battle),
+      foeRules = battle.coopBalanceRules,
+      boss = battle.coopBoss,
+    })
+    if towerInfo and towerInfo.run then
+      local CT = require("src.coop.CoopTower")
+      if CT.run and CT.run.id == towerInfo.run then CT.run.team = chosenMons end
+    end
+  end
+
+  -- the next battle of a challenge the partner already joined: straight in
+  -- with the same teams (src/coop/CoopTower.lua)
+  local autoTeam = tower and require("src.coop.CoopTower").autoTeam(game, battle)
+  if autoTeam then
+    CoopManager.showStatus(string.format(require("src.coop.CoopI18n").t("Battle %d with %s!"),
+      towerInfo.battleNo or 1, CoopManager.partner.name or "PARTNER"), 2.5)
+    sendInvite(autoTeam)
+    return true
+  end
+
   local items = {
     { label = Strings("CO-OP DOUBLE"), onSelect = function()
       if not CoopManager.isConnected() then
@@ -364,55 +428,7 @@ function CoopManager.promptCoopBattle(ow, battle, opts)
         solo()
         return
       end
-      game.stack:push(CoopBattleSelect.new(game, save.party, function(chosenMons)
-        local stillOk, whyNot = CoopManager.partnerAvailable(ow, tower, true)
-        if not stillOk then
-          CoopManager.showStatus(whyNot .. ". Solo!", 2.5)
-          solo()
-          return
-        end
-        local wired = {}
-        for _, m in ipairs(chosenMons) do wired[#wired + 1] = wireMon(m) end
-
-        local seed = (love and love.math and love.math.random) and love.math.random(1, 1000000) or math.random(1, 1000000)
-        local inviteId = newInviteId()
-        local waitModal = CoopWaitModal.new(game, CoopManager.partner.name, function(reason)
-          CoopManager.cancelPendingInvite(ow, reason)
-        end, INVITE_TIMEOUT + 2)
-
-        -- the difficulty this battle is fought at, on both copies (CoopBalance)
-        battle.coopBalanceRules = require("src.coop.CoopBalance").currentRules()
-        CoopManager.pendingBattleInvite = {
-          battle = battle,
-          localChosen = chosenMons,
-          opts = opts,
-          seed = seed,
-          inviteId = inviteId,
-          waitModal = waitModal,
-          ow = ow,
-        }
-        game.stack:push(waitModal)
-
-        CoopManager.net:send({
-          type = "coop_battle_invite",
-          inviteId = inviteId,
-          battleKind = "trainer",
-          oppClass = battle.oppClass,
-          partyIndex = battle.partyIndex or 1,
-          trainerName = (battle.trainer and battle.trainer.name) or battle.trainerName or "TRAINER",
-          npcId = battle.npcId or (battle.npc and battle.npc.id),
-          headerEvent = battle.headerEvent,
-          trainerIndex = battle.trainerIndex,
-          canLose = battle.canLose or nil,
-          mapId = battle.mapId or (ow and ow.map and ow.map.id),
-          seed = seed,
-          localMons = wired,
-          tower = towerInfo,
-          ruleset = require("src.coop.CoopBattle").rulesetName(battle),
-          foeRules = battle.coopBalanceRules,
-          boss = battle.coopBoss,
-        })
-      end, solo))
+      game.stack:push(CoopBattleSelect.new(game, save.party, sendInvite, solo))
     end },
     { label = Strings("SOLO BATTLE"), onSelect = solo },
   }

@@ -105,11 +105,39 @@ function CoopFeed.cards(t)
   return live
 end
 
+-- THE PARTNER'S BUG-CATCHING CONTEST, live (nightly.2): while their run
+-- goes on, a card with their time left and their best catch so far, so you
+-- compete watching it (the clock and the judging were already shared)
+function CoopFeed.contestLine(game)
+  local c = CoopManager.partner and CoopManager.partner.contest
+  if not (c and c.active) then return nil end
+  local left = CoopManager.partnerContestSecondsLeft and CoopManager.partnerContestSecondsLeft()
+  if not left or left < 0 then return nil end
+  local who = I18n().truncate(string.upper(tostring(CoopManager.partner.name or "PARTNER")), 7)
+  local clockTxt = string.format("%02d:%02d", math.floor(left / 60), left % 60)
+  if c.species then
+    return string.format("%s %s %s %d", who, clockTxt, speciesName(game, c.species), tonumber(c.score) or 0)
+  end
+  return string.format(I18n().t("%s %s NO CATCH YET"), who, clockTxt)
+end
+
 -- CoopManager.drawUI: over the map, top right, under the status line
 function CoopFeed.draw(game, top)
   if not (love and love.graphics) then return end
   local t = clock()
   local cards = CoopFeed.cards(t)
+  local contest = CoopFeed.contestLine(game)
+  if contest then
+    local MicroFont = require("src.render.MicroFont")
+    local w = MicroFont.width(contest) + 8
+    local x = 160 - w - 1
+    local y0 = (top or 0) + 2
+    if CoopManager.drawPill then CoopManager.drawPill(x, y0, w, 9) end
+    love.graphics.setColor(0, 0, 0, 1)
+    MicroFont.draw(contest, x + 4, y0 + 2)
+    love.graphics.setColor(1, 1, 1, 1)
+    top = (top or 0) + 11
+  end
   if #cards == 0 then return end
   local MicroFont = require("src.render.MicroFont")
   local g = love.graphics

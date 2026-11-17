@@ -244,6 +244,18 @@ function CoopManager.onBattleInviteReceived(ow, msg)
 
   local pName = string.upper(CoopManager.partner.name or "PARTNER")
   local tName = string.upper(msg.trainerName or "TRAINER")
+  -- THE NEXT BATTLE OF A TOWER CHALLENGE WE JOINED: in at once, same team
+  local CT = towerCap and require("src.coop.CoopTower")
+  local again = CT and CT.autoAccept(msg, eligible)
+  if again then
+    local wired = {}
+    for _, m in ipairs(again) do wired[#wired + 1] = wireMon(m) end
+    CoopManager.net:send({ type = "coop_battle_accept", inviteId = msg.inviteId, chosenMons = wired })
+    CoopManager.startGuestBattle(game, ow2, msg, again)
+    CoopManager.showStatus(string.format(require("src.coop.CoopI18n").t("Battle %d with %s!"),
+      tonumber(msg.tower.battleNo) or 1, pName), 2.5)
+    return
+  end
   local CoopBattleInviteModal = require("src.coop.CoopBattleInviteModal")
   local inviteModal
   inviteModal = CoopBattleInviteModal.new(game, pName, tName, function()
@@ -258,6 +270,10 @@ function CoopManager.onBattleInviteReceived(ow, msg)
       local wired = {}
       for _, m in ipairs(chosenMons) do wired[#wired + 1] = wireMon(m) end
       CoopManager.net:send({ type = "coop_battle_accept", inviteId = msg.inviteId, chosenMons = wired })
+      -- joined a tower challenge: its next battles come straight in
+      if towerCap and type(msg.tower) == "table" and msg.tower.run then
+        require("src.coop.CoopTower").joined = { id = msg.tower.run, team = chosenMons }
+      end
 
       CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
       CoopManager.showStatus("Co-op battle with " .. pName .. "!", 3)
@@ -307,6 +323,12 @@ function CoopManager.onBattleAccepted(ow, msg)
   removeState(game, pending.waitModal)
   CoopManager.pendingBattleInvite = nil
   CoopManager.partnerEngagingTrainer = nil
+  -- a tower challenge the partner joined: the next battles go straight in
+  local CT = package.loaded["src.coop.CoopTower"]
+  if CT and CT.run and pending.battle and pending.battle.battleTower then
+    CT.run.partnerIn = true
+    CT.run.team = CT.run.team or pending.localChosen
+  end
   startPendingBattle(pending.ow or ow, pending, msg.chosenMons or {})
   CoopManager.showStatus("Partner joined! Battle start!", 3)
 end
@@ -321,6 +343,8 @@ local DECLINE_TEXT = {
 
 function CoopManager.onBattleDeclined(ow, msg)
   local pending = CoopManager.pendingBattleInvite
+  local CT = package.loaded["src.coop.CoopTower"]
+  if CT and CT.run and pending and pending.battle and pending.battle.battleTower then CT.run.partnerIn = false end
   local big = CoopManager.bigBattle
   -- ...or while you are picking your three for it (CoopReady.hostBigBattle)
   local hosting = CoopManager.hostingBig

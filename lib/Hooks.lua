@@ -910,6 +910,17 @@ Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
   end)
 end
 
+-- a lost tower battle ends a duo challenge (src/coop/CoopTower.lua)
+Hooks.modules["src.world.BattleTower"] = function(BattleTower)
+  wrap(BattleTower, "BattleTower", "recordLoss", function(recordLoss)
+    return function(...)
+      local CT = package.loaded["src.coop.CoopTower"]
+      if CT and CT.onLost then pcall(CT.onLost) end
+      return recordLoss(...)
+    end
+  end)
+end
+
 Hooks.modules["src.battle.Gen2AnimPlayer"] = function(Gen2AnimPlayer)
   wrap(Gen2AnimPlayer, "Gen2AnimPlayer", "objectOffset", function(objectOffset)
     return function(self, x, y, ...)

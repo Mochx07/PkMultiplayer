@@ -12,7 +12,9 @@ return {
   ["FNT"] = "DEB",
   ["LV"] = "NV",
   ["CO-OP"] = "CO-OP",
+  ["Battle %d with %s!"] = "¡Combate %d con %s!",
   -- lo que hace el compañero (CoopFeed)
+  ["%s %s NO CATCH YET"] = "%s %s SIN CAPTURA",
   ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",
   ["%s CAUGHT A SHINY %s!"] = "¡%s ATRAPÓ UN %s VARIOCOLOR!",
   ["%s: %s EVOLVED INTO %s!"] = "%s: ¡%s EVOLUCIONÓ A %s!",
