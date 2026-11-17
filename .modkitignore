@@ -124,3 +124,4 @@ tests/coop_field_sync.lua
 tests/coop_cross_story.lua
 tools/gen_flag_map.py
 tests/coop_vpn.lua
+tests/coop_voice.lua

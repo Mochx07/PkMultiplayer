@@ -168,6 +168,9 @@ function CoopManager.drawWorld(ow)
       love.graphics.setColor(0, 0, 0, 1)
       MicroFont.draw(name, bx + 3, by + 2)
       love.graphics.setColor(1, 1, 1, 1)
+      -- their voice is playing (src/coop/CoopVoice.lua)
+      local Voice = package.loaded["src.coop.CoopVoice"]
+      if Voice and Voice.partnerTalking() then Voice.drawIcon(bx + bw + 1, by + 1, false) end
 
       local headY = math.floor(sy - 18 - lift + (partner.hopY or 0))
       local ballY = headY - 5
@@ -390,6 +393,9 @@ function CoopManager.drawUI(ow)
   else
     drawHud(ow)
   end
+  -- your microphone is on the air
+  local Voice = package.loaded["src.coop.CoopVoice"]
+  if Voice and Voice.selfTalking() then Voice.drawIcon(2, 136, true) end
   -- what the partner just did (src/coop/CoopFeed.lua)
   local Feed = package.loaded["src.coop.CoopFeed"]
   if Feed and Feed.draw and not hasTextBox and CoopManager.connected then pcall(Feed.draw, game, feedTop) end
@@ -566,6 +572,9 @@ function CoopManager.drawBattleChat(battle)
   if top and top.isChatBox then return cards(0) end
   local ok, h = pcall(CoopManager.drawBattleBubble)
   cards(ok and h or 0)
+  local Voice = package.loaded["src.coop.CoopVoice"]
+  if Voice and Voice.partnerTalking() then Voice.drawIcon(150, 88, false) end
+  if Voice and Voice.selfTalking() then Voice.drawIcon(2, 88, true) end
 end
 
 -- The last `count` lines of the chat log (and the partner's live line) for

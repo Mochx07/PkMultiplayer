@@ -79,7 +79,7 @@ local MODULES = {
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
-  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopFeed", "src.coop.CoopCrossStory", "src.coop.CoopFlagMap", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
+  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopFeed", "src.coop.CoopCrossStory", "src.coop.CoopVoice", "src.coop.CoopFlagMap", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
   "src.coop.CoopWire", "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
@@ -168,6 +168,10 @@ if mod.options and mod.options.define then
     -- each game's coop.log goes to the partner's coop-partner.log (src/coop/CoopLogShare.lua)
     { key = "shareLog", type = "toggle", label = "SHARE CO-OP LOG", default = true },
     { key = "smartTrainers", type = "toggle", label = "SMARTER TRAINERS", default = true },
+    -- voice chat (src/coop/CoopVoice.lua)
+    { key = "voice", type = "choice", label = "VOICE CHAT", default = "off",
+      choices = { { "OFF", "off" }, { "PUSH V", "ptt" }, { "OPEN MIC", "open" } } },
+    { key = "voiceDistance", type = "toggle", label = "VOICE BY DISTANCE", default = true },
     -- the mod's own menus and messages (src/coop/CoopI18n.lua); AUTO follows
     -- the language the launcher translates the game to
     { key = "language", type = "choice", label = "LANGUAGE / IDIOMA", default = "auto",

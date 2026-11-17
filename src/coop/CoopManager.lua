@@ -226,6 +226,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopCatch",
   "src.coop.CoopFeed",
   "src.coop.CoopCrossStory",
+  "src.coop.CoopVoice",
   "src.coop.CoopCompat",
   "src.coop.CoopWatch",
   "src.coop.CoopVisit",

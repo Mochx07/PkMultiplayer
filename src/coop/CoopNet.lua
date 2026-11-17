@@ -808,6 +808,14 @@ function CoopNet:send(msg, opts)
   return true
 end
 
+-- a raw binary packet on the fast channel (a voice frame); dropped while
+-- the link is down, like any fast message
+function CoopNet:sendRaw(data)
+  if self.closed or not self:isLinked() or self.state ~= CoopNet.STATE.SYNCED then return false end
+  self.stats.voiceBytes = (self.stats.voiceBytes or 0) + #data
+  return rawSend(self.peer, data, CoopNet.CH_FAST, "unreliable")
+end
+
 -- everything the partner has confirmed can go
 function CoopNet:acknowledged(upTo)
   upTo = tonumber(upTo)
@@ -1069,6 +1077,14 @@ function CoopNet:onPeerDisconnected(peer, data)
 end
 
 function CoopNet:onReceive(peer, data, t)
+  -- a voice frame (src/coop/CoopVoice.lua): binary, never JSON
+  if type(data) == "string" and data:byte(1) == 0xB7 then
+    if peer ~= self.peer or not self.resumed then return end
+    self.lastHeartbeat = t
+    self.voiceInbox = self.voiceInbox or {}
+    if #self.voiceInbox < 32 then self.voiceInbox[#self.voiceInbox + 1] = data end
+    return
+  end
   if CoopWire.isPacket(data) then
     -- a position snapshot in its short form: nothing else comes this way
     if peer ~= self.peer or not self.resumed then return end
