@@ -83,7 +83,10 @@ CoopManager.screenPoint = screenPoint
 
 -- A small arrow on the screen edge pointing at a partner who is on this map
 -- (or a connected one) but out of view.
-local function drawOffscreenArrow(sx, sy, vw, vh)
+-- It wears the partner's outfit colour (their cartridge's: red, gold,
+-- crystal...), not one blue for everybody; `away` (they are on another map)
+-- makes it breathe so a glance tells "out of view" from "somewhere else".
+local function drawOffscreenArrow(sx, sy, vw, vh, away)
   local cx, cy = vw / 2, vh / 2
   local dx, dy = sx - cx, sy - cy
   local len = math.sqrt(dx * dx + dy * dy)
@@ -104,7 +107,9 @@ local function drawOffscreenArrow(sx, sy, vw, vh)
   }
   love.graphics.setColor(0, 0, 0, 1)
   love.graphics.polygon("fill", pts[1] + dx, pts[2] + dy, pts[3] + px, pts[4] + py, pts[5] - px, pts[6] - py)
-  love.graphics.setColor(40 / 255, 112 / 255, 248 / 255, 1)
+  local c = CoopManager.partnerPalette and CoopManager.partnerPalette()[3] or { 40, 112, 248 }
+  local glow = away and (0.55 + 0.45 * (0.5 + 0.5 * math.sin(now() * 4))) or 1
+  love.graphics.setColor(c[1] / 255 * glow, c[2] / 255 * glow, c[3] / 255 * glow, 1)
   love.graphics.polygon("fill", pts)
   love.graphics.setColor(1, 1, 1, 1)
 end
@@ -204,7 +209,7 @@ function CoopManager.drawWorld(ow)
     local mx, my = CoopManager.mapPoint(game, ow.map.id)
     local px, py = CoopManager.mapPoint(game, partner.map)
     if mx and px and (mx ~= px or my ~= py) then
-      drawOffscreenArrow(vw / 2 + (px - mx) * 1000, vh / 2 + (py - my) * 1000, vw, vh)
+      drawOffscreenArrow(vw / 2 + (px - mx) * 1000, vh / 2 + (py - my) * 1000, vw, vh, true)
     end
   end
 

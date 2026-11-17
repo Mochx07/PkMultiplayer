@@ -87,7 +87,17 @@ check(written == expected and written > 15, ("first load: one cache file per mod
 local second = boot()
 local units2, cached2, failed2, sources2 = tally(second)
 check(failed2 == 0 and units2 == units1, "second load: every module patched again")
-check(cached2 > units1 * 0.8, ("second load: the built texts come from the cache (%d of %d)"):format(cached2, units1))
+-- only a unit built out of an engine function has a text to keep; the
+-- co-op build's own new functions (`text`) are taken as they are every time
+local built = 0
+for _, spec in ipairs(index.modules) do
+  local patch = dofile(here .. "/" .. spec.patch)
+  for _, u in ipairs(patch.units or {}) do
+    if not u.text then built = built + 1 end
+  end
+end
+check(built > 0 and cached2 == built,
+      ("second load: every text built from the engine comes from the cache (%d of %d)"):format(cached2, built))
 local same = true
 for module, text in pairs(sources1) do
   if sources2[module] ~= text then

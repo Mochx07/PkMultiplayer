@@ -643,6 +643,21 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
       return a, b, c
     end
   end)
+  -- ONE FOE DOWN IS NOT THE WIN.  The engine starts the wild jingle as each
+  -- wild mon's faint slide lands (FaintEnemyPokemon .wild_win), which in a
+  -- single battle is the end; in a double (a co-op wild pair, Gen 1 and 2)
+  -- it played over the rest of the fight while the twin still stood.  Wait
+  -- until the whole far side is out; the alarm is left as it was too.
+  wrap(BattleState, "BattleState", "playVictoryMusic", function(playVictoryMusic)
+    return function(self, ...)
+      if self.isDouble and self:isDouble() and self.sideCanContinue
+         and not self.victoryMusicPlayed and self:sideCanContinue(false) then
+        return
+      end
+      return playVictoryMusic(self, ...)
+    end
+  end)
+
   wrap(BattleState, "BattleState", "roamerFlees", function(roamerFlees)
     return function(self, ...)
       if self.coopBeast and self.coopDouble then return end
@@ -807,6 +822,10 @@ local function gen1Side(side, from, sx, sy)
   return cx + (sx - from[1]) * k - sx, cy + (sy - from[2]) * k - sy
 end
 
+-- where a side's pic centre moves to (the nudge of the authored centre)
+local function pdx0(side, from) local dx = gen1Side(side, from, from[1], from[2]) return dx end
+local function pdy0(side, from) local _, dy = gen1Side(side, from, from[1], from[2]) return dy end
+
 function Hooks.gen1Offset(so, x, y)
   -- OAM is the screen + (8, 16)
   local sx, sy = x - 8, y - 16
@@ -818,7 +837,28 @@ function Hooks.gen1Offset(so, x, y)
   u = u * u * (3 - 2 * u)
   local pdx, pdy = gen1Side(so.player, G1_PLAYER_CENTRE, sx, sy)
   local edx, edy = gen1Side(so.enemy, G1_ENEMY_CENTRE, sx, sy)
-  return math.floor(pdx + (edx - pdx) * u + 0.5), math.floor(pdy + (edy - pdy) * u + 0.5)
+  local dx, dy = pdx + (edx - pdx) * u, pdy + (edy - pdy) * u
+  -- IN FLIGHT, ON THE REAL LINE: a beam is a row of 8x8 sprites, and moved
+  -- by the two sides' nudges blended across the middle it broke into steps
+  -- on a double's steeper, shorter line.  Between the two pics a sprite is
+  -- carried by the turn and scale that take the single layout's line onto
+  -- the one between the two Pokemon fighting (as Gen2AnimPlayer's flight).
+  local w = (math.min(t, 1 - t) - 0.1) / 0.1
+  if w > 0 and so.player and so.player.to and so.enemy and so.enemy.to then
+    if w > 1 then w = 1 end
+    local ax, ay = px + pdx0(so.player, G1_PLAYER_CENTRE), py + pdy0(so.player, G1_PLAYER_CENTRE)
+    local bx, by = G1_ENEMY_CENTRE[1] + pdx0(so.enemy, G1_ENEMY_CENTRE), G1_ENEMY_CENTRE[2] + pdy0(so.enemy, G1_ENEMY_CENTRE)
+    local wx, wy = bx - ax, by - ay
+    local len2 = vx * vx + vy * vy
+    -- the similarity taking (vx, vy) onto (wx, wy)
+    local c = (vx * wx + vy * wy) / len2
+    local sn = (vx * wy - vy * wx) / len2
+    local rx, ry = sx - px, sy - py
+    local fx = ax + c * rx - sn * ry - sx
+    local fy = ay + sn * rx + c * ry - sy
+    dx, dy = dx + (fx - dx) * w, dy + (fy - dy) * w
+  end
+  return math.floor(dx + 0.5), math.floor(dy + 0.5)
 end
 
 Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
