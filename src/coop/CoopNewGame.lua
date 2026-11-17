@@ -509,13 +509,13 @@ function CoopNewGame:draw()
     if e then
       local blink = math.floor(self.timer * 3) % 2 == 0
       if blink then Font.drawCode(DOWN_ARROW, 24 + (e.pos - 1) * 8, 56) end
-      Font.draw("TYPE IT, OR", 8, 72)
-      Font.draw("UP/DOWN: LETTER", 8, 80)
+      Font.draw("TYPE IT, OR", 8, 70)
+      Font.draw("UP/DOWN: LETTER", 8, 82)
       Font.draw("B: ERASE", 8, 96)
       footer = "A:DONE"
     else
-      Font.draw("YOUR PARTNER", 8, 72)
-      Font.draw("SEES THIS NAME.", 8, 80)
+      Font.draw("YOUR PARTNER", 8, 70)
+      Font.draw("SEES THIS NAME.", 8, 82)
       Font.draw("SELECT: CHANGE IT", 8, 96)
       footer = "A:OK  B:BACK"
     end
