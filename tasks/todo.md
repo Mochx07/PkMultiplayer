@@ -13,16 +13,16 @@ contra 85512413. Todo lo nuevo, detrás de caps; protocolo sin cambios.
 - [x] B7 Chat: solo lo enviado; "escribiendo" con >=1 letra; en combate, caja en el cuadro de
       texto y mensajes en una franja arriba a la izquierda
 - [x] C8 Captura conjunta estilo Let's Go + ¿quién se lo queda? (catch.together); gemelo en su Ball
-- [ ] D9 Eventos visuales para el otro jugador (cola de avisos)
-- [ ] D10 Retraso al entrar a la vez a un evento
-- [ ] D11 Parque Nacional / Torre de Batalla (Cristal)
-- [ ] D12 Sincronización de combates (firma ampliada, detección antes de resolver, estrés)
-- [ ] E13 Gen 1: paridad, fallos, captura en Gen 1 (probar con Amarillo)
-- [ ] E14 Oro/Plata <-> Cristal experimental
-- [ ] E15 Cápsula del Tiempo
-- [ ] F16 VPNs (Hamachi, Tailscale, Radmin, WireGuard, IPv6)
-- [ ] F17 Chat de voz con proximidad (pulsar / micro abierto)
-- [ ] F18 Discord: unirse, AFK
+- [x] D9 Eventos visuales para el otro jugador (cola de avisos)
+- [x] D10 Retraso al entrar a la vez a un evento
+- [x] D11 Parque Nacional / Torre de Batalla (Cristal)
+- [x] D12 Sincronización de combates (firma ampliada, detección antes de resolver, estrés)
+- [x] E13 Gen 1: paridad, fallos, captura en Gen 1 (probar con Amarillo)
+- [x] E14 Oro/Plata <-> Cristal experimental
+- [x] E15 Cápsula del Tiempo
+- [x] F16 VPNs (Hamachi, Tailscale, Radmin, WireGuard, IPv6)
+- [x] F17 Chat de voz con proximidad (pulsar / micro abierto)
+- [x] F18 Discord: unirse, AFK
 - [ ] G19 Sprites de batalla dual
 - [ ] H20 Publicar 2.0.0-nightly.2 (+ web: homepage, contenido propio, lastmod)
 - [ ] I21 Repo nuevo para gen1recomp 1.0 (Gen 1 + Gen 2), SOLO piezas de su motor

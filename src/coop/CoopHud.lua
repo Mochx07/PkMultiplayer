@@ -176,6 +176,10 @@ function CoopManager.drawWorld(ow)
       local ballY = headY - 5
       if partner.inBattle then
         CoopManager.drawSpinningPokeball(sx, ballY, 2.0)
+      elseif partner.afk then
+        -- away from the keys (src/coop/CoopDiscord.lua): a Zzz that stays
+        require("src.coop.CoopEmotes").draw(getGame(ow), "sleep", sx, sy - lift + (partner.hopY or 0),
+                                            0.5 + (t % 1) * 0.1)
       elseif partner.emote and partner.inDialogue then
         -- a reaction from inside their scene's dialogue (1.20 duo) shows
         -- over the "..." it would otherwise hide behind

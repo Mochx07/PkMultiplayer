@@ -221,8 +221,20 @@ Hooks.modules["src.core.Game"] = function(Game)
   -- T: chat (idle overworld, or a co-op double waiting on the partner);
   -- Y: the emote picker (idle overworld).  After the engine's own
   -- delegation to a state that takes keys, as in the co-op build.
+  -- a gamepad button counts as being there (AFK, src/coop/CoopDiscord.lua)
+  if Game.gamepadpressed then
+    wrap(Game, "Game", "gamepadpressed", function(gamepadpressed)
+      return function(self, ...)
+        local CD = package.loaded["src.coop.CoopDiscord"]
+        if CD and CD.onInput then pcall(CD.onInput) end
+        return gamepadpressed(self, ...)
+      end
+    end)
+  end
   wrap(Game, "Game", "keypressed", function(keypressed)
     return function(self, key, ...)
+      local CD = package.loaded["src.coop.CoopDiscord"]
+      if CD and CD.onInput then pcall(CD.onInput) end
       -- the chat open inside a co-op double takes every key but the
       -- engine's own F-keys (src/coop/CoopChatBox.lua)
       local CMo = coopManager()

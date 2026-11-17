@@ -79,7 +79,7 @@ local MODULES = {
   "src.coop.CoopI18n", "src.coop.CoopLangES", "src.coop.CoopSummary", "src.coop.CoopPartnerItems",
   "src.coop.CoopClock", "src.coop.CoopPartnerNpc", "src.coop.CoopWarp", "src.coop.CoopInvites",
   "src.coop.CoopReady", "src.coop.CoopChat", "src.coop.CoopHandlers", "src.coop.CoopHud", "src.coop.CoopVS", "src.coop.CoopReplay",
-  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopFeed", "src.coop.CoopCrossStory", "src.coop.CoopVoice", "src.coop.CoopFlagMap", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
+  "src.coop.CoopMatch", "src.coop.CoopRecord", "src.coop.CoopProfile", "src.coop.CoopCatch", "src.coop.CoopFeed", "src.coop.CoopCrossStory", "src.coop.CoopVoice", "src.coop.CoopDiscord", "src.coop.CoopFlagMap", "src.coop.CoopWorld", "src.coop.CoopCatchUp", "src.coop.CoopDuo", "src.coop.CoopGyms", "src.coop.CoopBoss", "src.coop.CoopMinigame",
   "src.coop.CoopWire", "src.coop.mg.MagikarpContest", "src.coop.mg.BikeTrial", "src.coop.mg.Treasure",
   "src.battle.DoublesAI", "src.battle.SinglesAI", "src.render.MicroFont", "src.follow.FollowMon",
 }
@@ -431,6 +431,11 @@ if mod.events and mod.events.on then
   mod.events:on("pokemon.caught", feed("onCaught"))
   mod.events:on("pokemon.evolved", feed("onEvolved"))
   mod.events:on("pokemon.egg_hatched", feed("onHatched"))
+  -- a friend's click on our Discord "Ask to Join" (src/coop/CoopDiscord.lua)
+  mod.events:on("discord.join_requested", function(payload)
+    local ok, CD = pcall(require, "src.coop.CoopDiscord")
+    if ok and CD.onJoinRequested then pcall(CD.onJoinRequested, payload) end
+  end)
 end
 Hooks.installQuit()
 
