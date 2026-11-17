@@ -354,7 +354,11 @@ function CoopMenu:connectedRows(ow, page)
       end },
     }
     local rows = {}
-    for i = 1, table.maxn(raw) do if raw[i] then rows[#rows + 1] = raw[i] end end
+    -- the Time Capsule: only what crosses between the two generations
+    local CAPSULE_ROWS = { ["TRADE"] = true }
+    for i = 1, table.maxn(raw) do
+      if raw[i] and (not CoopManager.capsule or CAPSULE_ROWS[raw[i].label]) then rows[#rows + 1] = raw[i] end
+    end
     return rows
   elseif page == "vs" then
     local rows = {}
@@ -453,10 +457,11 @@ function CoopMenu:connectedRows(ow, page)
     { label = ruleLabel("READY (R)", CoopManager.localReady),
       info = { "TELL YOUR PARTNER", "YOU ARE SET FOR", "THE NEXT BATTLE." },
       run = function() CoopManager.setReady(not CoopManager.localReady) end },
-    { label = warpLabel(), run = function()
+    -- (the Time Capsule: their world is not ours to warp into)
+    (not CoopManager.capsule) and { label = warpLabel(), run = function()
       menu:close()
       if ow then CoopManager.warpToPartner(ow) end
-    end },
+    end } or false,
     -- only for the one behind in badges (src/coop/CoopCatchUp.lua)
     catchUpRow(menu, ow),
     { label = "PARTNER", sub = "partner", run = open("partner") },

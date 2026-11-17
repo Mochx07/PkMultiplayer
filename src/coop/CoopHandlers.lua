@@ -86,6 +86,8 @@ local function onHello(ow, msg)
     return
   end
   applyPartnerInfo(msg)
+  -- another generation got through incompatible(): the Time Capsule
+  CoopManager.capsule = msg.gen ~= nil and tonumber(msg.gen) ~= require("src.core.GameVersion").generation()
   if msg.type == "coop_hello" then
     sendHello(ow, "coop_welcome")
   end
@@ -112,7 +114,8 @@ H.coop_pos = function(ow, msg)
   local n = tonumber(msg.n) or 0
   if n > 0 and n <= (partner.posN or 0) then return end -- older snapshot
   partner.posN = n
-  partner.map = msg.map
+  -- in the Time Capsule their PALLET TOWN is not ours: never the same map
+  partner.map = CoopManager.capsule and type(msg.map) == "string" and ("CAPSULE " .. msg.map) or msg.map
   partner.cx = msg.cx or 0
   partner.cy = msg.cy or 0
   partner.tx, partner.ty = msg.tx, msg.ty

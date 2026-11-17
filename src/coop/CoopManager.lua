@@ -468,6 +468,7 @@ function CoopManager.init()
 end
 
 local function resetSession()
+  CoopManager.capsule = false
   -- a session that ends hands everyone their own clock back
   if CoopManager.timeOffsetSec ~= 0 or CoopManager.dayOffsetOverride ~= nil then
     CoopManager.timeOffsetSec = 0
@@ -610,6 +611,7 @@ end
 -- events -- while the rest of the co-op (battles, trades, chat) carries on.
 -- `theirGame` defaults to the linked partner's.
 function CoopManager.storyCompatible(theirGame)
+  if CoopManager.capsule and theirGame == nil then return false end
   theirGame = theirGame or (CoopManager.partner and CoopManager.partner.game)
   if type(theirGame) ~= "string" or not GameVersion.isGen2() then return true end
   if not GameVersion.isGen2(theirGame) then return true end
@@ -774,8 +776,26 @@ local function incompatible(msg)
     return theirs, "PARTNER HAS V" .. CoopManager.modVersion():upper()
   end
   if msg.gen and tonumber(msg.gen) ~= GameVersion.generation() then
+    -- THE TIME CAPSULE (nightly.2, link.capsule): Gen 1 and Gen 2 may link
+    -- for what the cartridges let them share -- chat, emotes and trades
+    -- through the Cable Club, whose own handshake applies the Time Capsule
+    -- rules.  Nothing of the two different worlds is shared.
+    local theirs, mine = tonumber(msg.gen), GameVersion.generation()
+    local pair = (theirs == 1 and mine == 2) or (theirs == 2 and mine == 1)
+    if pair and CoopManager.CAPS["link.capsule"] and capSet(msg.caps)["link.capsule"] then
+      return nil
+    end
     return "PARTNER PLAYS OTHER GAME"
   end
+  return nil
+end
+CoopManager.registerCap("link.capsule")
+CoopManager.capsule = false
+
+-- in the Time Capsule: what crosses between two different worlds is
+-- limited (CoopManager.capsuleBlocks says why a thing is off)
+function CoopManager.capsuleBlocks()
+  if CoopManager.capsule then return "Time Capsule: chat and trades only" end
   return nil
 end
 
@@ -784,6 +804,9 @@ end
 -- of the mod that still speaks this protocol (it works; the two may differ).
 function CoopManager.linkNotices()
   local notices = {}
+  if CoopManager.capsule then
+    notices[#notices + 1] = "TIME CAPSULE: chat, emotes and trades"
+  end
   if CoopManager.storySync and not CoopManager.storyCompatible() then
     notices[#notices + 1] = "Story not shared: Gold/Silver and Crystal"
   end
@@ -971,6 +994,8 @@ end
 -- `anywhere`: the partner may be on another map (a BATTLE TOWER battle,
 -- whose room is the challenger's alone)
 function CoopManager.partnerAvailable(ow, anywhere, forBattleInvite)
+  local blocked = CoopManager.capsuleBlocks()
+  if blocked then return false, blocked end
   local ok, why = partnerReachable(ow, anywhere, forBattleInvite)
   if not ok then return false, why end
   if (CoopManager.partner.healthy or 0) <= 0 then return false, "Partner has no POKéMON" end

@@ -17,6 +17,8 @@ return {
   ["EXPERIMENTAL: ONE"] = "EXPERIMENTAL: UNA",
   ["STORY FOR G/S AND"] = "HISTORIA PARA O/P",
   ["CRYSTAL (NOT ALL)."] = "Y CRISTAL (NO TODO)",
+  ["Time Capsule: chat and trades only"] = "Cápsula del Tiempo: solo chat e intercambios",
+  ["TIME CAPSULE: chat, emotes and trades"] = "CÁPSULA DEL TIEMPO: chat, emotes e intercambios",
   -- lo que hace el compañero (CoopFeed)
   ["%s %s NO CATCH YET"] = "%s %s SIN CAPTURA",
   ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",
