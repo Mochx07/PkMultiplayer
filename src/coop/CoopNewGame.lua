@@ -46,6 +46,13 @@ local function startingName(game, mode)
   local Profile = require("src.coop.CoopProfile")
   local save = game and game.save
   local trainer = mode == "continue" and save and save.player and save.player.name
+  -- CONTINUE from the title screen: no save is loaded yet, so the trainer's
+  -- name is read from the file the game is about to continue -- the same
+  -- name the partner sees when you link from the START menu in the game
+  if mode == "continue" and not (type(trainer) == "string" and trainer ~= "") then
+    local ok, loaded = pcall(function() return require("src.core.SaveData").load() end)
+    trainer = ok and type(loaded) == "table" and loaded.player and loaded.player.name or nil
+  end
   local n = Profile.clean(trainer)
   if n ~= "" and n ~= "TRAINER" then return n end
   return Profile.name() or ""

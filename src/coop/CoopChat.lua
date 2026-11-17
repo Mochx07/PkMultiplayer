@@ -17,12 +17,10 @@ local playSound = CMI.playSound
 local stackTop = CMI.stackTop
 
 
--- LIVE CHAT.  The partner sees what you type AS you type it: every change in
--- the chat box goes out on the fast channel (unreliable, sequenced, never
--- stuck behind a battle turn), at most every LIVE_EVERY seconds, and when
--- the typing pauses the latest text is repeated on the reliable channel in
--- case the last fast packet was lost.  Every live packet carries a counter
--- so a late one never resurrects text that was already sent or cancelled.
+-- THE CHAT.  While you type, the partner sees that you are typing (see
+-- sendChatLive below); what you send is the message.  Every typing packet
+-- carries a counter so a late one never brings back a line that was already
+-- sent or cancelled.
 --
 -- Messages are kept in a short log the chat box shows, so nothing that
 -- arrives while you are typing is missed, and a message's time on screen
@@ -90,43 +88,50 @@ function CoopManager.openChat(game, ow)
   CoopManager.sendChatLive("")
 end
 
+-- TYPING, NOT THE TEXT (nightly.2).  The partner used to see every letter
+-- as it was typed; now only what is SENT reaches them, and while the box
+-- holds at least one letter they see "is typing...".  An empty box -- just
+-- opened, or everything erased -- says nothing.  On the wire it is the same
+-- coop_chat_live as before with an empty text, which an older copy also
+-- shows as "is typing...", so no capability is needed.
+CoopManager.TYPING_REFRESH = 2  -- seconds: under the receiver's TYPING_STALE
+
 local function sendLiveNow(reliable)
   local live = CoopManager.liveOut
   local net = CoopManager.net
-  if not (CoopManager.connected and net and live.text ~= nil) then return end
+  if not (CoopManager.connected and net and live.typing) then return end
   live.n = live.n + 1
   live.at = now()
-  live.sentText = live.text
   live.settled = reliable or false
-  net:send({ type = "coop_chat_live", n = live.n, text = live.text }, (not reliable) and { fast = true } or nil)
+  net:send({ type = "coop_chat_live", n = live.n, text = "" }, (not reliable) and { fast = true } or nil)
 end
 
 -- the chat box reports its text on every change; nil + stop = box closed
 function CoopManager.sendChatLive(text, stop)
   local live = CoopManager.liveOut
-  if stop then
-    live.text, live.sentText, live.settled = nil, nil, true
-    if CoopManager.connected and CoopManager.net then
-      live.n = live.n + 1
-      CoopManager.net:send({ type = "coop_chat_live", n = live.n, stop = true })
-    end
+  local typing = not stop and tostring(text or ""):match("%S") ~= nil
+  if typing == (live.typing == true) then return end
+  live.typing = typing
+  if typing then
+    sendLiveNow(false)
     return
   end
-  text = tostring(text or ""):sub(1, CoopManager.CHAT_MAX)
-  if text == live.sentText and live.text ~= nil then return end
-  live.text = text
-  if now() - (live.at or -1) >= CoopManager.LIVE_EVERY then sendLiveNow(false) end
+  live.settled = true
+  if CoopManager.connected and CoopManager.net then
+    live.n = live.n + 1
+    CoopManager.net:send({ type = "coop_chat_live", n = live.n, stop = true })
+  end
 end
 
--- once a frame: a change held back by the rate limit goes out, and a pause
--- in the typing is confirmed on the reliable channel
+-- once a frame: the start of the typing is confirmed on the reliable
+-- channel, and kept alive while it goes on
 local function tickLive()
   local live = CoopManager.liveOut
-  if live.text == nil then return end
+  if not live.typing then return end
   local t = now()
-  if live.text ~= live.sentText then
-    if t - (live.at or -1) >= CoopManager.LIVE_EVERY then sendLiveNow(false) end
-  elseif not live.settled and t - (live.at or 0) >= CoopManager.LIVE_SETTLE then
+  if not live.settled and t - (live.at or 0) >= CoopManager.LIVE_SETTLE then
+    sendLiveNow(true)
+  elseif t - (live.at or 0) >= CoopManager.TYPING_REFRESH then
     sendLiveNow(true)
   end
 end
@@ -139,14 +144,16 @@ function CoopManager.onChatLive(msg)
     CoopManager.partnerTyping = nil
     return
   end
-  CoopManager.partnerTyping = { text = tostring(msg.text or ""):sub(1, CoopManager.CHAT_MAX), at = now() }
+  -- an older partner still sends the letters: only the fact is shown
+  CoopManager.partnerTyping = { text = "", at = now() }
 end
 
 function CoopManager.sendChat(text)
   text = text and text:match("^%s*(.-)%s*$") or ""
   local live = CoopManager.liveOut
-  live.text, live.sentText, live.settled = nil, nil, true
+  live.typing, live.settled = false, true
   if text == "" then
+    live.typing = true
     CoopManager.sendChatLive(nil, true)
     return
   end

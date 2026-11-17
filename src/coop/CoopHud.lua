@@ -494,20 +494,72 @@ function CoopManager.drawChatBubble(ty)
   return true
 end
 
--- a co-op double draws the bubble across the top of the battle screen
+-- A MESSAGE IN A BATTLE (nightly.2): a small strip in the top-left corner,
+-- in the micro font, at most three lines, instead of a full-width box over
+-- the foes' names and HP.  Returns its height (0 when nothing is shown).
+CoopManager.BATTLE_BUBBLE_W = 92
+function CoopManager.drawBattleBubble()
+  local sender, text, typing = CoopManager.chatBubble()
+  if not sender then return 0 end
+  if not typing then CoopManager.chatShown = true end
+  local MicroFont = require("src.render.MicroFont")
+  local maxW = CoopManager.BATTLE_BUBBLE_W - 6
+  -- broken at spaces by pixel width, three lines at most (the last cut)
+  local lines, line = {}, ""
+  for word in tostring(sender .. ": " .. text):gmatch("%S+") do
+    local cand = line == "" and word or (line .. " " .. word)
+    if MicroFont.width(cand) <= maxW then
+      line = cand
+    else
+      if line ~= "" then lines[#lines + 1] = line end
+      line = word
+      while MicroFont.width(line) > maxW do
+        local cut = #line
+        while cut > 1 and MicroFont.width(line:sub(1, cut)) > maxW do cut = cut - 1 end
+        lines[#lines + 1] = line:sub(1, cut)
+        line = line:sub(cut + 1)
+      end
+    end
+  end
+  if line ~= "" then lines[#lines + 1] = line end
+  if #lines > 3 then
+    lines[3] = lines[3]:sub(1, -3) .. ".."
+    for i = #lines, 4, -1 do lines[i] = nil end
+  end
+  local w = 0
+  for _, l in ipairs(lines) do w = math.max(w, MicroFont.width(l)) end
+  w = w + 6
+  local h = #lines * 7 + 3
+  local g = love.graphics
+  g.setColor(0, 0, 0, 1)
+  g.rectangle("fill", 0, 0, w + 1, h + 1)
+  g.setColor(1, 1, 1, 0.92)
+  g.rectangle("fill", 0, 0, w, h)
+  g.setColor(0, 0, 0, 1)
+  for i, l in ipairs(lines) do MicroFont.draw(l, 3, 2 + (i - 1) * 7) end
+  g.setColor(1, 1, 1, 1)
+  return h + 1
+end
+
+-- a co-op double: the level-up cards, and the chat -- typing in the text
+-- box, messages in the corner
 function CoopManager.drawBattleChat(battle)
-  local CB = package.loaded["src.coop.CoopBattle"]
-  if CB and CB.drawLevelUps and battle and battle.coopLevelUps then pcall(CB.drawLevelUps, battle) end
   local overlay = CoopManager.chatOverlay
+  local CB = package.loaded["src.coop.CoopBattle"]
+  local function cards(top)
+    if CB and CB.drawLevelUps and battle and battle.coopLevelUps then pcall(CB.drawLevelUps, battle, top) end
+  end
   if overlay and overlay.game == (battle and battle.game) then
+    cards(0)
     overlay:draw()
     return
   end
-  if not CoopManager.connected then return end
+  if not CoopManager.connected then return cards(0) end
   local game = battle and battle.game
   local top = stackTop(game)
-  if top and top.isChatBox then return end
-  CoopManager.drawChatBubble(0)
+  if top and top.isChatBox then return cards(0) end
+  local ok, h = pcall(CoopManager.drawBattleBubble)
+  cards(ok and h or 0)
 end
 
 -- The last `count` lines of the chat log (and the partner's live line) for

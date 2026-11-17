@@ -2004,7 +2004,9 @@ function CoopBattle.levelUpCards(battle, t)
   return live
 end
 
-function CoopBattle.drawLevelUps(battle)
+-- `top`: room taken at the top-left (a chat message); cards that would
+-- run into it start below it
+function CoopBattle.drawLevelUps(battle, top)
   if not (love and love.graphics) then return end
   local cards = CoopBattle.levelUpCards(battle, clock())
   if #cards == 0 then return end
@@ -2023,6 +2025,8 @@ function CoopBattle.drawLevelUps(battle)
     if slide < 0 then slide = 0 end
     local x = math.floor(160 - (w + 2) * slide)
     local y = 2 + (i - 1) * 11
+    local CMx = package.loaded["src.coop.CoopManager"]
+    if (top or 0) > 0 and x < ((CMx and CMx.BATTLE_BUBBLE_W) or 92) + 2 then y = y + top end
     if CM and CM.drawPill then CM.drawPill(x, y, w, 10) end
     -- whose: a dot in the owner's colour (the partner's outfit, or yours)
     local col = { 40, 40, 40 }

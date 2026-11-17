@@ -122,6 +122,12 @@ function CoopChatBox.new(game, opts)
     ty = 7,
     tw = 20,
     th = 11,
+    -- IN A BATTLE IT SITS IN THE TEXT BOX (nightly.2): the full box (rows
+    -- 7-17) covered both players' Pokemon, their HP and the action menu
+    -- for as long as you typed; now it takes only the battle's own text box
+    -- (rows 12-17) -- two lines of the conversation and two of yours --
+    -- and every Pokemon and HP bar stays in sight.
+    compact = opts and opts.overlay and true or nil,
     -- the T that opened the box also arrives as text input right after;
     -- it must not become the first letter of the message
     swallowOpenKey = true,
@@ -233,7 +239,35 @@ function CoopChatBox:update(dt)
   end
 end
 
+function CoopChatBox:drawCompact()
+  love.graphics.setColor(1, 1, 1, 1)
+  Font.drawBox(0, 12, 20, 6)
+  love.graphics.setColor(0, 0, 0, 1)
+  local CM = manager()
+  local lines = (CM and CM.chatLines) and CM.chatLines(18, 2) or {}
+  for i, l in ipairs(lines) do
+    Font.draw(l, 8, 96 + i * 8)
+  end
+  -- your line: its last two rows (an earlier row scrolls away rather than
+  -- the message stopping short)
+  local cursor = (math.floor(self.cursorTimer * 3) % 2 == 0) and "_" or " "
+  local rows = layout(self.text) or { self.text }
+  local first = math.max(1, #rows - 1)
+  for i = first, #rows do
+    local part = rows[i]
+    local width = (i == 1) and ROW_FIRST or ROW_NEXT
+    local y = 120 + (i - first) * 8
+    -- the first row is the one after the arrow (17 letters); later ones run
+    -- the full 18 from the box's edge
+    if i == 1 then Font.drawCode(0xED, 8, y) end
+    if i == #rows and letters(part) < width then part = part .. cursor end
+    Font.draw(require("src.coop.CoopI18n").fitGlyphs(part), (i == 1) and 16 or 8, y)
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+end
+
 function CoopChatBox:draw()
+  if self.compact then return self:drawCompact() end
   love.graphics.setColor(1, 1, 1, 1)
   Font.drawBox(self.tx, self.ty, self.tw, self.th)
 
