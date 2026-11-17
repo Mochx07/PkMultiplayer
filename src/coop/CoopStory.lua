@@ -46,7 +46,14 @@ CoopStory.deferred = {}   -- partner events that arrived while a script of ours 
 CoopStory.held = nil      -- a big battle's scene the partner is holding for us
 CoopStory.HOLD_MAX = 900  -- seconds a hold is honoured without word from them
 CoopStory.WAIT_MAX = 300  -- seconds a scene waits for the partner to arrive
-CoopStory.ARRIVE_SETTLE = 1.5 -- the partner has been on the map this long
+CoopStory.ARRIVE_SETTLE = 0.6 -- the partner has been on the map this long
+-- WHO LEADS A BIG SCENE YOU BOTH WALKED INTO (nightly.2).  Each game
+-- starts its own copy of a map-load scene; walked into together, both asked
+-- CO-OP/SOLO and both invited the other, and the two invites crossed.  Now
+-- the scene is claimed at once (coop_story_hold), a beat is waited for the
+-- partner's own claim, and when both claimed it the host leads: the guest
+-- stands by for the host's invite, reading along.
+CoopStory.CLAIM_BEAT = 0.35
 
 local function manager()
   local ok, CM = pcall(require, "src.coop.CoopManager")
@@ -245,11 +252,65 @@ function CoopStory.begin(ctx, script)
     ctx.coopStory.here = here
   end
   if not here then return end
+  -- (a scene we already held for them with WAIT is ours: they stood by)
+  if class and not ctx.coopHoldSent and CoopStory.claim(ctx, class) == "theirs" then
+    ctx.coopSkipScript = true
+    ctx.coopStory = nil
+    CoopStory.current = nil
+    return
+  end
   -- a gym leader / League / rival scene: CO-OP or SOLO is asked now, before
   -- the first line, so the partner can read it all with you
   if class and CM.offerBigBattle then
     CM.offerBigBattle(ctx, class, party)
   end
+end
+
+-- an invisible pause inside the script's coroutine: `secs`, or until
+-- `done()` says so
+local Beat = {}
+Beat.__index = Beat
+Beat.isOpaque = false
+function Beat:update(dt)
+  self.t = self.t + (dt or 0.016)
+  if self.t >= self.secs or (self.done and self.done()) then
+    local stack = self.game.stack
+    for i = #stack.states, 1, -1 do
+      if stack.states[i] == self then table.remove(stack.states, i) break end
+    end
+    self.runner:resume()
+  end
+end
+function Beat:draw() end
+
+-- "ours" (lead the scene) or "theirs" (the partner leads it)
+function CoopStory.claim(ctx, class)
+  local CM = manager()
+  local game, runner, ow = ctx.game, ctx.runner, ctx.overworld
+  if not (CM and CM.net and CM.isConnected and CM.isConnected() and game and game.stack
+          and runner and runner.yield and ow and ow.map) then
+    return "ours"
+  end
+  CM.net:send({ type = "coop_story_hold", map = ow.map.id, class = class })
+  ctx.coopHoldSent, ctx.coopHoldSent_map = true, ow.map.id
+  local function theirClaim() return CoopStory.heldHere(ow, class) end
+  -- the beat needs the script's coroutine to pause in (outside one -- a
+  -- direct call -- it decides at once)
+  local co = coroutine.running()
+  local inside = co ~= nil and (not coroutine.isyieldable or coroutine.isyieldable())
+  if inside and not theirClaim() then
+    game.stack:push(setmetatable({ game = game, runner = runner, t = 0, secs = CoopStory.CLAIM_BEAT,
+                                   done = theirClaim }, Beat))
+    runner:yield()
+  end
+  if theirClaim() and not CM.isHost then
+    local t = (love and love.timer and love.timer.getTime and love.timer.getTime()) or os.clock()
+    CoopStory.held = { map = ow.map.id, class = class, at = t }
+    return "theirs"
+  end
+  -- ours: their claim (if any) yields to the host
+  if CM.isHost then CoopStory.held = nil end
+  return "ours"
 end
 
 -- "TOBY & MOCHX" while a shared, non-personal script is on screen

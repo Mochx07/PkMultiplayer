@@ -304,5 +304,43 @@ do
   T.check(shared ~= nil, "WILL's own scene still reaches the partner")
 end
 
+-- ---------------------------------------------------------------------
+-- WALKED IN TOGETHER (nightly.2, CoopStory.claim): both games start the
+-- scene; the claim goes out at once, and when both claimed it the host
+-- leads and the guest stands by
+-- ---------------------------------------------------------------------
+local function together(isHost, partnerClaims)
+  CoopManager.isHost = isHost
+  CoopManager.partner.map = "BURNED_TOWER1_F"
+  CoopStory.held = nil
+  sent = {}
+  offered = {}
+  local g = newGame(isHost and "MOCHI" or "TOBY")
+  local ctx = { game = g, save = g.save, overworld = { game = g, map = { id = "BURNED_TOWER1_F" } },
+                runner = newRunner() }
+  ctx.runner.co = coroutine.create(function() CoopStory.begin(ctx, SCRIPT) end)
+  ctx.runner:resume()
+  local claimed = false
+  for _, m in ipairs(sent) do if m.type == "coop_story_hold" then claimed = true end end
+  -- the beat: the partner's own claim lands, or it runs out
+  local beat = g.stack:top()
+  if partnerClaims then CoopStory.onPartnerHold({ map = "BURNED_TOWER1_F", class = "OPP_RIVAL1" }) end
+  for _ = 1, 60 do
+    local top = g.stack:top()
+    if top and top.update and top == beat then top:update(1 / 60) else break end
+  end
+  return ctx, claimed
+end
+do
+  local ctx, claimed = together(false, true)
+  T.check(claimed, "walked in together: the scene is claimed at once")
+  T.check(ctx.coopSkipScript and #offered == 0, "both claimed it: the guest stands by (no CO-OP/SOLO of its own)")
+  ctx = together(true, true)
+  T.check(not ctx.coopSkipScript and offered[1] == "OPP_RIVAL1", "...and the host leads it: CO-OP/SOLO is asked once")
+  T.check(CoopStory.held == nil, "...the host's copy drops the guest's claim")
+  ctx = together(false, false)
+  T.check(not ctx.coopSkipScript and offered[1] == "OPP_RIVAL1", "only one claimed it: that one leads, host or guest")
+end
+
 CoopManager.offerBigBattle = realOffer
 T.finish("co-op big battle waits for the partner")
