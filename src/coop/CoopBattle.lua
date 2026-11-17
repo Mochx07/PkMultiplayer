@@ -849,6 +849,19 @@ function CoopBattle.executeTurn(battle)
   local wire = c.partnerActions[turn]
   local partnerState = c.partnerStates[turn]
 
+  -- THE HOST'S WORD ON THE LAST TURN FIRST (nightly.2).  It travels on the
+  -- reliable channel ahead of the host's action for this turn, but it was
+  -- applied only from the frame loop between turns: when this turn ran in
+  -- the same frame the action came in, the sync was then dropped as stale and
+  -- the guest played the whole turn on the drifted numbers.
+  if c.pendingSync and battle.isCoopGuest then
+    local msg = c.pendingSync
+    if tonumber(msg.turn) == nil or tonumber(msg.turn) == turn - 1 then
+      c.pendingSync = nil
+      CoopBattle.applySync(battle, msg)
+    end
+  end
+
   c.partnerActions[turn] = nil
   c.partnerStates[turn] = nil
   c.localTurnAction = nil
@@ -1002,8 +1015,26 @@ function CoopBattle.withSharedRandom(battle, fn)
     end
     return rng(...)
   end
+  -- ...and Lua's own math.random too (nightly.2): a roll through it was a
+  -- different number on each machine just the same
+  -- Only the battle's own code is routed: another mod's camera shake or
+  -- particles rolling it (on one copy only) must not move the shared die.
+  local realMath = math.random
+  math.random = function(...)
+    local info = debug.getinfo(2, "S")
+    local src = info and info.source or ""
+    if not (src:find("src/battle/", 1, true) or src:find("src.battle.", 1, true)) then
+      return realMath(...)
+    end
+    CoopBattle.strayRolls = CoopBattle.strayRolls + 1
+    if CoopBattle.strayRolls == 1 then
+      CoopLog.warn("BATTLE", "a math.random roll skipped the shared rng: " .. tostring(debug.traceback("", 2)):sub(1, 300))
+    end
+    return rng(...)
+  end
   local ok, err = pcall(fn)
   lm.random = real
+  math.random = realMath
   return ok, err
 end
 
@@ -1528,6 +1559,66 @@ function CoopBattle.signature(host, enemy1, enemy2, bench)
   }
 end
 
+-- THE FIELD (nightly.2): weather and each side's screens and hazards were
+-- outside the signature, so a REFLECT or a SANDSTORM one copy counted a turn
+-- longer changed every hit after it on that copy alone, unseen.  Packed in
+-- the host's frame (side 1 = the players), plain values only.
+local function plainOf(t)
+  local keys, out = {}, {}
+  for k, v in pairs(type(t) == "table" and t or {}) do
+    if type(v) == "number" or type(v) == "boolean" or type(v) == "string" then keys[#keys + 1] = tostring(k) end
+  end
+  table.sort(keys)
+  for _, k in ipairs(keys) do out[k] = t[k] end
+  return out, keys
+end
+
+function CoopBattle.packField(battle)
+  local f = battle and battle.field or {}
+  local sides = battle and battle.sides or {}
+  local out = { weather = f.weather, weatherTurns = f.weatherTurns, sides = {} }
+  for i = 1, 2 do
+    local sd = sides[i] or {}
+    out.sides[i] = { screens = (plainOf(sd.screens)), hazards = (plainOf(sd.hazards)) }
+  end
+  return out
+end
+
+function CoopBattle.fieldSig(field)
+  if type(field) ~= "table" then return "" end
+  local parts = { tostring(field.weather) .. ":" .. tostring(field.weatherTurns) }
+  for i = 1, 2 do
+    local sd = type(field.sides) == "table" and field.sides[i] or {}
+    for _, key in ipairs({ "screens", "hazards" }) do
+      local t, keys = plainOf(sd[key])
+      local row = {}
+      for _, k in ipairs(keys) do row[#row + 1] = k .. "=" .. tostring(t[k]) end
+      parts[#parts + 1] = table.concat(row, ",")
+    end
+  end
+  return table.concat(parts, "|")
+end
+
+function CoopBattle.applyField(battle, field)
+  if type(field) ~= "table" or not battle then return end
+  battle.field = battle.field or {}
+  battle.field.weather, battle.field.weatherTurns = field.weather, field.weatherTurns
+  for i = 1, 2 do
+    local sd = battle.sides and battle.sides[i]
+    local w = type(field.sides) == "table" and field.sides[i]
+    if sd and type(w) == "table" then
+      for _, key in ipairs({ "screens", "hazards" }) do
+        sd[key] = sd[key] or {}
+        local mine = sd[key]
+        for k, v in pairs(mine) do
+          if type(v) ~= "table" and (type(w[key]) ~= "table" or w[key][k] == nil) then mine[k] = nil end
+        end
+        for k, v in pairs(type(w[key]) == "table" and w[key] or {}) do mine[k] = v end
+      end
+    end
+  end
+end
+
 function CoopBattle.syncBattleHP(battle)
   if not battle or not battle.coopDouble or battle.isCoopGuest then return end
   local c = battle.coop
@@ -1548,6 +1639,11 @@ function CoopBattle.syncBattleHP(battle)
     enemy2 = enemy2,
     bench = bench,
     sig = CoopBattle.signature(host, enemy1, enemy2, bench),
+    -- nightly.2: the field, and how far the shared die went this turn (an
+    -- older guest ignores both)
+    field = CoopBattle.packField(battle),
+    fieldSig = CoopBattle.fieldSig(CoopBattle.packField(battle)),
+    rng = c.rngState and c.rngState.x or nil,
   })
 end
 
@@ -1664,6 +1760,23 @@ function CoopBattle.applySync(battle, msg)
       end
       applyBench(battle, msg.bench)
     end
+  end
+  if type(msg.fieldSig) == "string" then
+    local mineF = CoopBattle.fieldSig(CoopBattle.packField(battle))
+    if mineF ~= msg.fieldSig then
+      CoopBattle.desyncs = CoopBattle.desyncs + 1
+      CoopLog.warn("BATTLE", string.format("turn %s: the field differs; taking the host's (host %s / guest %s)",
+                   tostring(msg.turn), msg.fieldSig, mineF))
+      CoopBattle.applyField(battle, msg.field)
+      changed = true
+    end
+  end
+  local c = battle.coop
+  if msg.rng and c and c.rngState and c.rngState.x ~= msg.rng then
+    -- not something to correct (every turn reseeds), but the first sign
+    -- that the two copies rolled a different number of times
+    CoopLog.warn("BATTLE", string.format("turn %s: the shared die ended elsewhere (host %s, guest %s)",
+                 tostring(msg.turn), tostring(msg.rng), tostring(c.rngState.x)))
   end
   changed = applyOne(battle, hostB, msg.host, battle.ally and battle.ally.party) or changed
   changed = applyOne(battle, e1, msg.enemy1, battle.enemyParty) or changed

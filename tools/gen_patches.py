@@ -50,6 +50,7 @@ MODULES = [
     ('src/battle/MoveEffects.lua', 'src.battle.MoveEffects', set(), True),
     ('src/battle/Targeting.lua', 'src.battle.Targeting', set(), True),
     ('src/battle/TrainerAI.lua', 'src.battle.TrainerAI', {'TrainerAI.switchAction'}, True),
+    ('src/battle/Weather.lua', 'src.battle.Weather', set(), True),
     ('src/inventory/ItemEffects.lua', 'src.inventory.ItemEffects', set(), True),
     ('src/link/LinkBattle.lua', 'src.link.LinkBattle', set(), True),
     ('src/link/Protocol.lua', 'src.link.Protocol', set(), True),
