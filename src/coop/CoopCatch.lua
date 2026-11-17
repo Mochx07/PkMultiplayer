@@ -183,6 +183,9 @@ function CoopCatch.mirror(battle)
   if not (from and to) then return end
   for k in pairs(to) do if from[k] == nil then to[k] = nil end end
   for k, v in pairs(from) do to[k] = v end
+  -- Gen 1 hides the ball's target with the battle's own flag
+  -- (HIDEPIC_ANIM -> enemyHidden), which reads on battle.enemy alone
+  if battle.enemyHidden and battle.enemy == tc.main then to.hidden = true end
 end
 
 -- BattleState:drawAnimLayer (lib/Hooks.lua): the ball's objects once more,
