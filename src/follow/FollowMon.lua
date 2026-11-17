@@ -29,8 +29,8 @@
 -- IN CO-OP: coop_pos carries `fol` (sheet + pixel position), and the
 -- partner's copy draws it behind the partner's avatar (FollowMon.updateRemote).
 --
--- Gen 2 only: Gen 1 has no per-species overworld icons, and Yellow already
--- has its own Pikachu.
+-- Gold / Silver / Crystal by species; Red / Blue by body shape (gen1Sheet);
+-- Yellow already has its own Pikachu.
 
 local FollowMon = {}
 
@@ -50,10 +50,48 @@ function FollowMon.lead(save)
   return nil
 end
 
+-- RED AND BLUE (nightly.2): Gen 1 has no per-species overworld icons, but
+-- its party menu has a two-frame icon per body shape (a bird, a bug, a
+-- plant...: data.icons, by dex number, the cartridge's own MonPartySprites
+-- art from the import).  That icon becomes an overworld sheet of its own,
+-- SPRITE_PKM_ICON_<shape>, registered the first time it is needed -- on the
+-- partner's copy too, from the name in coop_pos.  Yellow keeps its own
+-- Pikachu and has no other follower.
+local ICON_PREFIX = "SPRITE_PKM_ICON_"
+local function gen1Sheet(game, name)
+  local data = game and game.data
+  local sprites = data and data.sprites
+  local icons = data and data.icons
+  if not (sprites and icons and type(name) == "string") then return nil end
+  local key = ICON_PREFIX .. name
+  if sprites[key] then return key end
+  local path = icons.icons and icons.icons[name]
+  if type(path) ~= "string" then return nil end
+  sprites[key] = { id = key, image = path, frames = 2, walker = false, monIcon = true,
+                   source = "PkMultiplayer (party icon)" }
+  return key
+end
+FollowMon.gen1Sheet = gen1Sheet
+
+local function gen1IconName(game, mon)
+  local data = game.data
+  local icons = data.icons or {}
+  local entry = icons.bySpecies and icons.bySpecies[mon.species]
+  if type(entry) == "string" then return entry end
+  local def = data.pokemon and data.pokemon[mon.species]
+  return def and def.dex and icons.byDex and icons.byDex[def.dex] or nil
+end
+
 -- SPRITE_MON_158 for SPECIES_158, if this cartridge has that sheet
 local function spriteFor(game, mon)
   local dex = mon and tonumber(tostring(mon.species):match("^SPECIES_(%d+)$"))
-  if not dex then return nil end
+  if not dex then
+    local GV = package.loaded["src.core.GameVersion"]
+    if mon and GV and GV.isGen1 and GV.isGen1() and GV.get() ~= "yellow" then
+      return gen1Sheet(game, gen1IconName(game, mon))
+    end
+    return nil
+  end
   local key = ("SPRITE_MON_%03d"):format(dex)
   local sprites = game and game.data and game.data.sprites
   if sprites and sprites[key] then return key end
@@ -432,6 +470,10 @@ function FollowMon.updateRemote(game, ow, dt, info, ox, oy)
   local npc
   for _, n in ipairs((ow and ow.npcs) or {}) do
     if n.pkmFollowerRemote then npc = n break end
+  end
+  -- a Red / Blue partner's shape icon: registered here as well
+  if type(info) == "table" and type(info.s) == "string" and info.s:sub(1, #ICON_PREFIX) == ICON_PREFIX then
+    gen1Sheet(game, info.s:sub(#ICON_PREFIX + 1))
   end
   if not (ox and type(info) == "table" and type(info.s) == "string"
           and game.data.sprites and game.data.sprites[info.s]) then

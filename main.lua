@@ -193,7 +193,12 @@ package.loaded["pkmultiplayer.options"] = { on = option, get = optionValue, vers
 do
   local FollowMon = require("src.follow.FollowMon")
   FollowMon.enabled = function()
-    if generation ~= 2 then return false end
+    -- Gen 2 by species, Red / Blue by body shape; Yellow has its Pikachu
+    if generation ~= 2 and generation ~= 1 then return false end
+    if generation == 1 then
+      local GV = package.loaded["src.core.GameVersion"]
+      if GV and GV.get and GV.get() == "yellow" then return false end
+    end
     return option("follower")
   end
 end
