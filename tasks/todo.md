@@ -1,3 +1,32 @@
+# PkMultiplayer 2.0.0-nightly.2: plan (2026-11-17)
+
+Plan completo: `~/.claude/plans/radiant-honking-crescent.md`. Rama `v2.0/nightly.2` (desde
+`nightly` 2c395f7). Árbol fusionado `~/Downloads/PkMplayer-merge` (coop-snapshot), parches
+contra 85512413. Todo lo nuevo, detrás de caps; protocolo sin cambios.
+
+- [x] A1 Flecha del compañero con el color de su versión (late si está en otro mapa)
+- [x] A2 Sin fanfarria de victoria mientras quede un rival en pie (dobles, Gen 1/2)
+- [x] A3 Rayos en dobles por la línea real (Gen 2: giro + escala; Gen 1: piezas en la línea)
+- [x] A4 Subidas de nivel en una tarjeta en la esquina (ambos equipos), sin cuadro de stats
+- [x] B5 Una sola fila CO-OP en el título (gancho ui.title_menu.items; parche TitleState quitado)
+- [x] B6 Paso del nombre en la pantalla de enlace (CoopProfile; al continuar, nombre del save)
+- [x] B7 Chat: solo lo enviado; "escribiendo" con >=1 letra; en combate, caja en el cuadro de
+      texto y mensajes en una franja arriba a la izquierda
+- [x] C8 Captura conjunta estilo Let's Go + ¿quién se lo queda? (catch.together); gemelo en su Ball
+- [ ] D9 Eventos visuales para el otro jugador (cola de avisos)
+- [ ] D10 Retraso al entrar a la vez a un evento
+- [ ] D11 Parque Nacional / Torre de Batalla (Cristal)
+- [ ] D12 Sincronización de combates (firma ampliada, detección antes de resolver, estrés)
+- [ ] E13 Gen 1: paridad, fallos, captura en Gen 1 (probar con Amarillo)
+- [ ] E14 Oro/Plata <-> Cristal experimental
+- [ ] E15 Cápsula del Tiempo
+- [ ] F16 VPNs (Hamachi, Tailscale, Radmin, WireGuard, IPv6)
+- [ ] F17 Chat de voz con proximidad (pulsar / micro abierto)
+- [ ] F18 Discord: unirse, AFK
+- [ ] G19 Sprites de batalla dual
+- [ ] H20 Publicar 2.0.0-nightly.2 (+ web: homepage, contenido propio, lastmod)
+- [ ] I21 Repo nuevo para gen1recomp 1.0 (Gen 1 + Gen 2), SOLO piezas de su motor
+
 # PkMultiplayer 1.20.0: plan
 
 Base: 1.6.17 (Gen2Recomped 0.8.49, protocolo 16). Parches intermedios 1.17–1.19 los
