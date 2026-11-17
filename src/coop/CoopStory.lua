@@ -966,6 +966,12 @@ end
 
 function CoopStory.remapVersionRewards(game, msg)
   if type(msg) ~= "table" or type(msg.rewards) ~= "table" then return end
+  -- Gold/Silver <-> Crystal (experimental): the partner's flags made ours
+  local Cross = package.loaded["src.coop.CoopCrossStory"]
+  if Cross and Cross.active() and not msg.crossDone then
+    msg.crossDone = true
+    Cross.translate(msg)
+  end
   local okV, V = pcall(require, "src.core.GameVersion")
   if not (okV and V and V.isGen2 and V.isGen2()) then return end
   local isSilver = V.isSilver and V.isSilver()

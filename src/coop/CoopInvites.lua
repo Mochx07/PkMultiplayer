@@ -74,7 +74,10 @@ local function markTrainerBeaten(game, ow, msg)
   save.flags = save.flags or {}
   if msg.npcId then save.defeatedTrainers[msg.npcId] = true end
   -- the header's flag is a bit of the sender's cartridge (storyCompatible)
-  if msg.headerEvent and CoopManager.storyCompatible() then save.flags[msg.headerEvent] = true end
+  local headerEvent = msg.headerEvent
+  local Cross = package.loaded["src.coop.CoopCrossStory"]
+  if headerEvent and Cross and Cross.active() then headerEvent = Cross.flag(headerEvent) end
+  if headerEvent and CoopManager.storyCompatible() then save.flags[headerEvent] = true end
   local cur = (game and game.overworld) or ow
   if cur and cur.map and mapsMatch(cur.map.id, msg.mapId) and cur.map.npcs then
     for _, n in ipairs(cur.map.npcs) do

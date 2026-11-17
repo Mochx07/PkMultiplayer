@@ -424,6 +424,14 @@ function CoopMenu:connectedRows(ow, page)
       { label = "SOUL LINKS", info = { "SEE WHICH OF YOUR", "POKéMON ARE LINKED", "AND TO WHICH." },
         run = function() require("src.coop.CoopSoulLink").open(menu.game) end },
     }
+    -- Gold/Silver with Crystal: the story across them, experimental
+    local GVx = okV and GameVersion
+    local theirs = CoopManager.partner and CoopManager.partner.game
+    if GVx and GVx.isGen2() and type(theirs) == "string" and GVx.isGen2(theirs)
+       and GVx.isCrystal() ~= GVx.isCrystal(theirs) then
+      table.insert(rows, 2, rule("crossStory", "G/S+C STORY",
+        { "EXPERIMENTAL: ONE", "STORY FOR G/S AND", "CRYSTAL (NOT ALL)." }))
+    end
     -- Red / Blue / Yellow's DAY-CARE MAN breeds nothing
     if gen1 then
       for i = #rows, 1, -1 do

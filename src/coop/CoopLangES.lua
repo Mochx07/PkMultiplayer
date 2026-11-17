@@ -13,6 +13,10 @@ return {
   ["LV"] = "NV",
   ["CO-OP"] = "CO-OP",
   ["Battle %d with %s!"] = "¡Combate %d con %s!",
+  ["G/S+C STORY"] = "HISTORIA O/P+C",
+  ["EXPERIMENTAL: ONE"] = "EXPERIMENTAL: UNA",
+  ["STORY FOR G/S AND"] = "HISTORIA PARA O/P",
+  ["CRYSTAL (NOT ALL)."] = "Y CRISTAL (NO TODO)",
   -- lo que hace el compañero (CoopFeed)
   ["%s %s NO CATCH YET"] = "%s %s SIN CAPTURA",
   ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",

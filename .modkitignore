@@ -121,3 +121,5 @@ tests/coop_catch.lua
 tests/coop_feed.lua
 tests/coop_tower_multi.lua
 tests/coop_field_sync.lua
+tests/coop_cross_story.lua
+tools/gen_flag_map.py
