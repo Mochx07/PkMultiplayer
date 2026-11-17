@@ -148,7 +148,7 @@ function CoopMenu.new(game)
   self.game = game
   self.stage = "main"
   self.index = 1
-  self.addr = ipDigits(CoopNet.zeroTierIP() or CoopNet.lanIP())
+  self.addr = ipDigits((CoopNet.bestIP()))
   self.addrPos = 12
   self.port = CoopNet.DEFAULT_PORT
   return self
@@ -710,6 +710,7 @@ function CoopMenu:update(dt)
     if input:wasPressed("b") or input:wasPressed("a") then self.stage = "main" end
 
   elseif self.stage == "hosting" then
+    if input:wasPressed("select") then self.addrPick = (self.addrPick or 0) + 1 end
     if input:wasPressed("b") then
       -- back to the game; the session keeps listening (STOP HOSTING ends it)
       self:close()
@@ -832,7 +833,7 @@ function CoopMenu:draw()
     elseif not isConn then
       Font.draw("CO-OP LINK", 8, 8)
       Font.draw("YOUR IP:", 8, 16)
-      Font.draw(fit(CoopNet.zeroTierIP() or CoopNet.lanIP(), 18), 8, 24)
+      Font.draw(fit((CoopNet.bestIP()), 18), 8, 24)
     else
       Font.draw("LINK: " .. fit(partner.name or "PARTNER", 8), 8, 8)
       Font.draw("AREA:", 8, 16)
@@ -878,13 +879,17 @@ function CoopMenu:draw()
 
   elseif self.stage == "hosting" then
     local port = (CoopManager.net and CoopManager.net.port) or self.port
-    local ip = CoopNet.zeroTierIP() or CoopNet.lanIP()
+    -- ZeroTier, Tailscale, Radmin, Hamachi, WireGuard, home: SELECT steps
+    local list = CoopNet.addresses()
+    local pick = list[((self.addrPick or 0) % math.max(1, #list)) + 1] or { name = "LAN", ip = CoopNet.lanIP() }
+    local ip = pick.ip
     Font.drawBox(0, 0, 20, 7)
     Font.draw("HOSTING SESSION", 8, 8)
     Font.draw("PORT: " .. tostring(port), 8, 16)
     Font.draw(fit("CODE: " .. tostring(CoopNet.inviteCode(ip, port) or "?"), 18), 8, 24)
-    Font.draw("IP:", 8, 32)
+    Font.draw(fit(pick.name .. " IP:", 18), 8, 32)
     Font.draw(fit(ip, 18), 8, 40)
+    if #list > 1 then Font.draw(fit(string.format("SELECT: %d MORE", #list - 1), 18), 8, 112) end
     Font.drawBox(0, 7, 20, 11)
     Font.draw("TELL YOUR FRIEND", 8, 64)
     Font.draw("THE CODE OR IP.", 8, 72)

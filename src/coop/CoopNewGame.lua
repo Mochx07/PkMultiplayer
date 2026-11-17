@@ -63,7 +63,7 @@ CoopNewGame.__index = CoopNewGame
 CoopNewGame.isOpaque = true
 
 function CoopNewGame.new(game, onStartGame, mode)
-  local defaultIP = CoopNet.zeroTierIP() or CoopNet.lanIP()
+  local defaultIP = (CoopNet.bestIP())
   local self = setmetatable({
     game = game,
     onStartGame = onStartGame,
@@ -413,6 +413,10 @@ function CoopNewGame:update(dt)
     end
 
   elseif self.stage == "connecting" then
+    if input:wasPressed("select") and CoopManager.isHost then
+      self.addrPick = (self.addrPick or 0) + 1
+      pcall(Sound.play, self.game.data, "Menu")
+    end
     if input:wasPressed("b") then
       pcall(Sound.play, self.game.data, "Menu")
       CoopManager.disconnect()
@@ -530,7 +534,7 @@ function CoopNewGame:draw()
     footer = "A:SELECT  B:BACK"
 
   elseif self.stage == "ipEntry" then
-    Font.draw(CoopNet.zeroTierIP() and "HOST ZEROTIER IP:" or "HOST IP:", 8, 32)
+    Font.draw("HOST IP:", 8, 32)
     for i = 1, 12 do
       local octet = math.floor((i - 1) / 3)
       local x = 16 + (i - 1) * 9 + octet * 6
@@ -558,19 +562,18 @@ function CoopNewGame:draw()
   elseif self.stage == "connecting" then
     local dots = string.rep(".", math.floor(self.timer * 2) % 4)
     if CoopManager.isHost then
-      local zt = CoopNet.zeroTierIP()
+      -- every address a guest could reach: ZeroTier, Tailscale, Radmin,
+      -- Hamachi, WireGuard, the home network (SELECT steps through them)
+      local list = CoopNet.addresses()
+      local pick = list[((self.addrPick or 0) % math.max(1, #list)) + 1] or { name = "LAN", ip = CoopNet.lanIP() }
       Font.draw("WAITING GUEST" .. dots, 8, 32)
       -- the box's last text row is y=96 (its border starts at 104)
-      if zt then
-        Font.draw("ZEROTIER IP:", 8, 48)
-        Font.draw(fit(zt, 18), 8, 56)
-        Font.draw("LAN IP:", 8, 64)
-        Font.draw(fit(CoopNet.lanIP(), 18), 8, 72)
-      else
-        Font.draw("TELL YOUR GUEST:", 8, 48)
-        Font.draw(fit(CoopNet.lanIP(), 18), 8, 64)
+      Font.draw(fit(pick.name .. " IP:", 18), 8, 48)
+      Font.draw(fit(pick.ip, 18), 8, 56)
+      if #list > 1 then
+        Font.draw(fit(string.format("SELECT: %d MORE", #list - 1), 18), 8, 72)
       end
-      Font.draw("CODE: " .. tostring(CoopNet.inviteCode(zt or CoopNet.lanIP(), self.port) or "?"), 8, 88)
+      Font.draw("CODE: " .. tostring(CoopNet.inviteCode(pick.ip, self.port) or "?"), 8, 88)
       Font.draw("PORT: " .. self.port, 8, 96)
     else
       Font.draw("CONNECTING" .. dots, 8, 32)

@@ -19,6 +19,8 @@ return {
   ["CRYSTAL (NOT ALL)."] = "Y CRISTAL (NO TODO)",
   ["Time Capsule: chat and trades only"] = "Cápsula del Tiempo: solo chat e intercambios",
   ["TIME CAPSULE: chat, emotes and trades"] = "CÁPSULA DEL TIEMPO: chat, emotes e intercambios",
+  ["SELECT: %d MORE"] = "SELECT: %d MÁS",
+  ["%s IP:"] = "IP %s:",
   -- lo que hace el compañero (CoopFeed)
   ["%s %s NO CATCH YET"] = "%s %s SIN CAPTURA",
   ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",

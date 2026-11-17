@@ -241,11 +241,121 @@ function CoopNet.zeroTierIP()
   return cached("zt", detectZeroTierIP) or nil
 end
 
--- Best IP address to display or prefill (ZeroTier prioritized if present)
+-- OTHER VPNs (nightly.2): Tailscale, Radmin VPN, Hamachi and WireGuard, so
+-- nobody has to install ZeroTier just for this.  Each is found the same way
+-- as ZeroTier on any platform -- the address the OS would send from to reach
+-- an address inside the VPN's own range, when that is not the home network's
+-- (nothing is sent) -- and by its interface / adapter name where there is a
+-- shell to ask.
+CoopNet.VPNS = {
+  -- name, a target inside its range, the prefix its addresses start with
+  { name = "TAILSCALE", probe = "100.100.100.100", match = function(a)
+      local x, y = a:match("^(%d+)%.(%d+)%.")
+      return tonumber(x) == 100 and tonumber(y) and tonumber(y) >= 64 and tonumber(y) <= 127
+    end, iface = { "^tailscale" }, adapter = "tailscale" },
+  { name = "RADMIN", probe = "26.0.0.1", match = function(a) return a:find("^26%.") ~= nil end,
+    iface = {}, adapter = "radmin" },
+  { name = "HAMACHI", probe = "25.0.0.1", match = function(a) return a:find("^25%.") ~= nil end,
+    iface = { "^ham" }, adapter = "hamachi" },
+  { name = "WIREGUARD", probe = nil, match = function() return true end,
+    iface = { "^wg" }, adapter = "wireguard" },
+}
+
+-- interface name -> address, from `ip` (Linux) or `ipconfig` (Windows)
+local function shellInterfaces()
+  local out = {}
+  if not io.popen then return out end
+  pcall(function()
+    local h = io.popen("ip -4 -o addr show 2>/dev/null")
+    if not h then return end
+    for line in h:lines() do
+      local iface, addr = line:match("%d+:%s+([%w_%.%-]+)%s+inet%s+(%d+%.%d+%.%d+%.%d+)")
+      if iface then out[#out + 1] = { name = iface:lower(), addr = addr } end
+    end
+    h:close()
+  end)
+  if package.config:sub(1, 1) == "\\" then
+    pcall(function()
+      local h = io.popen("ipconfig 2>nul")
+      if not h then return end
+      local header = ""
+      for line in h:lines() do
+        if not line:match("^%s") and line:match("%S") then
+          header = line:lower()
+        else
+          local low = line:lower()
+          if low:find("ipv4") or low:find("direcci") then
+            local addr = line:match("(%d+%.%d+%.%d+%.%d+)")
+            if addr then out[#out + 1] = { name = header, addr = addr, adapter = true } end
+          end
+        end
+      end
+      h:close()
+    end)
+  end
+  return out
+end
+CoopNet.shellInterfaces = shellInterfaces
+
+-- every VPN address this machine has: { { name = "ZEROTIER", ip = ... }, ... }
+-- (`probe`, `shell`: for tests)
+function CoopNet.detectVPNs(probe, shell, lanIP)
+  probe = probe or sourceAddressFor
+  lanIP = lanIP or probe("192.0.2.1")
+  local list = {}
+  local function add(name, ip)
+    if not ip or ip == lanIP or ip:find("^127%.") or ip:find("^169%.254%.") then return end
+    for _, e in ipairs(list) do if e.ip == ip then return end end
+    list[#list + 1] = { name = name, ip = ip }
+  end
+  local zt = CoopNet.probeZeroTierIP(probe, lanIP)
+  add("ZEROTIER", zt)
+  local ifaces = shell and shell() or nil
+  for _, v in ipairs(CoopNet.VPNS) do
+    if v.probe then
+      local a = probe(v.probe)
+      if a and v.match(a) then add(v.name, a) end
+    end
+  end
+  ifaces = ifaces or shellInterfaces()
+  for _, it in ipairs(ifaces) do
+    if it.name:find("^zt") or it.name:find("zerotier") then add("ZEROTIER", it.addr) end
+    for _, v in ipairs(CoopNet.VPNS) do
+      local hit = false
+      for _, pat in ipairs(v.iface) do if it.name:find(pat) then hit = true end end
+      if it.adapter and it.name:find(v.adapter, 1, true) then hit = true end
+      if hit then add(v.name, it.addr) end
+    end
+  end
+  return list
+end
+
+function CoopNet.vpns()
+  local list = cached("vpns", function() return CoopNet.detectVPNs() end)
+  return type(list) == "table" and list or {}
+end
+
+-- Best IP address to display or prefill (a VPN first: ZeroTier, then the
+-- others in the order found), and the VPN's name
 function CoopNet.bestIP()
   local zt = CoopNet.zeroTierIP()
-  if zt then return zt, true end
-  return CoopNet.lanIP(), false
+  if zt then return zt, true, "ZEROTIER" end
+  local v = CoopNet.vpns()[1]
+  if v then return v.ip, true, v.name end
+  return CoopNet.lanIP(), false, nil
+end
+
+-- every address to offer a guest: the VPNs, then the home network
+function CoopNet.addresses()
+  local out, seen = {}, {}
+  local zt = CoopNet.zeroTierIP()
+  if zt then out[#out + 1] = { name = "ZEROTIER", ip = zt } seen[zt] = true end
+  for _, v in ipairs(CoopNet.vpns()) do
+    if not seen[v.ip] then out[#out + 1] = v seen[v.ip] = true end
+  end
+  local lan = CoopNet.lanIP()
+  if not seen[lan] then out[#out + 1] = { name = "LAN", ip = lan } end
+  return out
 end
 
 -- ---------------------------------------------------------------------
