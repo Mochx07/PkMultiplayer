@@ -127,7 +127,7 @@ original "!" comes back too). The mod ships nothing from the ROM.
 | Shared world | your partner walks on your map, with their name above them |
 | Walking Pokémon | your first (non-fainted) Pokémon walks behind you, HeartGold/SoulSilver-style, with its cartridge icon; talk to it with **A**. Your partner sees it too. It sparkles when shiny, and when it loves you it sometimes finds items (a **!** above it: talk to it). Switch it off under MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Gold/Silver/Crystal; also Red/Blue in the 2.0 nightly (with the cartridge's body-shape icon); Yellow keeps its Pikachu |
 | Chat | **T** key (also during a double battle); on phones, see above. In the 2.0 nightly your partner sees only what you send, "typing..." shows once there is a letter, and in battle the chat sits in the text box with messages in a small strip at the top left |
-| Voice chat | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: off, **PUSH V** (hold V) or **OPEN MIC**; **VOICE BY DISTANCE** makes your partner louder the closer you stand (silent on another map, full in a battle together). A speaker over them while they talk |
+| Voice chat | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: off, **PUSH V** (hold V, or R on a gamepad) or **OPEN MIC**; **VOICE BY DISTANCE** makes your partner louder the closer you stand (silent on another map, full in a battle together). A speaker over them while they talk |
 | Emotes | **Y** key |
 | Double battles | against trainers, in lockstep, with HeartGold/SoulSilver's doubles rules and a foe AI written for doubles |
 | Shared story | what one player lives, the other lives too; important battles ask first (in the 2.0 nightly, walking in together lets the host lead the scene). In Red/Blue/Yellow too: the leaders' badges and TMs, the Mt. Moon fossil (one each), gifts. Gold/Silver and Crystal number their events differently: in 1.6.17 they don't share the story; in the 2.0 nightly the **G/S+C STORY** rule (experimental, off by default) translates it |
@@ -173,8 +173,10 @@ Natu...) the hit landed in the air.
   mod bundled with Gen2Recomped), the co-op works in its 3D world, but co-op doubles are
   played on the classic screen (its 3D only knows single battles).
 - Visitors don't share the story, battles or items: only the world, the chat and the emotes.
-- 2.0 nightly: voice chat needs a microphone the game can open (on phones only open mic
-  works, there is no V key); IPv6-only VPN addresses are not offered (use their IPv4 one);
+- 2.0 nightly: voice chat needs a microphone the game can open (push-to-talk is **V** on a
+  keyboard or **R** on a gamepad; on a phone without one, use open mic); IPv6 addresses are
+  not offered, because the game's network library (ENet 1.3.13 in LÖVE 11.5) only speaks
+  IPv4 — every VPN listed also gives an IPv4 one;
   Gold/Silver ↔ Crystal story is experimental and leaves some scenes apart.
 - The walking Pokémon uses the party-menu icon (two frames, no back view), which is
   what the cartridge has; it hides on the bike and while surfing.
@@ -301,7 +303,7 @@ no incluye nada del ROM.
 | Mundo compartido | ves a tu compañero en tu mapa, con su nombre encima |
 | Pokémon que te sigue | tu primer Pokémon (no debilitado) camina detrás de ti, como en HeartGold/SoulSilver, con su icono del cartucho; háblale con **A**. Tu compañero también lo ve. Si es shiny destella, y si te quiere mucho a veces encuentra objetos (un **!** encima: háblale). Se apaga en MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Oro/Plata/Cristal; en la 2.0 nightly también Rojo/Azul (con el icono de silueta del cartucho); Amarillo mantiene su Pikachu |
 | Chat | tecla **T** (también durante un combate doble); en móvil, ver arriba. En la 2.0 nightly tu compañero ve solo lo que envías, «escribiendo...» sale con al menos una letra, y en combate el chat va en el cuadro de texto con los mensajes en una franja pequeña arriba a la izquierda |
-| Chat de voz | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: apagado, **PUSH V** (mantener V) u **OPEN MIC**; **VOICE BY DISTANCE** hace que se oiga más fuerte cuanto más cerca estén (nada en otro mapa, todo en combate juntos). Un altavoz sobre el compañero cuando habla |
+| Chat de voz | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: apagado, **PUSH V** (mantener V, o R en el mando) u **OPEN MIC**; **VOICE BY DISTANCE** hace que se oiga más fuerte cuanto más cerca estén (nada en otro mapa, todo en combate juntos). Un altavoz sobre el compañero cuando habla |
 | Emotes | tecla **Y** |
 | Combates dobles | contra entrenadores, en lockstep, con las reglas de dobles de HeartGold/SoulSilver y una IA rival pensada para dobles |
 | Historia compartida | los eventos que vive uno los vive el otro; las batallas importantes se preguntan antes. También en Rojo/Azul/Amarillo: medallas y MT de los líderes, el fósil de Mt. Moon (uno para cada uno), regalos. Oro/Plata y Cristal numeran sus eventos distinto: en la 1.6.17 no comparten la historia; en la 2.0 nightly la regla **HISTORIA O/P+C** (experimental, apagada de fábrica) la traduce. En la nightly, si entran juntos a un evento, la escena la lleva el anfitrión |
@@ -351,9 +353,10 @@ Pokémon pequeño (Pidgey, Natu...) el golpe quedaba en el aire.
   individuales).
 - Los visitantes no comparten historia, combates ni objetos: solo el mundo,
   el chat y los emotes.
-- 2.0 nightly: el chat de voz necesita un micrófono que el juego pueda abrir (en el móvil
-  solo funciona el micro abierto, no hay tecla V); no se ofrecen direcciones de VPN solo
-  IPv6 (usen su IPv4); la historia entre Oro/Plata y Cristal es experimental y deja algunas
+- 2.0 nightly: el chat de voz necesita un micrófono que el juego pueda abrir (para hablar se
+  mantiene **V** en el teclado o **R** en el mando; en un móvil sin mando, usen el micro
+  abierto); no se ofrecen direcciones IPv6, porque la librería de red del juego (ENet 1.3.13
+  en LÖVE 11.5) solo habla IPv4 — todas las VPN de la lista dan también una IPv4; la historia entre Oro/Plata y Cristal es experimental y deja algunas
   escenas aparte.
 - El Pokémon que te sigue usa el icono del menú de equipo (dos frames, sin
   vista de espaldas), que es lo que el cartucho tiene; se esconde en bici y
