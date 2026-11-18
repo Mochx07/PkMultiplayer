@@ -851,6 +851,10 @@ function CoopBattle.executeTurn(battle)
   local localAction = c.localTurnAction
   local wire = c.partnerActions[turn]
   local partnerState = c.partnerStates[turn]
+  -- BOTH THROW A BALL: the turn waits for the two of you to press A in
+  -- time (src/coop/CoopCatch.lua); the ring runs it when both are in
+  local CCa = package.loaded["src.coop.CoopCatch"]
+  if CCa and CCa.holdForAim and CCa.holdForAim(battle, turn, localAction, wire) then return end
 
   -- THE HOST'S WORD ON THE LAST TURN FIRST (nightly.2).  It travels on the
   -- reliable channel ahead of the host's action for this turn, but it was

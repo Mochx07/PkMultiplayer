@@ -72,8 +72,12 @@ Orden (Mochi): A primero.
 - [ ] F1 C3 + revisión del 2v2 de Gen 1 (animaciones, objetivos, cuadro del compañero).
 - [x] F2 Salvaje juntos = 2 contra 1: UN solo Pokémon salvaje, no dos (Mochi, 2026-11-18). Hecho:
       sin gemelo (modo "solo en su lado" de CoopBoss); probado Rojo+Amarillo reales.
-- [ ] F3 Captura conjunta: los dos pulsan A en el mismo momento; si van sincronizados, probabilidad
-      alta (Mochi, 2026-11-18). Reemplaza la "tirada conjunta" de catch.together.
+- [x] F3 Captura conjunta: los dos pulsan A en el mismo momento; si van sincronizados, probabilidad
+      alta (Mochi, 2026-11-18). Hecho (cap `catch.aim`): si los dos tiran BALL el mismo turno, antes
+      de resolverlo sale un aro que se cierra sobre el Pokémon en 1,2 s; cada copia mide el fallo de su
+      jugador (ms) y lo manda; con los dos, el peor decide: <=100 ms x3 (PERFECTA), <=250 x2,25,
+      <=450 x1,75, si no x1,5 (la tirada conjunta de antes). Suite `coop_catch_aim` (18) y driver
+      `catch_aim` con dos copias de Oro (mismo resultado en las dos).
 
 ## Hecho
 - [x] EMOTE sin compañero: la burbuja sale sobre tu jugador (antes cerraba el menú y no hacía nada).

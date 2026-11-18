@@ -8,6 +8,14 @@
 --   * Both of you throw in the same turn: one JOINT THROW -- the better of
 --     the two balls, the species' catch rate times 1.5 -- and both balls are
 --     spent.  One of you throws: an ordinary throw.
+--   * THROWING IN TIME (nightly.3, capability "catch.aim", Mochi: "press A
+--     together at the moment for a high chance").  Before a joint throw's
+--     turn resolves, both screens show a ring closing on the wild Pokemon
+--     over AIM_TIME; each of you presses A as it closes.  Each copy measures
+--     its own player's miss (ms, whole numbers) and sends it; the turn runs
+--     once both are in, and the bonus comes from the WORSE of the two, so
+--     it pays only when you are both on time -- the same two numbers on both
+--     copies, the same throw.
 --   * Caught: the rest of the turn is called off and both of you are asked
 --     WHO KEEPS IT?  -- ME / PARTNER / LET FATE DECIDE.  The same answer from
 --     both is taken; one says fate and the other names someone, that someone;
@@ -30,6 +38,19 @@ CoopCatch.JOINT = 1.5       -- Let's Go's two-player throw bonus on the catch ra
 CoopCatch.KEEP_WAIT = 20    -- seconds to answer WHO KEEPS IT?
 
 CoopManager.registerCap(CoopCatch.CAP)
+
+CoopCatch.AIM_CAP = "catch.aim"
+CoopManager.registerCap(CoopCatch.AIM_CAP)
+CoopCatch.AIM_TIME = 1.2    -- seconds the ring takes to close
+CoopCatch.AIM_LATE = 0.8    -- after it closes, how long a press still counts
+CoopCatch.AIM_WAIT = 6      -- seconds to hear from the partner before going on
+CoopCatch.MISS_MS = 1000    -- no press at all
+-- the worse miss of the two -> catch-rate multiplier, and what is said
+CoopCatch.AIM_STEPS = {
+  { ms = 100, mul = 3.0, say = "PERFECT TIMING!" },
+  { ms = 250, mul = 2.25, say = "GREAT TIMING!" },
+  { ms = 450, mul = 1.75, say = "GOOD TIMING!" },
+}
 
 local function I18n() return require("src.coop.CoopI18n") end
 local function t(s) return I18n().t(s) end
@@ -72,7 +93,135 @@ function CoopCatch.beginTurn(battle, localAction, partnerAction)
   end
   local host, guest = mine, theirs
   if battle.isCoopGuest then host, guest = theirs, mine end
-  battle.coopBalls = { host = host, guest = guest, done = false }
+  battle.coopBalls = { host = host, guest = guest, done = false,
+                       turn = battle.coop and (battle.coop.turn - 1) or nil }
+end
+
+-- ---------------------------------------------------------------- aim
+
+-- the worse of the two misses (ms) -> multiplier, line to say (or nil)
+function CoopCatch.aimBonus(a, b)
+  local worst = math.max(tonumber(a) or CoopCatch.MISS_MS, tonumber(b) or CoopCatch.MISS_MS)
+  for _, step in ipairs(CoopCatch.AIM_STEPS) do
+    if worst <= step.ms then return step.mul, step.say end
+  end
+  return CoopCatch.JOINT, nil
+end
+
+-- the ring on screen, over the battle, until both misses are in
+local Aim = {}
+Aim.__index = Aim
+Aim.isOpaque = false
+Aim.isCoopAim = true
+
+function Aim:update(dt)
+  dt = dt or 1 / 60
+  local a = self.aim
+  a.t = a.t + dt
+  local input = self.game and self.game.input
+  if a.mine == nil then
+    local pressed = input and input.wasPressed and input:wasPressed("a")
+    if pressed or a.t >= CoopCatch.AIM_TIME + CoopCatch.AIM_LATE then
+      local miss = pressed and math.floor(math.abs(a.t - CoopCatch.AIM_TIME) * 1000 + 0.5) or CoopCatch.MISS_MS
+      a.mine = math.min(CoopCatch.MISS_MS, miss)
+      a.waitFrom = a.t
+      send({ type = "coop_catch_aim", turn = a.turn, miss = a.mine })
+      pcall(function() require("src.core.Sound").play(self.battle.data, "Press_AB") end)
+    end
+  elseif a.theirs == nil and (a.t - (a.waitFrom or a.t) > CoopCatch.AIM_WAIT or CoopManager.connected == false) then
+    a.theirs = CoopCatch.MISS_MS
+  end
+  if a.mine and a.theirs and not a.done then
+    a.done = true
+    CoopLog.battle("CATCH", string.format("aim turn %s: me %dms, partner %dms", tostring(a.turn), a.mine, a.theirs))
+    self.battle.coopAim = { turn = a.turn, mine = a.mine, theirs = a.theirs }
+    CoopCatch.aiming = nil
+    local stack = self.game.stack
+    for i = #stack.states, 1, -1 do
+      if stack.states[i] == self then table.remove(stack.states, i) break end
+    end
+    local CB = package.loaded["src.coop.CoopBattle"]
+    if CB and CB.executeTurn then CB.executeTurn(self.battle) end
+  end
+end
+
+function Aim:draw()
+  local g = love.graphics
+  local a = self.aim
+  -- on the wild Pokemon's pic, where the battle draws it (animPicBox: the
+  -- doubles layout puts a lone foe in the left slot)
+  local cx, cy = 120, 36
+  local target = CoopCatch.target(self.battle)
+  if target and self.battle.animPicBox then
+    -- { to = top-left of the pic's square, size, k = its scale }
+    local ok, box = pcall(self.battle.animPicBox, self.battle, target.position)
+    if ok and type(box) == "table" and type(box.to) == "table" and box.size then
+      local half = box.size * (box.k or 1) / 2
+      cx, cy = box.to[1] + half, box.to[2] + half
+    end
+  end
+  local left = math.max(0, CoopCatch.AIM_TIME - a.t)
+  local r = 6 + 34 * (left / CoopCatch.AIM_TIME)
+  g.setLineWidth(2)
+  g.setColor(0, 0, 0, 0.85)
+  g.circle("line", cx, cy, 6)
+  if a.mine == nil then
+    g.setColor(0.85, 0.1, 0.1, 1)
+    g.circle("line", cx, cy, r)
+  end
+  g.setLineWidth(1)
+  g.setColor(1, 1, 1, 1)
+  local Font = I18n().font()
+  Font.drawBox(0, 12, 20, 6)
+  g.setColor(0, 0, 0, 1)
+  if a.mine == nil then
+    Font.draw(t("THROW TOGETHER!"), 8, 104)
+    Font.draw(t("A WHEN IT CLOSES"), 8, 120)
+  else
+    Font.draw(t("WAITING FOR"), 8, 104)
+    Font.draw(I18n().truncate(string.upper(tostring(CoopManager.partner and CoopManager.partner.name or "PARTNER")), 10) .. "...", 8, 120)
+  end
+  g.setColor(1, 1, 1, 1)
+end
+
+-- CoopBattle.executeTurn asks before the turn runs: true = wait, the ring is
+-- up (it runs the turn itself when both are in)
+function CoopCatch.holdForAim(battle, turn, localAction, wire)
+  if type(battle) ~= "table" or not CoopCatch.allowed(battle) then return false end
+  if not CoopManager.bothHave(CoopCatch.AIM_CAP) then return false end
+  local c = battle.coop
+  if not c or c.partnerLost then return false end
+  local mine = type(localAction) == "table" and localAction.coopBall
+  local theirs = type(wire) == "table" and type(wire.ball) == "string"
+  if not (mine and theirs) then return false end
+  local done = battle.coopAim
+  if done and done.turn == turn then return false end
+  if CoopCatch.aiming and CoopCatch.aiming.battle == battle and CoopCatch.aiming.aim.turn == turn then
+    return true
+  end
+  local game = battle.game
+  if not (game and game.stack) then return false end
+  local early = CoopCatch.earlyAim and CoopCatch.earlyAim[turn]
+  if CoopCatch.earlyAim then CoopCatch.earlyAim[turn] = nil end
+  local state = setmetatable({ game = game, battle = battle,
+                               aim = { turn = turn, t = 0, mine = nil, theirs = early } }, Aim)
+  CoopCatch.aiming = state
+  game.stack:push(state)
+  return true
+end
+
+CoopManager.handlers.coop_catch_aim = function(_, msg)
+  local turn, miss = tonumber(msg.turn), tonumber(msg.miss)
+  if not (turn and miss) then return end
+  miss = math.max(0, math.min(CoopCatch.MISS_MS, math.floor(miss)))
+  local st = CoopCatch.aiming
+  if st and st.aim.turn == turn then
+    st.aim.theirs = miss
+  else
+    -- theirs came before our ring went up
+    CoopCatch.earlyAim = CoopCatch.earlyAim or {}
+    CoopCatch.earlyAim[turn] = miss
+  end
 end
 
 -- which ball flies, and whether it is a joint throw
@@ -120,7 +269,14 @@ function CoopCatch.execute(battle, user, action)
   local rate = nil
   if joint then
     local base = tonumber(target.def and target.def.catchRate) or 45
-    rate = math.min(255, math.floor(base * CoopCatch.JOINT + 0.5))
+    local mul, said = CoopCatch.JOINT, nil
+    local aim = battle.coopAim
+    if aim and aim.turn == balls.turn and aim.mine and aim.theirs then
+      mul, said = CoopCatch.aimBonus(aim.mine, aim.theirs)
+    end
+    battle.coopAim = nil
+    if said then battle:sayNext(t(said)) end
+    rate = math.min(255, math.floor(base * mul + 0.5))
   end
   local caught, shakes = Catching.attempt(ball, target.mon, target.def, battle.rng, rate,
                                           { ballDef = battle.ballDef and battle:ballDef(ball),

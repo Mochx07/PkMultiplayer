@@ -132,3 +132,5 @@ tests/drivers/menu_arrows.lua
 tests/drivers/gen1_mixed.lua
 tests/coop_editions.lua
 tests/drivers/gen1_editions.lua
+tests/drivers/catch_aim.lua
+tests/coop_catch_aim.lua

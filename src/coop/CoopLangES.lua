@@ -14,6 +14,13 @@ return {
   ["CO-OP"] = "CO-OP",
   ["Battle %d with %s!"] = "¡Combate %d con %s!",
   ["G/S+C STORY"] = "HISTORIA O/P+C",
+  -- nightly.3: lanzar a tiempo (src/coop/CoopCatch.lua, catch.aim)
+  ["THROW TOGETHER!"] = "¡LANZAD JUNTOS!",
+  ["A WHEN IT CLOSES"] = "A AL CERRARSE",
+  ["WAITING FOR"] = "ESPERANDO A",
+  ["PERFECT TIMING!"] = "¡SINCRONÍA PERFECTA!",
+  ["GREAT TIMING!"] = "¡GRAN SINCRONÍA!",
+  ["GOOD TIMING!"] = "¡BUENA SINCRONÍA!",
   -- nightly.3: la matriz de ediciones (src/coop/CoopEditions.lua)
   ["3RD ED. STORY"] = "HIST. 3a EDIC.",
   ["ONE STORY WITH THE"] = "UNA HISTORIA CON",
