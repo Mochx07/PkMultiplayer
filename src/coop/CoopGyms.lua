@@ -17,7 +17,10 @@
 --     badge, the TM and the money are still the cartridge's to give, one each
 --     (CoopDuo), and the extra Pokemon are the leader's, not a gift.
 --
--- THE RIVAL 2v2 (Gold, Silver, Crystal).  When the two meet him together
+-- THE RIVAL 2v2 (Gold, Silver, Crystal; and since nightly.3 Red, Blue and
+-- Yellow -- Red/Blue's rival by the counter-pick of the player's starter,
+-- Yellow's by his Eevee, save.rivalStarter -- between copies of the same
+-- story data: Red with Blue, Yellow with Yellow).  When the two meet him together
 -- (the big-battle invite of CoopInvites/CoopReady), the far side is two
 -- trainers, the way the engine fights two who walked up at once
 -- (enemyParty / enemyPartyB, BattleState:addOpponentTrainer): the host's
@@ -275,17 +278,58 @@ end
 -- ---------------------------------------------------------------------
 
 local RIVAL_CLASSES = { OPP_RIVAL1 = true, OPP_RIVAL2 = true }
+local GEN1_RIVAL_CLASSES = { OPP_RIVAL1 = true, OPP_RIVAL2 = true, OPP_RIVAL3 = true }
 
--- Gen 2's rival, whose team comes in threes by the starter he took
+local function isYellow()
+  local ok, GV = pcall(require, "src.core.GameVersion")
+  return ok and GV.isYellow and GV.isYellow() == true
+end
+
+-- the partner plays the same rival teams (this edition or its pair)
+local function sameRivalData()
+  local Ed = package.loaded["src.coop.CoopEditions"]
+  local GV = package.loaded["src.core.GameVersion"]
+  local theirs = manager().partner and manager().partner.game
+  if not (Ed and GV and theirs) then return true end
+  local rel = Ed.relation(GV.get(), theirs)
+  return rel == nil or rel == "same" or rel == "pair"
+end
+
+-- the rival, whose team comes in threes by the starter he took
 function CoopGyms.isRivalClass(oppClass)
-  return RIVAL_CLASSES[oppClass] == true and isGen2() and not isGen1()
+  if isGen1() then
+    return GEN1_RIVAL_CLASSES[oppClass] == true and sameRivalData()
+  end
+  return RIVAL_CLASSES[oppClass] == true and isGen2()
 end
 
 -- Which of the three he took: pokegold / pokecrystal's rival scripts check
 -- EVENT_GOT_TOTODILE_FROM_ELM (28), then EVENT_GOT_CHIKORITA_FROM_ELM (29),
 -- else (CYNDAQUIL): CHIKORITA, CYNDAQUIL, TOTODILE -- 1, 2, 3 of each three.
 CoopGyms.STARTER_FLAGS = { { flag = 28, variant = 1 }, { flag = 29, variant = 2 } }
-function CoopGyms.rivalVariant(save)
+function CoopGyms.rivalVariant(save, data)
+  if isGen1() then
+    if type(save) ~= "table" then return 1 end
+    -- Yellow: his Eevee (1 JOLTEON / 2 FLAREON / 3 VAPOREON)
+    if isYellow() then return math.max(1, math.min(3, tonumber(save.rivalStarter) or 1)) end
+    -- Red / Blue: the counter-pick (Commands.rival_battle): player
+    -- CHARMANDER -> +0, SQUIRTLE -> +1, BULBASAUR -> +2
+    local okF, Flags = pcall(require, "src.script.Flags")
+    local function has(flag)
+      if okF and Flags.get then return Flags.get(save, flag) end
+      return type(save.flags) == "table" and save.flags[flag]
+    end
+    local offsets = data and data.field and data.field.starterCounterpicks
+    if type(offsets) == "table" then
+      for flag, mapped in pairs(offsets) do
+        if has(flag) then return (tonumber(mapped) or 0) + 1 end
+      end
+      return 1
+    end
+    if has("EVENT_CHOSE_SQUIRTLE") then return 2 end
+    if has("EVENT_CHOSE_BULBASAUR") then return 3 end
+    return 1
+  end
   if type(save) ~= "table" then return 3 end
   local okF, Flags = pcall(require, "src.script.Flags")
   local okG, Gen2Flags = pcall(require, "src.script.Gen2Flags")
@@ -302,10 +346,22 @@ function CoopGyms.rivalVariant(save)
   return 3
 end
 
+-- Yellow's fights that take a fixed party whatever his Eevee (Commands.lua
+-- YELLOW_RIVAL_PARTIES): every OPP_RIVAL1, and the S.S. Anne's OPP_RIVAL2 1
+local YELLOW_FIXED = { OPP_RIVAL1 = function() return true end,
+                       OPP_RIVAL2 = function(i) return i == 1 end }
+
 -- the same fight, the other starter's team
-function CoopGyms.rivalIndexFor(hostIndex, variant)
+function CoopGyms.rivalIndexFor(hostIndex, variant, oppClass, hostVariant)
   hostIndex, variant = tonumber(hostIndex), tonumber(variant)
   if not (hostIndex and variant and variant >= 1 and variant <= 3) then return nil end
+  if isGen1() and isYellow() then
+    local fixed = YELLOW_FIXED[oppClass]
+    if fixed and fixed(hostIndex) then return hostIndex end
+    hostVariant = tonumber(hostVariant)
+    if not hostVariant then return nil end
+    return hostIndex - hostVariant + variant
+  end
   return math.floor((hostIndex - 1) / 3) * 3 + variant
 end
 
@@ -314,7 +370,7 @@ function CoopGyms.readyInfo(game, oppClass)
   if not (CoopGyms.on() and CoopGyms.isRivalClass(oppClass)) then return nil end
   local save = game and game.save
   local name = save and save.player and save.player.rival
-  return { variant = CoopGyms.rivalVariant(save), name = type(name) == "string" and name or nil }
+  return { variant = CoopGyms.rivalVariant(save, game and game.data), name = type(name) == "string" and name or nil }
 end
 
 local function rivalName(name, fallback)
@@ -331,7 +387,8 @@ function CoopGyms.rivalPair(game, battle, partnerInfo)
   if type(partnerInfo) ~= "table" then return nil end
   local data = game and game.data
   local def = data and data.trainers and data.trainers[battle.oppClass]
-  local bIndex = CoopGyms.rivalIndexFor(battle.partyIndex or 1, partnerInfo.variant)
+  local bIndex = CoopGyms.rivalIndexFor(battle.partyIndex or 1, partnerInfo.variant, battle.oppClass,
+                                        CoopGyms.rivalVariant(game and game.save, data))
   if not (def and def.parties and bIndex and def.parties[bIndex]) then return nil end
   local own = game.save and game.save.player and game.save.player.rival
   return { aName = rivalName(own, "RIVAL"), bIndex = bIndex, bName = rivalName(partnerInfo.name, "RIVAL") }

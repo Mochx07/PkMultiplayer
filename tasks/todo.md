@@ -42,7 +42,10 @@ Orden (Mochi): A primero.
 - [ ] B1 Gimnasios de Gen 1 en equipo (revisar pools gen1 de CoopGyms con pruebas reales, Amarillo
       con sus equipos propios).
 - [ ] B2 Liga de Gen 1 (Lorelei, Bruno, Agatha, Lance, campeón) en 2v2; Salón de la Fama para los dos.
-- [ ] B3 Rival 2v2 en Gen 1 (OPP_RIVAL1/2/3; el de Amarillo con Eevee).
+- [x] B3 Rival 2v2 en Gen 1 (OPP_RIVAL1/2/3; el de Amarillo con Eevee). Hecho: CoopGyms empareja en
+      Gen 1 entre la misma edición o su pareja (Rojo/Azul por el contrainicial, Amarillo por
+      rivalStarter con sus combates fijos); `findBigBattle` reconoce `rival_battle`. Driver
+      `gen1_rival` (dos Rojo reales: GARY con Bulbasaur y BLUE con Charmander, mismo equipo en las dos).
 - [ ] B4 Legendarios y jefes de Gen 1 (CoopBoss): Articuno, Zapdos, Moltres, Mewtwo, los dos Snorlax;
       reglas de captura (catch.together) y quién se lo queda.
 - [ ] B5 Historia de Gen 1: S.S. Anne, Torre Pokémon (Marowak, Silph Scope), Guarida Rocket, Silph S.A.

@@ -136,8 +136,26 @@ for stage = 0, 1 do
   end
 end
 T.check(CoopGyms.isRivalClass("OPP_RIVAL1") and CoopGyms.isRivalClass("OPP_RIVAL2"), "Gold's rival classes")
+-- nightly.3: Gen 1's rival too, between copies of the same story data
+local partnerWas = CoopManager.partner
+CoopManager.partner = { caps = {}, game = "yellow" }
 GV.set("yellow")
-T.check(not CoopGyms.isRivalClass("OPP_RIVAL1"), "Yellow's rival is not paired")
+T.check(CoopGyms.isRivalClass("OPP_RIVAL1") and CoopGyms.isRivalClass("OPP_RIVAL3"),
+        "Yellow with Yellow: the rival (champion too) is paired")
+CoopManager.partner.game = "red"
+T.check(not CoopGyms.isRivalClass("OPP_RIVAL2"), "Yellow with Red: their rivals' teams differ, not paired")
+T.check(CoopGyms.rivalVariant({ rivalStarter = 3 }) == 3, "Yellow: his Eevee picks the variant (VAPOREON = 3)")
+T.check(CoopGyms.rivalIndexFor(4, 3, "OPP_RIVAL1", 1) == 4, "Yellow's Route 22 fight is the same party for both")
+T.check(CoopGyms.rivalIndexFor(1, 2, "OPP_RIVAL2", 1) == 1, "...and the S.S. Anne's")
+T.check(CoopGyms.rivalIndexFor(6, 1, "OPP_RIVAL2", 2) == 5, "Silph Co. 7F: base 4, host FLAREON (6) -> guest JOLTEON (5)")
+GV.set("red")
+CoopManager.partner.game = "blue"
+T.check(CoopGyms.isRivalClass("OPP_RIVAL3"), "Red with Blue: paired")
+T.check(CoopGyms.rivalVariant({ flags = { EVENT_CHOSE_SQUIRTLE = true } }) == 2
+        and CoopGyms.rivalVariant({ flags = { EVENT_CHOSE_BULBASAUR = true } }) == 3
+        and CoopGyms.rivalVariant({ flags = {} }) == 1, "Red: the counter-pick of the player's starter")
+T.check(CoopGyms.rivalIndexFor(8, 3, "OPP_RIVAL2") == 9, "Red's Silph Co. 7F: party 7+offset, the partner's offset")
+CoopManager.partner = partnerWas
 GV.set("gold")
 
 local function saveWith(flag) return { flags = flag and { [string.format("EVENT_G2_%04d", flag)] = true } or {}, player = { rival = "KAMON" } } end

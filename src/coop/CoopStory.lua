@@ -191,6 +191,10 @@ function CoopStory.findBigBattle(script, save)
         class, party = row[2], row[3]
       elseif row[1] == "start_battle" and row[2] == "trainer" then
         class, party = row[3], row[4]
+      elseif row[1] == "rival_battle" then
+        -- Red / Blue / Yellow's rival: his class and the fight's base party
+        -- (Commands.rival_battle adds the starter's offset)
+        class, party = row[2], row[3]
       end
       if type(class) == "string" and CM.isBigBattleClass(class, save) then
         return class, party
