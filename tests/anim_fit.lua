@@ -89,8 +89,10 @@ do
   b.gen3Layout = function() return false end
   b.picImage = function(_, img) return img end
 
-  b.sides[1].battlers[1] = { sprite = pic(48, 48), mon = {} } -- P1 (0)
-  b.sides[1].battlers[2] = { sprite = pic(48, 48), mon = {} } -- P2 (2)
+  -- the fixture is Red: back pics are the cartridge's 4x4 tiles, doubled
+  -- (a 48-pixel back doubled would be 96 pixels tall -- no such pic)
+  b.sides[1].battlers[1] = { sprite = pic(32, 32), mon = {} } -- P1 (0)
+  b.sides[1].battlers[2] = { sprite = pic(32, 32), mon = {} } -- P2 (2)
   b.sides[2].battlers[1] = { sprite = pic(56, 56), mon = {} } -- E1 (1)
   b.sides[2].battlers[2] = { sprite = pic(56, 56), mon = {} } -- E2 (3)
 
