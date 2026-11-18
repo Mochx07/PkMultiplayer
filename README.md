@@ -8,17 +8,19 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
 <p align="center">
   <a href="https://github.com/Mochx07/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?label=release&color=39ff88"></a>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx07/PkMultiplayer/total"></a>
-  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Needs Gen2Recomped 0.8.58 or later" src="https://img.shields.io/badge/Gen2Recomped-0.8.58%2B-blue"></a>
+  <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Nightly" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?include_prereleases&label=nightly&color=ff9f1c"></a>
+  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Gen2Recomped 0.8.49 (stable) / 0.8.58+ (nightly)" src="https://img.shields.io/badge/Gen2Recomped-0.8.49%20%7C%200.8.58%2B%20nightly-blue"></a>
   <img alt="2 players" src="https://img.shields.io/badge/players-2%20(%2B4%20visitors)-orange">
   <img alt="English and Spanish" src="https://img.shields.io/badge/language-EN%20%7C%20ES-lightgrey">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
-<p align="center">🇬🇧 English · <a href="#espanol">🇪🇸 Español</a></p>
+<p align="center">🇬🇧 English · <a href="#espanol">🇪🇸 Español</a> · 🌐 <a href="https://mochx07.github.io/PkMultiplayer/">Website</a></p>
 
-Two players, one Johto. You see each other walk, chat (**T**) and emote (**Y**), live
-the story's events together, trade through the Cable Club and fight trainers as a
-**2-vs-2 double battle** in lockstep, with HeartGold/SoulSilver's doubles rules.
+Two players, one Johto. You see each other walk, chat (**T**), talk (**V**) and emote
+(**Y**), live the story's events together, catch wild Pokémon together, trade through the
+Cable Club and fight trainers as a **2-vs-2 double battle** in lockstep, with
+HeartGold/SoulSilver's doubles rules.
 
 **Not an MMO:** it's your own playthrough, with a friend in it. No third-party
 servers — one of you hosts the session from inside the game.
@@ -36,15 +38,34 @@ no fork of the game to download, just this zip.
 | **Co-op menu** | **Live chat** |
 | <img src="docs/img/coop-menu-en.png" alt="The co-op menu: chat, emote, ready, warp, partner, Pokédex, rules" width="360"> | <img src="docs/img/chat.png" alt="The chat box with messages between MOCHI and TOBY" width="360"> |
 
+### New in 2.0 (nightly)
+
+The **2.0 nightly** builds are test builds on the [releases page](https://github.com/Mochx07/PkMultiplayer/releases)
+(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**,
+and each new feature turns on only when **both** players have it.
+
+- 🎯 **Catch together, Let's Go style:** throw balls in a co-op wild battle; both throwing in the
+  same turn is a **joint throw** (the better ball, catch rate ×1.5), the twin goes into a ball of its
+  own, and then you decide **who keeps it** (me / my partner / let fate decide).
+- 🎙️ **Voice chat:** push-to-talk (**V**) or open mic, louder the closer you stand on the map.
+- ⏳ **Time Capsule:** Red/Blue/Yellow and Gold/Silver/Crystal can link to chat, emote and trade.
+- 🔀 **Gold/Silver with Crystal (experimental):** one shared story across the two cartridges.
+- 📣 **Your partner's feed:** their catches, evolutions and eggs on your screen; level-ups in a
+  battle show in a corner card instead of stopping the turn.
+- 🗼 **Battle Tower in duo** (Crystal): join once for the whole challenge. **Bug-Catching Contest**:
+  your partner's time and best catch, live.
+- 🌐 **More VPNs:** Tailscale, Radmin VPN, Hamachi and WireGuard besides ZeroTier.
+- 💬 Chat shows only what is sent ("typing..." once there is a letter) and stays out of the way in
+  battle; one **CO-OP** row on the title screen; your **name** before you link; **Discord** "Ask to
+  Join" and an **AFK** status; straight beams and tidier sprites in 2-vs-2.
+
 ### What makes it different
 
 - 📖 **The story, together**: events, world items and badges happen in both saves at once.
 - ⚔️ **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
-- 🏅 **Gyms as a team and the rival in 2-vs-2**; your partner's HMs work for you when they are close.
-- 🆚 **VS mode**: formats with clauses, best of 3, replays and an ELO record against your partner.
-- 🎣 **Minigames**: a Magikarp contest, a bike time trial and a treasure hunt.
 - 🔗 **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
 - 🐾 **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
+- 🎯🎙️ **Catching together and voice chat** (2.0 nightly).
 - 🌐 **English and Spanish**, switchable in the mod's options.
 
 ## Installation
@@ -64,15 +85,19 @@ The launcher tells you when a new version is out (the mod checks its GitHub rele
   host sees a short **code** (for example `30AG-0B4`) and their IP. The other goes to
   **JOIN** → **TYPE A CODE** and types the code (or pastes it with **Ctrl+V**), or
   **TYPE THE IP** to dial the IP in with the D-pad.
-- **Over the internet:** use [ZeroTier](https://www.zerotier.com/) (a free virtual
-  network). Both join the same network: the host's code already carries their
-  ZeroTier IP. The port is **7777**; change it on the **PORT** row (for example, for
-  two games on the same PC).
+- **Over the internet:** both join the same free VPN network —
+  [ZeroTier](https://www.zerotier.com/), and in the 2.0 nightly also
+  [Tailscale](https://tailscale.com/), [Radmin VPN](https://www.radmin-vpn.com/), Hamachi or
+  WireGuard. The host's code already carries their VPN address; in the nightly the host
+  screen lists every address it found with its VPN's name (**SELECT** switches) and the code
+  follows the one shown. The port is UDP **7777**; change it on the **PORT** row (for
+  example, for two games on the same PC).
 - **JOIN** remembers the last three hosts you joined: pick one and you're in.
 - If something fails, the menu gives the full reason and what to do (open the UDP
   port in the firewall, the same mod version, etc.).
-- From the title screen you can also pick **NEW CO-OP GAME** or **CONTINUE CO-OP** to
-  start or carry on a game together.
+- From the title screen you can also start or carry on a game together: **NEW CO-OP GAME**
+  / **CONTINUE CO-OP** in 1.6.17, a single **CO-OP** row that asks CONTINUE or NEW GAME in the
+  2.0 nightly (which first asks your **name**, the one your partner sees).
 
 ## On a phone (iOS / Android)
 
@@ -100,29 +125,27 @@ original "!" comes back too). The mod ships nothing from the ROM.
 | | |
 |---|---|
 | Shared world | your partner walks on your map, with their name above them |
-| Walking Pokémon | your first (non-fainted) Pokémon walks behind you, HeartGold/SoulSilver-style, with its cartridge icon; talk to it with **A**. Your partner sees it too. It sparkles when shiny, and when it loves you it sometimes finds items (a **!** above it: talk to it). Switch it off under MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Gold/Silver/Crystal only |
-| Chat | **T** key (also during a double battle); on phones, see above |
+| Walking Pokémon | your first (non-fainted) Pokémon walks behind you, HeartGold/SoulSilver-style, with its cartridge icon; talk to it with **A**. Your partner sees it too. It sparkles when shiny, and when it loves you it sometimes finds items (a **!** above it: talk to it). Switch it off under MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Gold/Silver/Crystal; also Red/Blue in the 2.0 nightly (with the cartridge's body-shape icon); Yellow keeps its Pikachu |
+| Chat | **T** key (also during a double battle); on phones, see above. In the 2.0 nightly your partner sees only what you send, "typing..." shows once there is a letter, and in battle the chat sits in the text box with messages in a small strip at the top left |
+| Voice chat | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: off, **PUSH V** (hold V) or **OPEN MIC**; **VOICE BY DISTANCE** makes your partner louder the closer you stand (silent on another map, full in a battle together). A speaker over them while they talk |
 | Emotes | **Y** key |
 | Double battles | against trainers, in lockstep, with HeartGold/SoulSilver's doubles rules and a foe AI written for doubles |
-| Shared story | what one player lives, the other lives too; important battles ask first. In Red/Blue/Yellow too: the leaders' badges and TMs, the Mt. Moon fossil (one each), gifts. Gold/Silver and Crystal don't share the story (they number their events differently); the rest of the co-op works |
+| Shared story | what one player lives, the other lives too; important battles ask first (in the 2.0 nightly, walking in together lets the host lead the scene). In Red/Blue/Yellow too: the leaders' badges and TMs, the Mt. Moon fossil (one each), gifts. Gold/Silver and Crystal number their events differently: in 1.6.17 they don't share the story; in the 2.0 nightly the **G/S+C STORY** rule (experimental, off by default) translates it |
 | Ready / Not ready | **R** key (or **READY** in the menu): your partner sees **OK** next to your name before a big battle |
-| Co-op result | after each co-op double, for a few seconds at the top: each player's knockouts and EXP, and the Pokémon that did the most |
-| Where they are | if your partner is on another map, an arrow on the screen edge points their way and the place's name shows at the top |
+| Co-op result | after each co-op double, for a few seconds at the top: each player's knockouts and EXP, and the Pokémon that did the most. In the 2.0 nightly, level-ups of both teams show in a corner card during the battle |
+| Your partner's feed | (2.0 nightly) their catches, evolutions and hatched eggs as a card in the corner and an emote over their avatar |
+| Where they are | if your partner is out of view, an arrow on the screen edge points their way (in their version's colour in the nightly, pulsing when they are on another map) and the place's name shows at the top |
 | Extras | Cable Club trades, P1 vs P2, items for your partner's Pokémon, a shared Bug-Catching Contest and Hall of Fame, a shared clock |
 | Warp | only to towns you've already visited (like FLY); your partner has to accept, and it recharges in 10 minutes |
-| Wild Pokémon together | **TEAM UP WILD** rule: a wild Pokémon that jumps you while walking with your partner nearby (8 steps, same map) asks them to join, and you fight a double against it and its twin. Together there are no Poké Balls; **RUN** takes you both out |
-| Roaming beasts | the POKéGEAR map shows your partner's Raikou, Entei and Suicune too (blue blinking frame; yours keep the green one). Each of you keeps your own beasts. Your beast met with **TEAM UP WILD** on and your partner on the same map is a co-op double: the beast alone, it can't run from two, no Poké Balls. Its HP stays in your save, and if you knock it out together it gets away with 1 HP and keeps roaming: catch it later on your own |
-| Bosses | the Red Gyarados, Sudowoodo, Snorlax and Red, with your partner on the same map: **CO-OP BOSS** (or **SOLO BATTLE**, the way to catch the wild ones). The boss fights alone (Red one Pokémon at a time) with more HP (x2, Red's team x1.5) and moves twice every turn |
-| Gyms and rival | with both players in the gym, the leader fights a double with a team fitted for two and the badge goes to both; the rival is a 2-vs-2 |
-| Shared HMs | CUT, ROCK SMASH, STRENGTH, SURF, WHIRLPOOL and WATERFALL work with your partner's Pokémon and badge when they stand within 8 steps; their FLASH lights your cave; STRENGTH boulders move in both games |
-| Catch up | **CATCH UP**: go to your partner's last key point of the story, with EXP x1.5 and foes balanced to the weaker team |
-| VS mode | **BATTLE P1 VS P2** opens the formats: FREE BATTLE, LEVEL 50, LEVEL 100, LITTLE CUP and MONOTYPE (species, item and sleep clauses; no legendaries, OHKO or evasion moves). **MATCH: BEST OF 3**, **REPLAYS** of the last 20 battles and a **RECORD** with ELO per partner |
-| Minigames | **MINIGAMES**: the Magikarp contest at the Lake of Rage, a bike time trial down Cycling Road and a treasure hunt on the map you both stand on (Red/Blue/Yellow too) |
+| Wild Pokémon together | **TEAM UP WILD** rule: a wild Pokémon that jumps you while walking with your partner nearby (8 steps, same map) asks them to join, and you fight a double against it and its twin. **RUN** takes you both out. In 1.6.17 there are no Poké Balls together |
+| Catch together | (2.0 nightly) a ball is your turn's action; both throwing in one turn is a joint throw (the better ball, catch rate ×1.5). Caught: **WHO KEEPS IT?** — the same answer from both wins, a name beats "let fate decide", otherwise a coin decides (the same coin on both games) |
 | Watch their battle | **WATCH**: a little screen with your partner's battle, live |
 | Visitors | up to 4 more players walk into the host's world with **VISIT** (session port + 1): they walk, chat and emote with everyone; each plays their own game |
 | Soul Link | **SOUL LINK** rule: the two-player Nuzlocke. Each player's first catch in an area is bound to the other's; if one falls, both fall and can't be healed. **SOUL LINKS** shows the pairs |
 | Linked Day-Care | **LINK DAYCARE** rule: with a Pokémon in your Day-Care and another in your partner's, theirs is the second parent in yours. Each takes their own egg; no Pokémon leaves its save |
-| Battle Tower | (Crystal) each battle of a challenge can be a co-op double: your partner joins from wherever they are, with Pokémon under the level cap, and their team comes back as it went in |
+| Battle Tower | (Crystal) each battle of a challenge can be a co-op double: your partner joins from wherever they are, with Pokémon under the level cap, and their team comes back as it went in. In the 2.0 nightly they join once and the seven battles go on without asking again |
+| Time Capsule | (2.0 nightly) Red/Blue/Yellow with Gold/Silver/Crystal: chat, emotes and trades through the Cable Club, under the game's own Time Capsule rules; nothing else crosses between the two worlds |
+| Discord | (2.0 nightly) "Ask to Join" on your profile while hosting (a click dials in), "Co-op with ..." in your status, and **AFK** after 3 minutes (also a Zzz over your avatar on your partner's screen) |
 | Mystery Gift | **MYSTERY GIFT**: once a day per partner, each game picks an item for the other |
 | Pokédex | **POKéDEX**: what your partner has and you don't, and the other way round. **SHARE DEX** rule: their catches count as SEEN in yours |
 | Pokégear | your partner tops the phone list (calling them opens the chat and rings their Pokégear) and their marker blinks on the map |
@@ -150,6 +173,9 @@ Natu...) the hit landed in the air.
   mod bundled with Gen2Recomped), the co-op works in its 3D world, but co-op doubles are
   played on the classic screen (its 3D only knows single battles).
 - Visitors don't share the story, battles or items: only the world, the chat and the emotes.
+- 2.0 nightly: voice chat needs a microphone the game can open (on phones only open mic
+  works, there is no V key); IPv6-only VPN addresses are not offered (use their IPv4 one);
+  Gold/Silver ↔ Crystal story is experimental and leaves some scenes apart.
 - The walking Pokémon uses the party-menu icon (two frames, no back view), which is
   what the cartridge has; it hides on the bike and while surfing.
 - If Gen2Recomped changes the functions the mod touches a lot, the mod notices and
@@ -172,8 +198,8 @@ both players' `coop.log`.
 <p align="center"><a href="#english">🇬🇧 English</a> · 🇪🇸 Español</p>
 
 Juega **Pokémon Oro, Plata o Cristal** (y Rojo/Azul/Amarillo) con un amigo en el
-mismo mundo: se ven caminar, chatean, viven los eventos de la historia juntos y
-pelean contra los entrenadores en **combates dobles 2 contra 2**.
+mismo mundo: se ven caminar, chatean, hablan por voz, viven los eventos de la historia
+juntos, capturan juntos y pelean contra los entrenadores en **combates dobles 2 contra 2**.
 
 **No es un MMO:** es tu partida de siempre, con un amigo dentro. Sin servidores
 de nadie: uno de los dos aloja la sesión desde su propio juego.
@@ -181,15 +207,34 @@ de nadie: uno de los dos aloja la sesión desde su propio juego.
 Es un **mod** para el [Gen2Recomped](https://github.com/UNDERdecoded/Gen2Recomped)
 oficial. No hace falta descargar ningún fork del juego, solo este zip.
 
+### Novedades de la 2.0 (nightly)
+
+Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Mochx07/PkMultiplayer/releases)
+(marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.58
+o posterior**, y cada novedad solo se activa cuando **los dos** la tienen.
+
+- 🎯 **Captura en equipo, estilo Let's Go:** lancen Balls en un combate salvaje co-op; si los dos
+  lanzan en el mismo turno es un **lanzamiento conjunto** (la mejor Ball, ratio ×1,5), el gemelo
+  entra en su propia Ball y luego deciden **quién se lo queda** (yo / para el compañero / a la suerte).
+- 🎙️ **Chat de voz:** pulsar **V** o micro abierto, más fuerte cuanto más cerca estén en el mapa.
+- ⏳ **Cápsula del Tiempo:** Rojo/Azul/Amarillo con Oro/Plata/Cristal para chatear, mandar emotes e intercambiar.
+- 🔀 **Oro/Plata con Cristal (experimental):** una sola historia entre los dos cartuchos.
+- 📣 **Lo que hace el compañero:** sus capturas, evoluciones y huevos en tu pantalla; las subidas de
+  nivel en combate salen en una tarjeta en la esquina en vez de parar el turno.
+- 🗼 **Torre de Batalla en dúo** (Cristal): se aceptan una vez para todo el desafío. **Concurso de
+  bichos**: el tiempo y la mejor captura del compañero, en vivo.
+- 🌐 **Más VPN:** Tailscale, Radmin VPN, Hamachi y WireGuard además de ZeroTier.
+- 💬 El chat muestra solo lo enviado («escribiendo...» con al menos una letra) y no estorba en
+  combate; una sola fila **CO-OP** en el título; tu **nombre** antes de enlazar; «Pedir unirse» en
+  **Discord** y estado **AFK**; rayos rectos y sprites más ordenados en el 2 contra 2.
+
 ### Lo que lo hace distinto
 
 - 📖 **La historia, juntos**: los eventos, objetos del mundo y medallas se viven a la vez en las dos partidas.
 - ⚔️ **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
-- 🏅 **Gimnasios en equipo y el rival en 2 contra 2**; las MO de tu compañero te sirven si está cerca.
-- 🆚 **Modo VS**: formatos con cláusulas, al mejor de 3, repeticiones e historial con ELO contra tu compañero.
-- 🎣 **Minijuegos**: concurso de Magikarp, contrarreloj en bici y busca el tesoro.
 - 🔗 **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
 - 🐾 **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
+- 🎯🎙️ **Captura en equipo y chat de voz** (2.0 nightly).
 - 🌐 **Español e inglés**, a elegir en las opciones del mod.
 
 ## Instalación
@@ -210,15 +255,19 @@ releases de GitHub).
   le aparece un **código** corto (por ejemplo `30AG-0B4`) y su IP. El otro
   entra en **JOIN** → **TYPE A CODE** y escribe el código (o lo pega con
   **Ctrl+V**), o **TYPE THE IP** para marcar la IP con la cruceta.
-- **Por internet:** usen [ZeroTier](https://www.zerotier.com/) (una red
-  virtual gratuita). Únanse los dos a la misma red: el código del host ya
-  lleva su IP de ZeroTier. El puerto es el **7777**; se cambia en la fila
-  **PORT** (por ejemplo, para dos juegos en el mismo PC).
+- **Por internet:** únanse los dos a la misma red de una VPN gratuita:
+  [ZeroTier](https://www.zerotier.com/) y, en la 2.0 nightly, también
+  [Tailscale](https://tailscale.com/), [Radmin VPN](https://www.radmin-vpn.com/), Hamachi o
+  WireGuard. El código del host ya lleva su dirección de la VPN; en la nightly la pantalla
+  de anfitrión enseña todas las direcciones con el nombre de su VPN (**SELECT** cambia) y el
+  código sigue a la elegida. El puerto es el UDP **7777**; se cambia en la fila **PORT**
+  (por ejemplo, para dos juegos en el mismo PC).
 - **JOIN** recuerda los tres últimos hosts a los que te uniste: elige uno y listo.
 - Si algo falla, el menú dice el motivo completo y qué hacer (abrir el puerto
   UDP en el firewall, la misma versión del mod, etc.).
-- Desde el título también pueden elegir **NEW CO-OP GAME** o **CONTINUE CO-OP**
-  para empezar o seguir una partida juntos.
+- Desde el título también pueden empezar o seguir una partida juntos: **NEW CO-OP GAME** /
+  **CONTINUE CO-OP** en la 1.6.17; una sola fila **CO-OP** que pregunta CONTINUAR o NUEVA
+  PARTIDA en la 2.0 nightly (que antes pide tu **nombre**, el que verá tu compañero).
 
 ## En el móvil (iOS / Android)
 
@@ -250,29 +299,27 @@ no incluye nada del ROM.
 | | |
 |---|---|
 | Mundo compartido | ves a tu compañero en tu mapa, con su nombre encima |
-| Pokémon que te sigue | tu primer Pokémon (no debilitado) camina detrás de ti, como en HeartGold/SoulSilver, con su icono del cartucho; háblale con **A**. Tu compañero también lo ve. Si es shiny destella, y si te quiere mucho a veces encuentra objetos (un **!** encima: háblale). Se apaga en MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Solo en Oro/Plata/Cristal |
-| Chat | tecla **T** (también durante un combate doble); en móvil, ver arriba |
+| Pokémon que te sigue | tu primer Pokémon (no debilitado) camina detrás de ti, como en HeartGold/SoulSilver, con su icono del cartucho; háblale con **A**. Tu compañero también lo ve. Si es shiny destella, y si te quiere mucho a veces encuentra objetos (un **!** encima: háblale). Se apaga en MODS → PkMultiplayer → OPTIONS → POKEMON FOLLOWS YOU. Oro/Plata/Cristal; en la 2.0 nightly también Rojo/Azul (con el icono de silueta del cartucho); Amarillo mantiene su Pikachu |
+| Chat | tecla **T** (también durante un combate doble); en móvil, ver arriba. En la 2.0 nightly tu compañero ve solo lo que envías, «escribiendo...» sale con al menos una letra, y en combate el chat va en el cuadro de texto con los mensajes en una franja pequeña arriba a la izquierda |
+| Chat de voz | (2.0 nightly) MODS → PkMultiplayer → OPTIONS → **VOICE CHAT**: apagado, **PUSH V** (mantener V) u **OPEN MIC**; **VOICE BY DISTANCE** hace que se oiga más fuerte cuanto más cerca estén (nada en otro mapa, todo en combate juntos). Un altavoz sobre el compañero cuando habla |
 | Emotes | tecla **Y** |
 | Combates dobles | contra entrenadores, en lockstep, con las reglas de dobles de HeartGold/SoulSilver y una IA rival pensada para dobles |
-| Historia compartida | los eventos que vive uno los vive el otro; las batallas importantes se preguntan antes. También en Rojo/Azul/Amarillo: medallas y MT de los líderes, el fósil de Mt. Moon (uno para cada uno), regalos. Entre Oro/Plata y Cristal la historia no se comparte (numeran sus eventos distinto); el resto del co-op sí |
+| Historia compartida | los eventos que vive uno los vive el otro; las batallas importantes se preguntan antes. También en Rojo/Azul/Amarillo: medallas y MT de los líderes, el fósil de Mt. Moon (uno para cada uno), regalos. Oro/Plata y Cristal numeran sus eventos distinto: en la 1.6.17 no comparten la historia; en la 2.0 nightly la regla **HISTORIA O/P+C** (experimental, apagada de fábrica) la traduce. En la nightly, si entran juntos a un evento, la escena la lleva el anfitrión |
 | Listo / No listo | tecla **R** (o **READY** en el menú): tu compañero ve **OK** junto a tu nombre antes de un combate grande |
-| Resultado co-op | tras cada doble co-op, unos segundos arriba: los K.O. y la EXP de cada uno y el Pokémon que más hizo |
-| Dónde está | si tu compañero está en otro mapa, una flecha en el borde de la pantalla apunta hacia él y arriba sale el nombre del sitio |
+| Resultado co-op | tras cada doble co-op, unos segundos arriba: los K.O. y la EXP de cada uno y el Pokémon que más hizo. En la 2.0 nightly, las subidas de nivel de los dos salen en una tarjeta en la esquina durante el combate |
+| Lo que hace el compañero | (2.0 nightly) sus capturas, evoluciones y huevos en una tarjeta en la esquina y con un emote sobre su avatar |
+| Dónde está | si tu compañero no está a la vista, una flecha en el borde de la pantalla apunta hacia él (en la nightly, del color de su versión y latiendo si está en otro mapa) y arriba sale el nombre del sitio |
 | Extras | intercambios por el Cable Club, P1 vs P2, objetos para los Pokémon del compañero, Concurso de Bichos y Salón de la Fama compartidos, reloj compartido |
 | Warp | solo a pueblos que ya visitaste (como VUELO), tu compañero tiene que aceptar, y se recarga en 10 minutos |
-| Salvajes en pareja | regla **TEAM UP WILD**: un salvaje que te sale al caminar con tu compañero cerca (8 pasos, mismo mapa) le pregunta si se une, y pelean un doble contra el salvaje y su gemelo. Juntos no hay Poké Balls; **RUN** los saca a los dos |
-| Bestias errantes | el mapa del POKéGEAR muestra también el Raikou, Entei y Suicune de tu compañero (marco azul que parpadea; los tuyos, el verde). Cada uno conserva sus bestias. Tu bestia con **TEAM UP WILD** activo y tu compañero en el mismo mapa es un doble co-op: la bestia sola, no puede huir de dos, sin Poké Balls. Sus PS quedan en tu partida y, si la debilitan juntos, huye con 1 PS y sigue errante: atrápala luego tú solo |
-| Jefes | el Gyarados rojo, Sudowoodo, Snorlax y Red, con tu compañero en el mismo mapa: **JEFE EN EQUIPO** (o **SOLO BATTLE**, la forma de atrapar a los salvajes). El jefe pelea solo (Red, un Pokémon cada vez) con más PS (x2; el equipo de Red x1,5) y actúa dos veces por turno |
-| Gimnasios y rival | con los dos en el gimnasio, el líder pelea en doble con un equipo ajustado para dos y la medalla es para ambos; el rival es un 2 contra 2 |
-| MO compartidas | CORTE, GOLPE ROCA, FUERZA, SURF, TORBELLINO y CASCADA sirven con el Pokémon y la medalla de tu compañero si está a menos de 8 pasos; su DESTELLO ilumina tu cueva; las rocas de FUERZA se mueven en las dos partidas |
-| Ponerse al día | **PONERSE AL DÍA**: ir al último punto clave de la historia de tu compañero, con EXP x1,5 y rivales equilibrados al equipo más débil |
-| Modo VS | **COMBATE P1 VS P2** abre los formatos: COMBATE LIBRE, NIVEL 50, NIVEL 100, PEQUEÑOS y MONOTIPO (cláusulas de especie, objeto y sueño; sin legendarios, ataques fulminantes ni evasión). **AL MEJOR DE 3**, **REPETICIONES** de los 20 últimos combates e **HISTORIAL** con ELO por compañero |
-| Minijuegos | **MINIJUEGOS**: concurso de Magikarp en el Lago de la Furia, contrarreloj en bici por la Ruta Ciclista y busca el tesoro en el mapa donde estén los dos (también en Rojo/Azul/Amarillo) |
+| Salvajes en pareja | regla **TEAM UP WILD**: un salvaje que te sale al caminar con tu compañero cerca (8 pasos, mismo mapa) le pregunta si se une, y pelean un doble contra el salvaje y su gemelo. **RUN** los saca a los dos. En la 1.6.17 juntos no hay Poké Balls |
+| Captura en equipo | (2.0 nightly) la Ball es la acción del turno; si los dos lanzan en el mismo turno es un lanzamiento conjunto (la mejor Ball, ratio ×1,5). Al atraparlo: **¿QUIÉN SE LO QUEDA?** — gana la misma respuesta de los dos, un nombre gana a «a la suerte», y si no, decide una moneda (la misma en los dos juegos) |
 | Ver su combate | **WATCH**: una pantallita con el combate de tu compañero en vivo |
 | Visitantes | hasta 4 jugadores más entran al mundo del anfitrión con **VISIT** (puerto de la sesión + 1): caminan, chatean y mandan emotes con todos; cada uno juega su partida |
 | Soul Link | regla **SOUL LINK**: el Nuzlocke de dos. La primera captura de cada uno en un área queda unida a la del otro; si una cae, caen las dos y no se pueden curar. **SOUL LINKS** muestra las parejas |
 | Guardería unida | regla **LINK DAYCARE**: con un Pokémon en tu guardería y otro en la de tu compañero, el suyo es el segundo padre en la tuya. Cada uno saca su huevo; ningún Pokémon sale de su partida |
-| Torre de Combate | (Cristal) cada combate de un desafío puede ser un doble co-op: tu compañero se une desde donde esté, con Pokémon bajo el límite de nivel, y su equipo vuelve como entró |
+| Torre de Combate | (Cristal) cada combate de un desafío puede ser un doble co-op: tu compañero se une desde donde esté, con Pokémon bajo el límite de nivel, y su equipo vuelve como entró. En la 2.0 nightly se une una vez y los siete combates siguen sin volver a preguntar |
+| Cápsula del Tiempo | (2.0 nightly) Rojo/Azul/Amarillo con Oro/Plata/Cristal: chat, emotes e intercambios por el Cable Club, con las reglas de la Cápsula del propio juego; nada más cruza entre los dos mundos |
+| Discord | (2.0 nightly) «Pedir unirse» en tu perfil mientras hospedas (un clic conecta), «Co-op con ...» en tu estado y **AFK** a los 3 minutos (también un Zzz sobre tu avatar en la pantalla del compañero) |
 | Regalo Misterioso | **MYSTERY GIFT**: una vez al día por compañero, cada juego elige un objeto para el otro |
 | Pokédex | **POKéDEX**: lo que tiene tu compañero y tú no, y al revés. Regla **SHARE DEX**: sus capturas cuentan como VISTAS en la tuya |
 | Pokégear | tu compañero encabeza la agenda (llamarlo abre el chat y le suena el Pokégear) y su marca parpadea en el mapa |
@@ -304,6 +351,10 @@ Pokémon pequeño (Pidgey, Natu...) el golpe quedaba en el aire.
   individuales).
 - Los visitantes no comparten historia, combates ni objetos: solo el mundo,
   el chat y los emotes.
+- 2.0 nightly: el chat de voz necesita un micrófono que el juego pueda abrir (en el móvil
+  solo funciona el micro abierto, no hay tecla V); no se ofrecen direcciones de VPN solo
+  IPv6 (usen su IPv4); la historia entre Oro/Plata y Cristal es experimental y deja algunas
+  escenas aparte.
 - El Pokémon que te sigue usa el icono del menú de equipo (dos frames, sin
   vista de espaldas), que es lo que el cartucho tiene; se esconde en bici y
   surfeando.
@@ -369,6 +420,11 @@ lines the Spanish catalog does not cover.
 `lib/patches/` from a tree with the co-op changes merged into upstream.
 `tools/check_patches.py` with the same arguments checks that every function
 is rebuilt byte for byte, and still is when upstream has changed it.
+
+### gen1recomp
+
+A separate build for the official [gen1recomp](https://github.com/bryanthaboi/gen1recomp) is in
+progress, in its own repository and built only on gen1recomp's own mod API.
 
 ## License
 
