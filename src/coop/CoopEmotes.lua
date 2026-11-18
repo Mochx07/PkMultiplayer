@@ -362,9 +362,11 @@ function Picker:draw()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+-- Linked or not: alone, the bubble is shown over your own player and not
+-- sent (the menu's EMOTE row offline used to close the menu and do nothing)
 function CoopEmotes.openPicker(game)
   local ok, CM = pcall(require, "src.coop.CoopManager")
-  if not (ok and CM and (CM.connected or CM.chatRoute)) then return false end
+  if not (ok and CM) then return false end
   local top = game.stack:top()
   if top and top.isEmotePicker then return false end
   game.stack:push(CoopEmotes.newPicker(game, function(id) CM.sendEmote(id) end))
