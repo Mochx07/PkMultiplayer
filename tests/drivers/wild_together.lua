@@ -135,12 +135,8 @@ return function(game)
   end
   U.log(role .. ": FOE_HP " .. hp[1] .. " " .. hp[2])
 
-  -- the bag: no BALL together
-  local ItemEffects = require("src.inventory.ItemEffects")
-  local ballId = require("src.follow.FollowMon").itemByKey(game.data, "POKE_BALL")
-  save.inventory[ballId] = 5
-  local r = ItemEffects.use(game.data, save, ballId, nil, battle)
-  check(r == "failed", "a BALL can't be thrown together")
+  -- a BALL goes through the co-op (catching together, src/coop/CoopCatch.lua)
+  check(require("src.coop.CoopCatch").allowed(battle) == true, "catching together is on in this battle")
 
   if role == "host" then
     -- RUN from the action menu, as a player picks it
