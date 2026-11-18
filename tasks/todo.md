@@ -23,9 +23,9 @@ contra 85512413. Todo lo nuevo, detrás de caps; protocolo sin cambios.
 - [x] F16 VPNs (Hamachi, Tailscale, Radmin, WireGuard, IPv6)
 - [x] F17 Chat de voz con proximidad (pulsar / micro abierto)
 - [x] F18 Discord: unirse, AFK
-- [ ] G19 Sprites de batalla dual
-- [ ] H20 Publicar 2.0.0-nightly.2 (+ web: homepage, contenido propio, lastmod)
-- [ ] I21 Repo nuevo para gen1recomp 1.0 (Gen 1 + Gen 2), SOLO piezas de su motor
+- [x] G19 Sprites de batalla dual
+- [~] H20 2.0.0-nightly.2 PREPARADA (zip, notas, changelog); falta push/tag/release con OK de Mochi; web pendiente
+- [~] I21 gen1recomp: esqueleto local que carga (~/Downloads/PkMultiplayer-Gen1Recomp); falta decidir el 2v2 y portar
 
 # PkMultiplayer 1.20.0: plan
 
