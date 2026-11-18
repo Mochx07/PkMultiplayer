@@ -70,7 +70,8 @@ Orden (Mochi): A primero.
 
 ## F. Combate
 - [ ] F1 C3 + revisión del 2v2 de Gen 1 (animaciones, objetivos, cuadro del compañero).
-- [ ] F2 Salvaje juntos = 2 contra 1: UN solo Pokémon salvaje, no dos (Mochi, 2026-11-18).
+- [x] F2 Salvaje juntos = 2 contra 1: UN solo Pokémon salvaje, no dos (Mochi, 2026-11-18). Hecho:
+      sin gemelo (modo "solo en su lado" de CoopBoss); probado Rojo+Amarillo reales.
 - [ ] F3 Captura conjunta: los dos pulsan A en el mismo momento; si van sincronizados, probabilidad
       alta (Mochi, 2026-11-18). Reemplaza la "tirada conjunta" de catch.together.
 

@@ -398,8 +398,9 @@ do
   msg.boss = nil
   CoopBattle.currentBattle = nil
   local plain = CoopManager.startGuestBattle(newGame("GUEST", { "FIXMON_C" }, 22), nil, msg, guest.save.party)
-  T.check(plain.coopBoss == nil and plain:battlerAt(P.OPPONENT_RIGHT) ~= nil,
-          "an invite with no boss (a 1.6.x host) is the old wild double, twin and all")
+  -- nightly.3: wild together is two against one, boss or not (no twin)
+  T.check(plain.coopBoss == nil and plain:battlerAt(P.OPPONENT_RIGHT) == nil,
+          "an invite with no boss is two against one: the wild Pokemon alone, no twin")
 end
 
 -- ------------------------------------------------------------ the POKEGEAR

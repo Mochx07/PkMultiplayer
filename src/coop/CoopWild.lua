@@ -2,9 +2,10 @@
 -- WILD TOGETHER.  With the rule on, a wild Pokemon that jumps out of the
 -- grass (a step or SWEET SCENT -- never a scripted one, a roaming beast or
 -- the Bug-Catching Contest) while the partner is close by on the same map
--- asks them to join: on a yes it is a co-op double, the wild Pokemon and its
--- twin against one Pokemon of each of you, in the same lockstep as a trainer
--- double.  No answer, or a no, and it is your battle alone.
+-- asks them to join: on a yes it is two against one -- one Pokemon of each
+-- of you against the wild Pokemon alone (nightly.3; it had a mirrored twin),
+-- in the same lockstep as a trainer double.  No answer, or a no, and it is
+-- your battle alone.
 --
 -- Catching: with both on catch.together (nightly.2) a BALL is a turn's
 -- action and two in one turn are one joint throw; then WHO KEEPS IT?
@@ -129,7 +130,7 @@ function CoopWild.prepare(battle)
   if battle.kind ~= "wild" then return end
   battle.coopWild = true
   if not battle.enemyParty and battle.enemy and battle.enemy.mon then
-    -- the double mirrors a lone Pokemon so the field is two on two
+    -- a one-Pokemon party: it faces the two of you alone (CoopBattle)
     battle.enemyParty = { battle.enemy.mon }
   end
 end

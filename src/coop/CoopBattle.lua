@@ -703,6 +703,9 @@ function CoopBattle.initBattle(battle, localChosenMons, partnerChosenMons, partn
   -- side: more HP, and a boss moves twice a turn.  The same on both copies.
   local okBoss, CoopBoss = pcall(require, "src.coop.CoopBoss")
   local alone = okBoss and CoopBoss.setup(battle)
+  -- WILD TOGETHER IS TWO AGAINST ONE (nightly.3, Mochi): the wild Pokemon
+  -- is not mirrored -- the two of you face the one that jumped out
+  if battle.coopWild then alone = true end
 
   -- Enemy side: a trainer with 2+ Pokemon sends its second one out beside
   -- the first; a lone Pokemon is mirrored so the field is 2 v 2.  Two

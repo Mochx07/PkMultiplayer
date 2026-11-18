@@ -115,7 +115,8 @@ return function(game)
   U.shot(game, DIR .. "/2_menu.png")
   local P = BattleState and BattleState.POS or require("src.battle.BattleState").POS
   local foes = { battle:battlerAt(P.OPPONENT_LEFT), battle:battlerAt(P.OPPONENT_RIGHT) }
-  check(foes[1] and foes[2] and foes[1].mon.species == "SPECIES_016", "two wild PIDGEY on the field")
+  -- nightly.3: two against one, the wild Pokemon alone
+  check(foes[1] and not foes[2] and foes[1].mon.species == "SPECIES_016", "one wild PIDGEY against the two of you")
   for _ = 1, 6 do U.tap(game, "a"); U.wait(12) end
   local turnSeen = false
   for _ = 1, 60 * 30 do
@@ -130,7 +131,7 @@ return function(game)
   local hp = {}
   for i, pos in ipairs({ P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do
     local b = battle:battlerAt(pos)
-    hp[i] = b and b.mon.hp or -1
+    hp[i] = b and b.mon.hp or -1  -- (the right slot is empty: -1)
   end
   U.log(role .. ": FOE_HP " .. hp[1] .. " " .. hp[2])
 
