@@ -55,7 +55,9 @@ Orden (Mochi): A primero.
 - [ ] B6 Hub de Gen 1 (Mochi: "1, 2 y la interfaz"): el Club de Cable de Gen 1 (Coliseo / Centro
       de Intercambio, 2º piso del Centro), el hub online del launcher (plaza, GTS, salas) adaptado
       al co-op en Gen 1, y su interfaz.
-- [ ] B7 Minijuegos en Gen 1: contrarreloj en la Ruta Ciclista de Kanto; otro en lugar del de Karpa.
+- [~] B7 Minijuegos en Gen 1: contrarreloj en la Ruta Ciclista de Kanto HECHA (BikeTrial.GEN1: puerta
+      ROUTE_16_GATE_1F carril 8-9, ROUTE_17 de 144 casillas, meta al entrar en ROUTE_18; driver
+      `gen1_bike` con dos Rojo reales: 23,4 s vs 22,6 s, mismo ganador). Falta: otro en lugar del de Karpa.
 
 ## C. Sprites
 - [-] C1 Seguidor con el sprite de andar del juego si existe (PIKACHU de Amarillo), no el icono.

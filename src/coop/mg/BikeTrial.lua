@@ -2,10 +2,13 @@
 -- BIKE TRIAL (1.20, M3): a time trial down Cycling Road, gate to gate, on
 -- the minigame frame (src/coop/CoopMinigame.lua).
 --
---   * where: Gen 2 Kanto.  Both players meet at the start gate (ROUTE 16
---     GATE, the one west of Celadon) with a BICYCLE in the bag.  canStart
---     says what is missing: the game (Gen 1 has no such road here), the
---     bike, the road itself (never been to Celadon or Fuchsia), or the gate.
+--   * where: Kanto's Cycling Road, in Gen 2 and (nightly.3) in Red, Blue
+--     and Yellow too.  Both players meet at the start gate (ROUTE 16 GATE,
+--     the one west of Celadon) with a BICYCLE in the bag.  canStart says what
+--     is missing: the road (a game without it), the bike, the road itself
+--     (never been to Celadon or Fuchsia), or the gate.  Gen 1's course
+--     (GEN1 below): the gate's bike lane is its lower one, ROUTE 17 is 144
+--     cells long, and it runs straight on into ROUTE 18 -- the finish.
 --   * start: after the frame's countdown each copy lines its own player up at
 --     the gate's west door, on the bike (a short hop inside the start area,
 --     never a ride from elsewhere: no taxi).  The clock starts when the player
@@ -38,6 +41,26 @@ BikeTrial.START_AREA = { ROUTE16_GATE = true, ROUTE16 = true }
 BikeTrial.DURATION = 120
 BikeTrial.DNF = 99999                         -- tenths: "did not finish"
 BikeTrial.ROAD_END_Y = 83                     -- the finish gate's door row on ROUTE 17
+BikeTrial.ROUTE = "ROUTE16"
+
+-- Red / Blue / Yellow's Cycling Road (their own map ids and sizes)
+BikeTrial.GEN1 = {
+  START = "ROUTE_16_GATE_1F",
+  LANE = { { 1, 8 }, { 1, 9 } },
+  ROAD = "ROUTE_17",
+  FINISH = "ROUTE_18",
+  START_AREA = { ROUTE_16_GATE_1F = true, ROUTE_16 = true },
+  ROAD_END_Y = 143,
+  ROUTE = "ROUTE_16",
+}
+
+-- this game's course: Gen 1's, or the fields above (Gen 2)
+local function C()
+  local okV, GV = pcall(require, "src.core.GameVersion")
+  if okV and GV.isGen1 and GV.isGen1() and not (GV.isGen2 and GV.isGen2()) then return BikeTrial.GEN1 end
+  return BikeTrial
+end
+BikeTrial.course = C
 
 local function T(s) return require("src.coop.CoopI18n").t(s) end
 local function manager()
@@ -64,12 +87,15 @@ local function hasBike(save)
   return inv ~= nil and (tonumber(inv.BICYCLE) or 0) > 0
 end
 
--- the road exists in this game's data (Gen 2 Kanto; not Gen 1, not Prism)
+-- the road exists in this game's data (Gen 1 or Gen 2 Kanto; not Prism)
 function BikeTrial.hasRoad(data)
   local maps = data and data.maps
-  if not (maps and maps[BikeTrial.START] and maps[BikeTrial.ROAD] and maps[BikeTrial.FINISH]) then return false end
+  local c = C()
+  if not (maps and maps[c.START] and maps[c.ROAD] and maps[c.FINISH]) then return false end
   local okV, GameVersion = pcall(require, "src.core.GameVersion")
-  if okV and GameVersion.isGen2 and not GameVersion.isGen2() then return false end
+  if okV and GameVersion.isGen2 and not (GameVersion.isGen2() or (GameVersion.isGen1 and GameVersion.isGen1())) then
+    return false
+  end
   return true
 end
 
@@ -79,7 +105,7 @@ function BikeTrial.canStart(game, ow)
   if not BikeTrial.hasRoad(game and game.data) then return false, "No CYCLING ROAD here" end
   if not hasBike(save) then return false, "You need a BICYCLE" end
   local here = ow and ow.map and ow.map.id
-  if here and BikeTrial.START_AREA[here] then return true end
+  if here and C().START_AREA[here] then return true end
   local visited = save and save.visited or {}
   if not (visited.CELADON_CITY or visited.FUCHSIA_CITY) then return false, "Reach CYCLING ROAD first" end
   return false, "Go to the ROUTE 16 gate"
@@ -87,13 +113,14 @@ end
 
 -- how far down the course a rider is, 0..1 (nil: not on it)
 function BikeTrial.progress(map, x, y)
-  if map == BikeTrial.START then return 0 end
-  if map == "ROUTE16" then return 0.05 end
-  if map == BikeTrial.ROAD then
-    local f = math.max(0, math.min(1, (tonumber(y) or 0) / BikeTrial.ROAD_END_Y))
+  local c = C()
+  if map == c.START then return 0 end
+  if map == c.ROUTE then return 0.05 end
+  if map == c.ROAD then
+    local f = math.max(0, math.min(1, (tonumber(y) or 0) / c.ROAD_END_Y))
     return 0.1 + 0.85 * f
   end
-  if map == BikeTrial.FINISH then return 1 end
+  if map == c.FINISH then return 1 end
   return nil
 end
 
@@ -131,17 +158,17 @@ function BikeTrial.update(s, dt, game, ow)
   local save = game.save
   if d.stage == "lineup" then
     if not idle(game, ow) then return end
-    local lane = BikeTrial.LANE[s.asker and 1 or 2]
+    local lane = C().LANE[s.asker and 1 or 2]
     -- on the bike before the hop, so the gate opens onto the bike's song
     if save then save.onBike = true end
-    if ow.map.id == BikeTrial.START and ow.player and ow.player.cellX == lane[1] and ow.player.cellY == lane[2] then
+    if ow.map.id == C().START and ow.player and ow.player.cellX == lane[1] and ow.player.cellY == lane[2] then
       d.stage = "ready"
     elseif ow.startWarpTo then
-      ow:startWarpTo(BikeTrial.START, lane[1], lane[2], "left")
+      ow:startWarpTo(C().START, lane[1], lane[2], "left")
       d.stage = "hop"
     end
   elseif d.stage == "hop" then
-    if not ow.transitioning and ow.map.id == BikeTrial.START then d.stage = "ready" end
+    if not ow.transitioning and ow.map.id == C().START then d.stage = "ready" end
   end
   if d.stage == "ready" then
     if not ow.transitioning then
@@ -152,10 +179,10 @@ function BikeTrial.update(s, dt, game, ow)
   end
   if d.stage ~= "ride" then return end
   local here = ow.map.id
-  if here == BikeTrial.ROAD then d.onRoad = true end
+  if here == C().ROAD then d.onRoad = true end
   -- the finish: into the gate straight off the road (a FLY to Fuchsia and a
   -- walk in from the east is not a ride)
-  if here == BikeTrial.FINISH and d.last == BikeTrial.ROAD and d.onRoad then
+  if here == C().FINISH and d.last == C().ROAD and d.onRoad then
     local time = BikeTrial.tenths(s.t - d.t0)
     d.stage = "done"
     s:setScore(time)
