@@ -8,12 +8,13 @@ return {
   differences = {
     changed = {
       "trainer battles can be fought as a co-op double (HeartGold/SoulSilver doubles rules)",
-      "the START menu gains a CO-OP (LAN) row; the title screen NEW CO-OP GAME / CONTINUE CO-OP",
+      "the START menu gains a CO-OP row; the title screen a CO-OP row (continue or new)",
       "the Hall of Fame, the Bug-Catching Contest and story events are shared with the partner",
     },
     added = {
-      "LAN / ZeroTier link (port 7777) with the partner's avatar on your map",
-      "live chat (T) and emotes (Y)",
+      "LAN / VPN link (ZeroTier, Tailscale, Radmin, Hamachi, WireGuard; port 7777) with the partner's avatar on your map",
+      "chat (T), emotes (Y) and voice chat (push V or open mic, by distance)",
+      "catching together (Let's Go style) and who keeps it",
       "trades through the Cable Club over the link, P1 vs P2 battles",
       "items on your partner's Pokemon, warp to partner",
     },

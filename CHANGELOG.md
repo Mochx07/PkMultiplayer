@@ -3,6 +3,65 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 2.0.0-nightly.2
+
+**Nightly** (versión de prueba). La estable sigue siendo la 1.6.17. Mismo protocolo: enlaza
+con una 2.0.0-nightly.1 y con 1.6.x, pero cada novedad solo se activa cuando **los dos** la
+tienen. Necesita Gen2Recomped 0.8.58 o posterior.
+
+### Añadido
+
+- **Captura en equipo, estilo Let's Go.** En un combate salvaje co-op ya se pueden lanzar
+  Balls: es la acción del turno y se resuelve igual en las dos pantallas. Si los dos lanzan
+  a la vez es un **lanzamiento conjunto** (la mejor Ball, ratio ×1,5). El gemelo entra en
+  su propia Ball. Al atraparlo: **¿QUIÉN SE LO QUEDA?** (yo / para el compañero / a la
+  suerte; si no se ponen de acuerdo, decide una moneda igual en los dos juegos).
+- **Chat de voz** (OPCIONES del mod: VOICE CHAT apagado / pulsar V / micro abierto, y
+  VOICE BY DISTANCE): se oye más fuerte cuanto más cerca están, nada en otro mapa, todo en
+  combate juntos. Un altavoz sobre el compañero cuando habla.
+- **Lo que hace el compañero**: sus capturas, evoluciones y huevos aparecen en una tarjeta
+  en la esquina y con un emote sobre su avatar.
+- **Subidas de nivel en la esquina** en los dobles co-op (las de los dos), sin el cuadro de
+  estadísticas que paraba el turno.
+- **Torre de Batalla (Cristal) en dúo**: se aceptan una vez y los siete combates siguen sin
+  volver a preguntar ni elegir equipo.
+- **Concurso de bichos**: se ve en vivo el tiempo y la mejor captura del compañero.
+- **Cápsula del Tiempo**: Rojo/Azul/Amarillo con Oro/Plata/Cristal se pueden enlazar para
+  chatear, usar emotes e intercambiar (con las reglas de la Cápsula del propio juego).
+- **Oro/Plata con Cristal (experimental)**: regla HISTORIA O/P+C, apagada de fábrica.
+  Comparte la historia traduciendo 1159 eventos; algunas escenas siguen aparte.
+- **Más VPN**: además de ZeroTier, Tailscale, Radmin VPN, Hamachi y WireGuard. La pantalla
+  de anfitrión enseña todas las direcciones (SELECT cambia) y el código sigue a la elegida.
+- **Discord**: «Pedir unirse» al hospedar (un clic conecta), «Co-op con TOBY», y **AFK** a
+  los 3 minutos (también un Zzz sobre tu avatar en la pantalla del compañero).
+- **Rojo/Azul**: el Pokémon que te sigue, con el icono de su silueta del cartucho.
+
+### Cambiado
+
+- **Pantalla de título: una sola fila CO-OP** que pregunta CONTINUAR o NUEVA PARTIDA.
+- **Tu nombre primero** en la pantalla de enlace: ya no aparece «HOST/GUEST» al
+  conectarse desde el título.
+- **Chat**: el compañero ve solo lo que envías; «escribiendo...» solo con al menos una
+  letra. En combate la caja ocupa el cuadro de texto y los mensajes salen en una franja
+  pequeña arriba a la izquierda: ya no tapan los Pokémon ni la vida.
+- **Flecha del compañero** con el color de su versión (late si está en otro mapa).
+- **Hiperrayo y rayos en dobles** van en línea recta entre los dos Pokémon (antes, una
+  escalera de trozos), en Gen 1 y Gen 2.
+- **Sprites del 2v2**: tu Pokémon ya no se mete en el HUD ni en el cuadro de texto; el del
+  compañero detrás, a la izquierda.
+- **Entrar juntos a un evento importante**: la escena la lleva el anfitrión y el otro la
+  sigue (antes se cruzaban dos invitaciones); la espera al llegar el compañero bajó de
+  1,5 s a 0,6 s.
+
+### Arreglado
+
+- **Desincronización con Tormenta Arena / Granizo en dobles**: cada copia dañaba a un
+  Pokémon distinto (1/8 de vida de diferencia por turno). Encontrado con una prueba de 21
+  turnos con dos copias: de 5 desajustes a 0.
+- La corrección del anfitrión se aplica antes de resolver el turno siguiente (antes se
+  descartaba si llegaba en el mismo fotograma), e incluye clima, pantallas y trampas.
+- La **fanfarria de victoria** ya no suena cuando cae solo uno de los dos rivales.
+
 ## 2.0.0-nightly.1
 
 **Nightly** (versión de prueba) de la 2.0, que es lo que se venía preparando como 1.20.

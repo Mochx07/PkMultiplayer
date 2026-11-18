@@ -126,3 +126,4 @@ tools/gen_flag_map.py
 tests/coop_vpn.lua
 tests/coop_voice.lua
 tests/coop_discord.lua
+tasks/release-2.0.0-nightly.2.md
