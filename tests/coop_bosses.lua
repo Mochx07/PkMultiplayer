@@ -131,7 +131,7 @@ do
   CoopBoss.guestMark(gb, { boss = "snorlax", beast = "ENTEI" })
   T.check(gb.coopBoss == "snorlax" and gb.coopBeast == "ENTEI", "the guest takes the host's boss and beast from the invite")
   local junk = {}
-  CoopBoss.guestMark(junk, { boss = "mewtwo", beast = "LUGIA" })
+  CoopBoss.guestMark(junk, { boss = "deoxys", beast = "LUGIA" })
   T.check(junk.coopBoss == nil and junk.coopBeast == nil, "...but nothing it does not know")
   local plainMsg = {}
   CoopBoss.guestMark(plainMsg, {})
@@ -468,4 +468,23 @@ do
 end
 
 CoopManager.connected = false
+-- nightly.3: Gen 1's legends are bosses the two of you may catch
+do
+  local GVx = require("src.core.GameVersion")
+  local was = GVx.get()
+  GVx.set("red")
+  local legend = { kind = "wild", enemy = { mon = { species = "MEWTWO", level = 70 } }, data = {} }
+  T.check(CoopBoss.kindOf(legend, { map = { id = "CERULEAN_CAVE_B1F" } }) == "mewtwo", "Gen 1: MEWTWO is a boss")
+  local CoopCatch = require("src.coop.CoopCatch")
+  local capsWas = CoopManager.partner.caps
+  CoopManager.partner.caps = { [CoopCatch.CAP] = true, [CoopBoss.CAP] = true }
+  local fight = { kind = "wild", coopWild = true, coopBoss = "zapdos" }
+  T.check(CoopCatch.allowed(fight), "...and a BALL may be thrown together at ZAPDOS")
+  fight.coopBoss = "snorlax"
+  T.check(not CoopCatch.allowed(fight), "...but not at a SNORLAX boss (as before)")
+  CoopManager.partner.caps = capsWas
+  GVx.set("gold")
+  T.check(CoopBoss.kindOf(legend, nil) == nil, "Gen 2: a MEWTWO is no boss")
+  GVx.set(was)
+end
 T.finish("co-op legends and bosses")

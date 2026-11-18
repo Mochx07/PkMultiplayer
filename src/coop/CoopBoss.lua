@@ -34,6 +34,15 @@
 --     after everybody has moved, chosen by the same AI.  Both copies decide
 --     it from the battle's shared rng and nothing else, so they agree.
 --
+-- GEN 1'S LEGENDS (nightly.3): ARTICUNO (Seafoam), ZAPDOS (Power Plant),
+-- MOLTRES (Victory Road) and MEWTWO (Cerulean Cave), met with the partner on
+-- the same map, are bosses the same way -- alone, more HP, two moves a turn
+-- -- but CATCHABLE TOGETHER: a knock-out is the cartridge's ending (gone for
+-- good), so the two of you can throw (CoopCatch, with THROWING IN TIME) and
+-- WHO KEEPS IT? decides.  The partner's own legend, in their save, waits
+-- for them as before.  (Gen 1's SNORLAX on Routes 12 and 16 is the
+-- "snorlax" boss already.)
+--
 -- Wire: the battle invite / big battle "go" carry boss = "gyarados" |
 -- "sudowoodo" | "snorlax" | "red", or beast = "RAIKOU" | ...; coop_roam
 -- { beasts = { { n, s, m, l } } }.  All of it only when both copies have
@@ -49,12 +58,17 @@ CoopBoss.CAP = "story.bosses"
 CoopManager.registerCap(CoopBoss.CAP)
 
 -- how much more HP a boss has (RED: each of his six)
-CoopBoss.HP_MUL = { gyarados = 2, sudowoodo = 2, snorlax = 2, red = 1.5 }
+CoopBoss.HP_MUL = { gyarados = 2, sudowoodo = 2, snorlax = 2, red = 1.5,
+                    articuno = 1.5, zapdos = 1.5, moltres = 1.5, mewtwo = 2 }
+-- bosses the two of you may catch (CoopCatch.allowed)
+CoopBoss.CATCHABLE = { articuno = true, zapdos = true, moltres = true, mewtwo = true }
+local GEN1_LEGENDS = { [144] = "articuno", [145] = "zapdos", [146] = "moltres", [150] = "mewtwo" }
 CoopBoss.BEASTS = { RAIKOU = true, ENTEI = true, SUICUNE = true }
 CoopBoss.SEND_EVERY = 1.0   -- seconds between looks at our own beasts
 
 local DEX = { gyarados = 130, sudowoodo = 185, snorlax = 143, pikachu = 25 }
-local NAME_DEX = { GYARADOS = 130, SUDOWOODO = 185, SNORLAX = 143, PIKACHU = 25 }
+local NAME_DEX = { GYARADOS = 130, SUDOWOODO = 185, SNORLAX = 143, PIKACHU = 25,
+                   ARTICUNO = 144, ZAPDOS = 145, MOLTRES = 146, MEWTWO = 150 }
 
 local function on() return CoopManager.bothHave(CoopBoss.CAP) end
 
@@ -99,6 +113,8 @@ function CoopBoss.kindOf(battle, ow)
   if type(mon) ~= "table" then return nil end
   local dex = CoopBoss.dexOf(data, mon.species)
   if dex == DEX.sudowoodo then return "sudowoodo" end
+  local GV = package.loaded["src.core.GameVersion"]
+  if GEN1_LEGENDS[dex] and GV and GV.isGen1 and GV.isGen1() then return GEN1_LEGENDS[dex] end
   if dex == DEX.snorlax then return "snorlax" end
   if dex == DEX.gyarados then
     local Pokemon = require("src.pokemon.Pokemon")

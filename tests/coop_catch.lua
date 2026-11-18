@@ -139,7 +139,7 @@ do
   CoopBoss.guestMark(gb, { boss = "snorlax", beast = "ENTEI" })
   T.check(gb.coopBoss == "snorlax" and gb.coopBeast == "ENTEI", "the guest takes the host's boss and beast from the invite")
   local junk = {}
-  CoopBoss.guestMark(junk, { boss = "mewtwo", beast = "LUGIA" })
+  CoopBoss.guestMark(junk, { boss = "deoxys", beast = "LUGIA" })
   T.check(junk.coopBoss == nil and junk.coopBeast == nil, "...but nothing it does not know")
   local plainMsg = {}
   CoopBoss.guestMark(plainMsg, {})

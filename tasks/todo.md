@@ -46,8 +46,10 @@ Orden (Mochi): A primero.
       Gen 1 entre la misma edición o su pareja (Rojo/Azul por el contrainicial, Amarillo por
       rivalStarter con sus combates fijos); `findBigBattle` reconoce `rival_battle`. Driver
       `gen1_rival` (dos Rojo reales: GARY con Bulbasaur y BLUE con Charmander, mismo equipo en las dos).
-- [ ] B4 Legendarios y jefes de Gen 1 (CoopBoss): Articuno, Zapdos, Moltres, Mewtwo, los dos Snorlax;
-      reglas de captura (catch.together) y quién se lo queda.
+- [x] B4 Legendarios y jefes de Gen 1 (CoopBoss): Articuno, Zapdos, Moltres, Mewtwo son jefes (solos,
+      x1,5 PS, Mewtwo x2, dos acciones por turno) CAPTURABLES juntos (CoopBoss.CATCHABLE + lanzar a
+      tiempo + quién se lo queda); los Snorlax ya eran el jefe "snorlax". Driver `gen1_legend` (Zapdos,
+      dos Rojo reales: mismo PS 245 en las dos).
 - [ ] B5 Historia de Gen 1: S.S. Anne, Torre Pokémon (Marowak, Silph Scope), Guarida Rocket, Silph S.A.
       (Giovanni), Safari (personal), Poké Flauta; esperas y escenas a dos (story.duo) en Gen 1.
 - [ ] B6 Hub de Gen 1 (Mochi: "1, 2 y la interfaz"): el Club de Cable de Gen 1 (Coliseo / Centro

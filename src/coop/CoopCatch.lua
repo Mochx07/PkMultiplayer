@@ -67,7 +67,12 @@ local function rank(ball) return CoopCatch.BALL_RANK[ball] or 1 end
 function CoopCatch.allowed(battle)
   if type(battle) ~= "table" or not battle.coopWild or battle.kind ~= "wild" then return false end
   if battle.ghost or battle.noCatch or battle.bugContest or battle.contest then return false end
-  if battle.coopBoss or battle.coopBeast then return false end
+  if battle.coopBeast then return false end
+  -- a boss is not caught together -- but Gen 1's legends are (CoopBoss.CATCHABLE)
+  if battle.coopBoss then
+    local Boss = package.loaded["src.coop.CoopBoss"]
+    if not (Boss and Boss.CATCHABLE and Boss.CATCHABLE[battle.coopBoss]) then return false end
+  end
   return CoopManager.bothHave(CoopCatch.CAP)
 end
 
