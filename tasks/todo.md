@@ -24,7 +24,7 @@ contra 85512413. Todo lo nuevo, detrás de caps; protocolo sin cambios.
 - [x] F17 Chat de voz con proximidad (pulsar / micro abierto)
 - [x] F18 Discord: unirse, AFK
 - [x] G19 Sprites de batalla dual
-- [~] H20 2.0.0-nightly.2 PREPARADA (zip, notas, changelog); falta push/tag/release con OK de Mochi; web pendiente
+- [x] H20 2.0.0-nightly.2 PUBLICADA (pre-release + zip); web actualizada (novedades, guía VPN, lastmod), homepage del repo = web, README enlaza la web
 - [~] I21 gen1recomp: esqueleto local que carga (~/Downloads/PkMultiplayer-Gen1Recomp); falta decidir el 2v2 y portar
 
 # PkMultiplayer 1.20.0: plan
