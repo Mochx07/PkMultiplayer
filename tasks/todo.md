@@ -1,5 +1,10 @@
 # PkMultiplayer 2.0.0-nightly.2: plan (2026-11-17)
 
+Después de publicar (rama nightly, para la nightly.3): seguidor de Rojo probado con ROM real; historia
+Oro<->Cristal probada con dos juegos reales; R del mando para hablar; Ball de la captura en dobles por
+encima del HUD. Descartado: IPv6 (ENet 1.3.13 solo IPv4), inscripción conjunta al concurso (script de
+recepción del otro juego).
+
 Plan completo: `~/.claude/plans/radiant-honking-crescent.md`. Rama `v2.0/nightly.2` (desde
 `nightly` 2c395f7). Árbol fusionado `~/Downloads/PkMplayer-merge` (coop-snapshot), parches
 contra 85512413. Todo lo nuevo, detrás de caps; protocolo sin cambios.
