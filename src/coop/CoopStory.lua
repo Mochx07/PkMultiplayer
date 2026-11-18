@@ -488,7 +488,10 @@ function CoopStory.deliver(ctx, st)
     CoopStory.queue(ctx.save, st.rewards, eid)
     return
   end
+  local Compat = package.loaded["src.coop.CoopEditions"]
+  if Compat then Compat.tag(ctx.game, st.rewards) end
   CM.net:send({ type = "coop_story_rewards", map = st.map, rewards = st.rewards, eid = eid,
+                src = require("src.core.GameVersion").get(),
                 speaker = CM.getLocalPlayerName(ctx.game) })
 end
 
@@ -822,8 +825,10 @@ function CoopStory.flushOutbox(game)
   for _, entry in ipairs(box) do
     -- saves from before 1.5 kept the bare reward list
     local rewards = entry.rewards or entry
+    local Compat = package.loaded["src.coop.CoopEditions"]
+    if Compat then Compat.tag(game, rewards) end
     CM.net:send({ type = "coop_story_rewards", backlog = true, rewards = rewards,
-                  eid = entry.eid, speaker = speaker })
+                  eid = entry.eid, speaker = speaker, src = require("src.core.GameVersion").get() })
   end
   local n = #box
   save.coopStoryOutbox = nil
@@ -967,11 +972,9 @@ end
 function CoopStory.remapVersionRewards(game, msg)
   if type(msg) ~= "table" or type(msg.rewards) ~= "table" then return end
   -- Gold/Silver <-> Crystal (experimental): the partner's flags made ours
-  local Cross = package.loaded["src.coop.CoopCrossStory"]
-  if Cross and Cross.active() and not msg.crossDone then
-    msg.crossDone = true
-    Cross.translate(msg)
-  end
+  -- another edition's event made this edition's (src/coop/CoopEditions.lua)
+  local Compat = package.loaded["src.coop.CoopEditions"]
+  if Compat then Compat.filter(game, msg) end
   local okV, V = pcall(require, "src.core.GameVersion")
   if not (okV and V and V.isGen2 and V.isGen2()) then return end
   local isSilver = V.isSilver and V.isSilver()

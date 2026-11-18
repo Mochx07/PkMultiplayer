@@ -240,7 +240,7 @@ CoopStory.onPartnerRewards(gold, { type = "coop_story_rewards", eid = "c:1",
   rewards = { { kind = "set_flag", id = "EVENT_G2_0100" }, { kind = "item", id = "POTION", count = 1 } } })
 check(not gold.save.flags.EVENT_G2_0100, "a Crystal event is not applied to Gold")
 local notices = CoopManager.linkNotices()
-check(#notices >= 1 and notices[1]:find("Crystal", 1, true), "the link says the story is not shared")
+check(#notices >= 1 and notices[1]:find("not shared", 1, true), "the link says the story is not shared")
 CoopManager.markTrainerBeaten(gold, gold.overworld, { npcId = "X_obj_1", headerEvent = "EVENT_G2_0400" })
 check(gold.save.defeatedTrainers.X_obj_1 and not gold.save.flags.EVENT_G2_0400,
       "a co-op trainer is beaten, but the other cartridge's flag is not set")

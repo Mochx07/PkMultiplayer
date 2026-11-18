@@ -77,6 +77,14 @@ local function markTrainerBeaten(game, ow, msg)
   local headerEvent = msg.headerEvent
   local Cross = package.loaded["src.coop.CoopCrossStory"]
   if headerEvent and Cross and Cross.active() then headerEvent = Cross.flag(headerEvent) end
+  -- Red's Rockets are Yellow's Jessie & James: a trainer this edition does
+  -- not have is not marked (src/coop/CoopEditions.lua)
+  local Compat = package.loaded["src.coop.CoopEditions"]
+  if headerEvent and Compat and Compat.relation(GameVersion.get(), CoopManager.partner.game) == "third"
+     and Compat.FAMILY[GameVersion.get()] == "rby"
+     and not Compat.editionEvents(game.data)[headerEvent] then
+    headerEvent = nil
+  end
   if headerEvent and CoopManager.storyCompatible() then save.flags[headerEvent] = true end
   local cur = (game and game.overworld) or ow
   if cur and cur.map and mapsMatch(cur.map.id, msg.mapId) and cur.map.npcs then

@@ -226,6 +226,7 @@ CoopManager.FEATURES = {
   "src.coop.CoopCatch",
   "src.coop.CoopFeed",
   "src.coop.CoopCrossStory",
+  "src.coop.CoopEditions",
   "src.coop.CoopVoice",
   "src.coop.CoopDiscord",
   "src.coop.CoopCompat",
@@ -700,6 +701,11 @@ local function buildHello(ow, kind)
     healthy = healthyCount(save),
     badges = badgesCount,
     caps = CoopManager.localCaps(),
+    -- the edition (src/coop/CoopEditions.lua): family, third edition or not
+    profile = (function()
+      local okC, Compat = pcall(require, "src.coop.CoopEditions")
+      return okC and Compat.profile() or nil
+    end)(),
   }
 end
 
@@ -809,8 +815,13 @@ function CoopManager.linkNotices()
   if CoopManager.capsule then
     notices[#notices + 1] = "TIME CAPSULE: chat, emotes and trades"
   end
+  local okC, Compat = pcall(require, "src.coop.CoopEditions")
+  local rel = okC and Compat.relation(GameVersion.get(), CoopManager.partner.game)
   if CoopManager.storySync and not CoopManager.storyCompatible() then
-    notices[#notices + 1] = "Story not shared: Gold/Silver and Crystal"
+    notices[#notices + 1] = rel == "third" and "Story not shared: 3RD ED. STORY is off"
+                            or "Story not shared: different games"
+  elseif CoopManager.storySync and rel == "third" then
+    notices[#notices + 1] = "One story; each edition keeps its own events"
   end
   local theirs = CoopManager.partner.version
   if theirs and tostring(theirs) ~= CoopManager.modVersion() then

@@ -64,7 +64,9 @@ CoopNet.DEFAULT_PORT = 7777
 -- Gold/Silver kept apart from Crystal's numbering on BOTH sides, READY --
 -- a v15 copy would set the toggles' flags without the objects, and copy
 -- Crystal's events into Gold
-CoopNet.PROTOCOL = 16
+-- 17 (nightly.3): the hello names the edition (CoopEditions.profile) and story
+-- events carry their source edition and edition tags (the version matrix)
+CoopNet.PROTOCOL = 17
 CoopNet.CHANNELS = 2
 CoopNet.CH_RELIABLE = 0
 CoopNet.CH_FAST = 1

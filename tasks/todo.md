@@ -1,3 +1,83 @@
+# PkMultiplayer 2.0.0-nightly.3: plan (2026-11-18) -- Gen 1 primero
+
+Pedido de Mochi: la nightly.3 se centra en Gen 1 (Rojo/Azul/Amarillo). El plan de la 1.20 (M2/M3)
+se hizo pensando en Oro/Plata/Cristal y Gen 1 se quedó atrás. Además: terceras ediciones (Amarillo,
+Cristal) con un sistema de red y sincronía ordenado, **protocolo de versión nuevo**, móvil, mapa,
+mejoras al combate. HGSS queda en la rama `hgss/coop`, fuera de esta nightly. Rama `v2.0/nightly.3`
+(desde `v2.0/nightly.2` f24ae64).
+
+Auditoría (2026-11-18, con pruebas reales, no de memoria):
+- `CoopManager.storyCompatible` devuelve true siempre fuera de Gen 2: Rojo/Azul y Amarillo
+  comparten TODO (Jessie y James, iniciales regalados, etc.).
+- Rival 2v2 solo Gen 2 (`CoopGyms`: `isGen2() and not isGen1()`); `CoopBoss` solo jefes de Gen 2.
+- Minijuegos Karpa y Bici solo Gen 2 (la Ruta Ciclista existe en Gen 1).
+- Driver `gen1_mixed.lua` (Rojo host + Amarillo guest): el seguidor PIKACHU se dibuja con el icono de
+  equipo de Gen 1 (parece Clefairy) en Rojo y en Amarillo al dibujar al compañero de Rojo; Amarillo no
+  manda su seguidor (Rojo no ve el Pikachu del compañero); en el 2v2 de Gen 1 las dos espaldas
+  (P1 y P2) se dibujan encimadas.
+- Móvil: ninguna pantalla del mod tiene táctil; chat/emote/LISTO/voz dependen de teclas T/Y/R/V y
+  números; las filas dicen "(KEY T)".
+
+Orden (Mochi): A primero.
+
+## A. Protocolo de versión y terceras ediciones
+- [x] A1 Protocolo 17 (Mochi: "el protocolo de versión debería cambiar"): el saludo lleva el perfil
+      de edición (`CoopEditions.profile`); un 16 ya no enlaza (cada uno ve qué versión tiene el otro).
+- [x] A2 Matriz de versiones (`src/coop/CoopEditions.lua`; OJO: `CoopCompat.lua` ya existía, es la
+      compatibilidad con DramaticShapes): por cada par, cada evento es COMPARTIDO (mismo
+      flag), TRADUCIDO (mapa por nombre), EXCLUSIVO (no cruza; el otro solo lee el aviso) o
+      CONFLICTIVO (cruza adaptado o se bloquea). Sustituye a `storyCompatible` y a `CoopCrossStory`.
+- [x] A3 Rojo/Azul <-> Amarillo: tabla de eventos por nombre sacada de las cachés de cada versión;
+      lista de exclusivos de Amarillo (Jessie y James, iniciales regalados, Pikachu) y su trato.
+- [~] A4 Oro/Plata <-> Cristal: CoopFlagMap ya va por la matriz (regla 3RD ED. STORY, ahora
+      encendida por defecto; lo que no tiene gemelo no cruza). Falta revisar con juegos reales: exclusivos de Cristal (Suicune/Eusine,
+      Torre de Batalla, Huevo Raro, examen de la Guarida del Dragón, GS Ball) nunca cruzan; los de
+      cambios medianos, adaptados cuando no rompen Oro/Plata.
+- [x] A5 Un solo filtro en el que recibe (`CoopEditions.filter`): el emisor manda `src` y marca `ed`
+      en los flags de los datos de su edición; si todo el evento era de la otra edición, sus objetos y
+      dinero tampoco se dan. Pruebas: suite `coop_editions` (23) y driver `gen1_editions` con dos copias
+      reales en los dos sentidos (Amarillo->Rojo y Rojo->Amarillo).
+
+## B. Gen 1 al nivel de lo que ya tiene Gen 2
+- [ ] B1 Gimnasios de Gen 1 en equipo (revisar pools gen1 de CoopGyms con pruebas reales, Amarillo
+      con sus equipos propios).
+- [ ] B2 Liga de Gen 1 (Lorelei, Bruno, Agatha, Lance, campeón) en 2v2; Salón de la Fama para los dos.
+- [ ] B3 Rival 2v2 en Gen 1 (OPP_RIVAL1/2/3; el de Amarillo con Eevee).
+- [ ] B4 Legendarios y jefes de Gen 1 (CoopBoss): Articuno, Zapdos, Moltres, Mewtwo, los dos Snorlax;
+      reglas de captura (catch.together) y quién se lo queda.
+- [ ] B5 Historia de Gen 1: S.S. Anne, Torre Pokémon (Marowak, Silph Scope), Guarida Rocket, Silph S.A.
+      (Giovanni), Safari (personal), Poké Flauta; esperas y escenas a dos (story.duo) en Gen 1.
+- [ ] B6 Hub de Gen 1 (Mochi: "1, 2 y la interfaz"): el Club de Cable de Gen 1 (Coliseo / Centro
+      de Intercambio, 2º piso del Centro), el hub online del launcher (plaza, GTS, salas) adaptado
+      al co-op en Gen 1, y su interfaz.
+- [ ] B7 Minijuegos en Gen 1: contrarreloj en la Ruta Ciclista de Kanto; otro en lugar del de Karpa.
+
+## C. Sprites
+- [ ] C1 Seguidor con el sprite de andar del juego si existe (PIKACHU de Amarillo), no el icono.
+- [ ] C2 Amarillo comparte su Pikachu seguidor con el compañero.
+- [ ] C3 Espaldas de P1 y P2 separadas en el 2v2 de Gen 1.
+
+## D. Mapa
+- [ ] D1 Compañero en el MAPA de Gen 1 (y el Pokégear de Gen 2), con LA CABEZA del otro jugador
+      (su sprite/paleta) en su sitio.
+- [ ] D2 Flecha del compañero: revisar en Gen 1.
+- [ ] D3 Compañero de otra edición (Amarillo/Cristal) bien situado en tu mapa.
+
+## E. Móvil
+- [ ] E1 Táctil en las pantallas del mod (menú co-op, invitación, selección de equipo, emotes, VS).
+- [ ] E2 Botones en pantalla para chat, emote, LISTO y voz; sin "(KEY T)" en móvil.
+- [ ] E3 Prueba con eventos táctiles simulados en Xvfb.
+
+## F. Combate
+- [ ] F1 C3 + revisión del 2v2 de Gen 1 (animaciones, objetivos, cuadro del compañero).
+- [ ] F2 Salvaje juntos = 2 contra 1: UN solo Pokémon salvaje, no dos (Mochi, 2026-11-18).
+- [ ] F3 Captura conjunta: los dos pulsan A en el mismo momento; si van sincronizados, probabilidad
+      alta (Mochi, 2026-11-18). Reemplaza la "tirada conjunta" de catch.together.
+
+## Hecho
+- [x] EMOTE sin compañero: la burbuja sale sobre tu jugador (antes cerraba el menú y no hacía nada).
+      dfb2526, driver `emote_solo.lua` en Rojo y en Plata en español.
+
 # PkMultiplayer 2.0.0-nightly.2: plan (2026-11-17)
 
 Después de publicar (rama nightly, para la nightly.3): seguidor de Rojo probado con ROM real; historia

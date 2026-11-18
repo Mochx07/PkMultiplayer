@@ -20,7 +20,8 @@ T.check(g and c, "events move between the two numberings (gold " .. tostring(g) 
 
 CoopManager.connected = true
 CoopManager.partner.game = "gold"
-CoopManager.partner.caps = { [Cross.CAP] = true }
+-- nightly.3: the share goes through the version matrix (story.compat) too
+CoopManager.partner.caps = { [Cross.CAP] = true, ["story.compat"] = true }
 GV.set("crystal")
 CoopManager.crossStory = false
 T.check(not CoopManager.storyCompatible(), "Crystal with a Gold partner, rule off: no shared story (as before)")
@@ -49,7 +50,7 @@ T.check(Cross.flag(string.format("EVENT_G2_%04d", c)) == string.format("EVENT_G2
 CoopManager.partner.caps = {}
 T.check(not Cross.active(), "a partner without story.cross: not shared")
 CoopManager.partner.game = "silver"
-CoopManager.partner.caps = { [Cross.CAP] = true }
+CoopManager.partner.caps = { [Cross.CAP] = true, ["story.compat"] = true }
 T.check(not Cross.active() and CoopManager.storyCompatible(), "Gold with Silver: nothing to translate (shared as always)")
 CoopManager.crossStory = false
 T.finish("Gold/Silver <-> Crystal story")

@@ -20,7 +20,9 @@ local CoopLog = require("src.coop.CoopLog")
 local CoopCrossStory = {}
 CoopCrossStory.CAP = "story.cross"
 CoopManager.registerCap(CoopCrossStory.CAP)
-CoopManager.addRule("crossStory", "G/S+C STORY", false)
+-- the rule is the matrix's now (src/coop/CoopEditions.lua): "3RD ED. STORY",
+-- on by default, for Red/Blue with Yellow as for Gold/Silver with Crystal
+CoopManager.addRule("crossStory", "3RD ED. STORY", true)
 
 local map, back = nil, nil
 local function tables()
@@ -46,7 +48,7 @@ function CoopCrossStory.active()
   local theirs = CoopManager.partner and CoopManager.partner.game
   if not (GV and GV.isGen2 and GV.isGen2() and type(theirs) == "string" and GV.isGen2(theirs)) then return false end
   if isCrystal() == isCrystal(theirs) then return false end
-  return CoopManager.crossStory == true and CoopManager.bothHave(CoopCrossStory.CAP)
+  return CoopManager.crossStory ~= false and CoopManager.bothHave(CoopCrossStory.CAP)
 end
 
 -- the same event's flag on this cartridge, or nil (no twin)
@@ -92,12 +94,6 @@ function CoopCrossStory.translate(msg)
   return dropped
 end
 
--- CoopManager.storyCompatible: the other cartridge too, with the rule on
-local compatible = CoopManager.storyCompatible
-CoopManager.storyCompatible = function(theirGame, ...)
-  if compatible(theirGame, ...) then return true end
-  if theirGame and theirGame ~= (CoopManager.partner and CoopManager.partner.game) then return false end
-  return CoopCrossStory.active()
-end
+-- (CoopManager.storyCompatible: src/coop/CoopEditions.lua, the version matrix)
 
 return CoopCrossStory

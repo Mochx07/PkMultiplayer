@@ -127,3 +127,8 @@ tests/coop_vpn.lua
 tests/coop_voice.lua
 tests/coop_discord.lua
 tasks/release-2.0.0-nightly.2.md
+tests/drivers/emote_solo.lua
+tests/drivers/menu_arrows.lua
+tests/drivers/gen1_mixed.lua
+tests/coop_editions.lua
+tests/drivers/gen1_editions.lua

@@ -428,13 +428,14 @@ function CoopMenu:connectedRows(ow, page)
       { label = "SOUL LINKS", info = { "SEE WHICH OF YOUR", "POKéMON ARE LINKED", "AND TO WHICH." },
         run = function() require("src.coop.CoopSoulLink").open(menu.game) end },
     }
-    -- Gold/Silver with Crystal: the story across them, experimental
+    -- a base edition with its third (Red/Blue + Yellow, Gold/Silver +
+    -- Crystal): one story, each edition's own events kept apart
     local GVx = okV and GameVersion
     local theirs = CoopManager.partner and CoopManager.partner.game
-    if GVx and GVx.isGen2() and type(theirs) == "string" and GVx.isGen2(theirs)
-       and GVx.isCrystal() ~= GVx.isCrystal(theirs) then
-      table.insert(rows, 2, rule("crossStory", "G/S+C STORY",
-        { "EXPERIMENTAL: ONE", "STORY FOR G/S AND", "CRYSTAL (NOT ALL)." }))
+    local okC, Compat = pcall(require, "src.coop.CoopEditions")
+    if GVx and okC and Compat.relation(GVx.get(), theirs) == "third" then
+      table.insert(rows, 2, rule("crossStory", "3RD ED. STORY",
+        { "ONE STORY WITH THE", "THIRD EDITION; ITS", "OWN EVENTS STAY." }))
     end
     -- Red / Blue / Yellow's DAY-CARE MAN breeds nothing
     if gen1 then
