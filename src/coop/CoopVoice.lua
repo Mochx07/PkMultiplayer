@@ -1,6 +1,6 @@
 -- src/coop/CoopVoice.lua
 -- VOICE CHAT (nightly.2, capability "voice").  MODS -> PkMultiplayer:
---   VOICE CHAT       OFF / PUSH V (hold V to talk) / OPEN MIC (talks when
+--   VOICE CHAT       OFF / PUSH V (hold V, or R on a gamepad) / OPEN MIC (talks when
 --                    your voice is over the noise floor)
 --   VOICE BY DISTANCE on: loud within 4 cells of each other on the same map,
 --                    fading out by 16 cells, silent on another map -- except
@@ -201,10 +201,24 @@ local function readMic()
   return out
 end
 
--- the push-to-talk key is held, and nothing is being typed
+-- on a gamepad, R (Gen 1 and 2 have no R button; L can be a second A)
+CoopVoice.PTT_PAD = "rightshoulder"
+
+local function padHeld()
+  local js = love and love.joystick
+  if not (js and js.getJoysticks) then return false end
+  for _, j in ipairs(js.getJoysticks()) do
+    local ok, down = pcall(function() return j:isGamepad() and j:isGamepadDown(CoopVoice.PTT_PAD) end)
+    if ok and down then return true end
+  end
+  return false
+end
+
+-- the push-to-talk key (V, or R on a gamepad) is held, and nothing is typed
 function CoopVoice.pttHeld(game)
   local kb = love and love.keyboard
-  if not (kb and kb.isDown and kb.isDown(CoopVoice.PTT_KEY)) then return false end
+  local key = kb and kb.isDown and kb.isDown(CoopVoice.PTT_KEY)
+  if not (key or padHeld()) then return false end
   if CoopManager.chatOverlay then return false end
   local top = game and game.stack and game.stack.top and game.stack:top()
   if top and (top.isChatBox or top.onTextInput) then return false end

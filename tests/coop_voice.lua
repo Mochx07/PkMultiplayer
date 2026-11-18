@@ -58,4 +58,22 @@ T.check(Voice.proximity(game, ow) == 1 and Voice.mode() == "ptt", "VOICE BY DIST
 package.loaded["pkmultiplayer.options"] = nil
 T.check(Voice.mode() == "off", "no options: voice off")
 
+-- push to talk: V, or R on a gamepad; never while typing
+local realLove = love
+local downKey, downPad = false, false
+love = setmetatable({
+  keyboard = { isDown = function(k) return downKey and k == "v" end },
+  joystick = { getJoysticks = function() return { { isGamepad = function() return true end,
+                                                    isGamepadDown = function(_, b) return downPad and b == "rightshoulder" end } } end },
+}, { __index = realLove })
+local idle = { stack = { top = function() return {} end } }
+T.check(not Voice.pttHeld(idle), "nothing held: not talking")
+downKey = true
+T.check(Voice.pttHeld(idle), "V held: talking")
+downKey, downPad = false, true
+T.check(Voice.pttHeld(idle), "R on a gamepad held: talking")
+local typing = { stack = { top = function() return { isChatBox = true } end } }
+T.check(not Voice.pttHeld(typing), "typing in the chat box: V is a letter, not the radio")
+love = realLove
+
 T.finish("voice chat")
