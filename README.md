@@ -14,7 +14,11 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
-<p align="center">🇬🇧 English · <a href="#espanol">🇪🇸 Español</a></p>
+<p align="center">🇬🇧 English · <a href="#espanol">🇪🇸 Español</a> · 🌐 <a href="https://mochx07.github.io/PkMultiplayer/">Website</a></p>
+
+> **2.0 nightly:** catching together (Let's Go style), voice chat, the Time Capsule, more VPNs
+> (Tailscale, Radmin, Hamachi, WireGuard) and more — test builds on the
+> [releases page](https://github.com/Mochx07/PkMultiplayer/releases). 1.6.17 stays the stable one.
 
 Two players, one Johto. You see each other walk, chat (**T**) and emote (**Y**), live
 the story's events together, trade through the Cable Club and fight trainers as a
