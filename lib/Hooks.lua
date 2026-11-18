@@ -917,6 +917,32 @@ function Hooks.gen1Offset(so, x, y)
   return math.floor(dx + 0.5), math.floor(dy + 0.5)
 end
 
+-- GEN 1'S TWO BACKS SIDE BY SIDE (nightly.3).  The co-op double staggers
+-- P1 in front of P2 the way Gold's 48-pixel backs fit; Red/Blue/Yellow's are
+-- 32x32 drawn at twice the size, and the two landed on top of each other
+-- (two PIKACHU read as one blob).  On Gen 1 the two drawn pics sit next to
+-- each other instead: P2 at the left edge, P1 right after it, short of the
+-- HUD.  Every caller reads BattleState.doubleBackBase, so the pics, their
+-- grow-in and their move animations all move with it.
+do
+  local installBattleState = Hooks.modules["src.battle.BattleState"]
+  Hooks.modules["src.battle.BattleState"] = function(BattleState)
+    installBattleState(BattleState)
+    wrap(BattleState, "BattleState", "doubleBackBase", function(doubleBackBase)
+      return function(pos, img, s, ...)
+        local x, y = doubleBackBase(pos, img, s, ...)
+        local GV = package.loaded["src.core.GameVersion"]
+        if not (GV and GV.isGen1 and GV.isGen1()) or not (img and img.getWidth) then return x, y end
+        -- measured on screen (drivers gen1_backs): the staggered pair
+        -- overlapped by ~11 px; P2 goes 14 left, P1 6 right
+        if pos == BattleState.POS.PLAYER_RIGHT then return x - Hooks.GEN1_BACK_SPREAD[1], y end
+        return x + Hooks.GEN1_BACK_SPREAD[2], y
+      end
+    end)
+  end
+end
+Hooks.GEN1_BACK_SPREAD = { 14, 6 }
+
 Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
   wrap(AnimPlayer, "AnimPlayer", "drawSprites", function(drawSprites)
     return function(self, sprites, colorFn, ...)

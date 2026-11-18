@@ -53,9 +53,12 @@ Orden (Mochi): A primero.
 - [ ] B7 Minijuegos en Gen 1: contrarreloj en la Ruta Ciclista de Kanto; otro en lugar del de Karpa.
 
 ## C. Sprites
-- [ ] C1 Seguidor con el sprite de andar del juego si existe (PIKACHU de Amarillo), no el icono.
+- [-] C1 Seguidor con el sprite de andar del juego si existe (PIKACHU de Amarillo), no el icono.
+      (Mochi 2026-11-18: los iconos de los acompañantes no importan.)
 - [ ] C2 Amarillo comparte su Pikachu seguidor con el compañero.
-- [ ] C3 Espaldas de P1 y P2 separadas en el 2v2 de Gen 1.
+- [x] C3 Espaldas de P1 y P2 separadas en el 2v2 de Gen 1 (Hooks envuelve doubleBackBase en Gen 1:
+      P2 14 px a la izquierda, P1 6 a la derecha; driver `gen1_backs`, parejas Pikachu/Pikachu,
+      Charmander/Bulbasaur, Onix/Gyarados).
 
 ## D. Mapa
 - [ ] D1 Compañero en el MAPA de Gen 1 (y el Pokégear de Gen 2), con LA CABEZA del otro jugador
