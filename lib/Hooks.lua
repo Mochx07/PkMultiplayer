@@ -700,7 +700,10 @@ Hooks.modules["src.battle.BattleState"] = function(BattleState)
   wrap(BattleState, "BattleState", "drawAnimLayer", function(drawAnimLayer)
     return function(self, ...)
       local ap = self.animPlayer
-      if ap then ap.stageNudge = Hooks.stageNudge(self) end
+      if ap then
+        ap.stageNudge = Hooks.stageNudge(self)
+        ap.pkmBallLift = Hooks.ballLift(self)
+      end
       local a, b, c = drawAnimLayer(self, ...)
       -- a co-op catch: the twin goes into a ball of its own (CoopCatch)
       if self.coopTwinCatch then
@@ -806,6 +809,21 @@ end
 -- { player = {dx, dy}, enemy = {dx, dy} } or nil: how far each side's mark
 -- is from where the rigid move puts its authored slot, divided back through
 -- that move's scale.  The same numbers OverworldBattle's drawAnimLayer uses.
+-- A BALL IN A CO-OP DOUBLE SITS A LITTLE HIGHER.  It comes to rest at the
+-- foot of the Pokemon it caught; a double's foes stand higher than a
+-- single's, so the resting ball (and its shakes) landed on the row of your
+-- own HUD's names.  Lifted by a few pixels for the toss chain only.
+Hooks.BALL_LIFT = 6
+local BALL_ANIMS = { POOF_ANIM = true, HIDEPIC_ANIM = true, SHAKE_ANIM = true, SHOWPIC_ANIM = true }
+function Hooks.ballLift(battle)
+  if not ((battle.coopDouble or battle.coopWild) and battle.isDouble and battle:isDouble()) then return nil end
+  local name = battle.animPlaying and battle.animName or nil
+  if (not battle.animPlaying and battle.lockedBall) or (name and (name:find("TOSS_ANIM", 1, true) or BALL_ANIMS[name])) then
+    return Hooks.BALL_LIFT
+  end
+  return nil
+end
+
 function Hooks.stageNudge(battle)
   local shot = battle.dramaticShapeShot
   if not (shot and shot.player and shot.enemy) then return nil end
@@ -912,6 +930,7 @@ Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
       local moved = {}
       for i, sp in ipairs(sprites) do
         local dx, dy = Hooks.gen1Offset(so, sp.x, sp.y)
+        if self.pkmBallLift then dy = dy - self.pkmBallLift end
         local c = {}
         for k, v in pairs(sp) do c[k] = v end
         c.x, c.y = sp.x + dx, sp.y + dy
@@ -937,6 +956,7 @@ Hooks.modules["src.battle.Gen2AnimPlayer"] = function(Gen2AnimPlayer)
   wrap(Gen2AnimPlayer, "Gen2AnimPlayer", "objectOffset", function(objectOffset)
     return function(self, x, y, ...)
       local dx, dy = objectOffset(self, x, y, ...)
+      if self.pkmBallLift then dy = dy - self.pkmBallLift end
       local n = self.stageNudge
       if not n then return dx, dy end
       local px, py = PLAYER_PIC_OAM[1], PLAYER_PIC_OAM[2]
