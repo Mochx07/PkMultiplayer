@@ -137,3 +137,4 @@ tests/coop_catch_aim.lua
 tests/drivers/gen1_backs.lua
 tests/drivers/gen1_rival.lua
 tests/drivers/gen1_legend.lua
+tests/drivers/gen1_townmap.lua

@@ -66,10 +66,12 @@ Orden (Mochi): A primero.
       Charmander/Bulbasaur, Onix/Gyarados).
 
 ## D. Mapa
-- [ ] D1 Compañero en el MAPA de Gen 1 (y el Pokégear de Gen 2), con LA CABEZA del otro jugador
-      (su sprite/paleta) en su sitio.
+- [x] D1 Compañero en el MAPA de Gen 1 (y el mapa de Gen 2 de vuelo/zonas), con LA CABEZA del otro
+      jugador (mitad superior de su sprite) en su sitio (`src/coop/CoopTownMap.lua`, envoltorio de
+      TownMap:draw). Driver `gen1_townmap` (Rojo en Paleta + Amarillo en Verde, cada uno ve al otro).
 - [ ] D2 Flecha del compañero: revisar en Gen 1.
-- [ ] D3 Compañero de otra edición (Amarillo/Cristal) bien situado en tu mapa.
+- [x] D3 Compañero de otra edición (Amarillo/Cristal) bien situado en tu mapa (por id de mapa,
+      probado Rojo<->Amarillo).
 
 ## E. Móvil
 - [ ] E1 Táctil en las pantallas del mod (menú co-op, invitación, selección de equipo, emotes, VS).

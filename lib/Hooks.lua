@@ -943,6 +943,18 @@ do
 end
 Hooks.GEN1_BACK_SPREAD = { 14, 6 }
 
+-- the partner's head on the TOWN MAP (src/coop/CoopTownMap.lua)
+Hooks.modules["src.ui.TownMap"] = function(TownMap)
+  wrap(TownMap, "TownMap", "draw", function(draw)
+    return function(self, ...)
+      local a, b, c = draw(self, ...)
+      local okT, CoopTownMap = pcall(require, "src.coop.CoopTownMap")
+      if okT then pcall(CoopTownMap.draw, self) end
+      return a, b, c
+    end
+  end)
+end
+
 Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
   wrap(AnimPlayer, "AnimPlayer", "drawSprites", function(drawSprites)
     return function(self, sprites, colorFn, ...)
