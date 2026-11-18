@@ -439,5 +439,36 @@ if mod.events and mod.events.on then
 end
 Hooks.installQuit()
 
+-- AN OLDER GAME THAN THE PATCHES WERE CUT FOR.  A launcher that does not
+-- enforce `game_version` loads this build on any release; its edits then
+-- land on functions that are no longer theirs, and things go wrong in odd
+-- places.  Say so in the log and on screen (once the game is up).  A copy
+-- run from source reports 0.0.0-dev or 0.7.6 and is left alone.
+local MIN_ENGINE = "0.8.58"
+do
+  local okV, V = pcall(require, "src.core.Version")
+  local engine = okV and type(V) == "table" and tostring(V.engine or "") or ""
+  local function parts(v)
+    local a, b, c = tostring(v):match("^(%d+)%.(%d+)%.(%d+)")
+    return tonumber(a), tonumber(b), tonumber(c)
+  end
+  local a, b, c = parts(engine)
+  local x, y, z = parts(MIN_ENGINE)
+  local dev = engine == "" or engine:find("^0%.0%.0") or engine == "0.7.6"
+  if a and not dev and (a < x or (a == x and (b < y or (b == y and c < z)))) then
+    log("warn", "Gen2Recomped %s is older than %s, the version this build is made for: update the game",
+        engine, MIN_ENGINE)
+    local okC, CM = pcall(require, "src.coop.CoopManager")
+    if okC and CM then
+      CM.engineTooOld = { have = engine, need = MIN_ENGINE }
+      if mod.events and mod.events.on then
+        mod.events:on("game.ready", function()
+          pcall(CM.showStatus, string.format("Update Gen2Recomped to %s+ (you have %s)", MIN_ENGINE, engine), 8)
+        end)
+      end
+    end
+  end
+end
+
 log("info", "PkMultiplayer %s ready (patches built against Gen2Recomped %s)",
     tostring(mod.version), tostring(index.base))

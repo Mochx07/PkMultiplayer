@@ -23,6 +23,7 @@ return {
   ["%s IP:"] = "IP %s:",
   ["%s is AFK"] = "%s está ausente",
   ["Joining from Discord..."] = "Uniéndote desde Discord...",
+  ["Update Gen2Recomped to %s+ (you have %s)"] = "Actualiza Gen2Recomped a %s+ (tienes %s)",
   -- lo que hace el compañero (CoopFeed)
   ["%s %s NO CATCH YET"] = "%s %s SIN CAPTURA",
   ["%s CAUGHT %s!"] = "¡%s ATRAPÓ A %s!",
