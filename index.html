@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PkMultiplayer — Online co-op mod for Pokémon Gold, Silver, Crystal (Gen2Recomped)</title>
-<meta name="description" content="PkMultiplayer is a free two-player online co-op mod for Gen2Recomped: play Pokémon Gold, Silver, Crystal and Red, Blue, Yellow with a friend in the same world — shared story, chat, emotes and 2-vs-2 double battles. Peer-to-peer over LAN or ZeroTier, no server.">
+<meta name="description" content="PkMultiplayer is a free two-player online co-op mod for Gen2Recomped: play Pokémon Gold, Silver, Crystal and Red, Blue, Yellow with a friend in the same world — shared story, chat, voice, catching together and 2-vs-2 double battles. Peer-to-peer over LAN or a VPN (ZeroTier, Tailscale, Radmin, Hamachi), no server.">
 <meta name="keywords" content="PkMultiplayer, Gen2Recomped, Pokemon Gold co-op, Pokemon Crystal multiplayer, Pokemon Silver online, two player Pokemon, Pokemon co-op mod, Soul Link, Nuzlocke co-op, ZeroTier, Pokémon multijugador, Pokémon cooperativo">
 <link rel="canonical" href="https://mochx07.github.io/PkMultiplayer/">
 <meta name="theme-color" content="#0f380f">
@@ -30,7 +30,8 @@
   "@type": "SoftwareApplication",
   "name": "PkMultiplayer",
   "alternateName": "PkMultiplayer co-op mod",
-  "description": "Free two-player online co-op mod for Gen2Recomped. Play Pokémon Gold, Silver, Crystal and Red, Blue, Yellow with a friend in the same world: shared story, chat, emotes and 2-vs-2 double battles in lockstep. Peer-to-peer over LAN or ZeroTier.",
+  "description": "Free two-player online co-op mod for Gen2Recomped. Play Pokémon Gold, Silver, Crystal and Red, Blue, Yellow with a friend in the same world: shared story, chat, voice, emotes, catching together and 2-vs-2 double battles in lockstep. Peer-to-peer over LAN or a VPN (ZeroTier, Tailscale, Radmin, Hamachi, WireGuard).",
+  "dateModified": "2026-11-17",
   "applicationCategory": "GameApplication",
   "applicationSubCategory": "Game mod",
   "operatingSystem": "Windows, Linux, macOS, Android, iOS",
@@ -159,9 +160,27 @@
       HeartGold/SoulSilver's doubles rules.</p>
     <p><b>Not an MMO:</b> it's your own playthrough, with a friend in it. There's no server to sign up for —
       one of you hosts the session from inside the game, and the other joins over the local network or the
-      internet (with ZeroTier).</p>
+      internet (with a free VPN: ZeroTier, Tailscale, Radmin VPN, Hamachi or WireGuard).</p>
     <p>It's a <b>mod</b> for the official <a href="https://github.com/UNDERdecoded/Gen2Recomped">Gen2Recomped</a>:
       nothing to fork, just a zip you import in the launcher.</p>
+  </section>
+
+  <section>
+    <h2>New in 2.0 (nightly)</h2>
+    <p>The <a href="https://github.com/Mochx07/PkMultiplayer/releases">2.0 nightly builds</a> are test builds;
+      the stable release is still 1.6.17. Both players need the same build for a new feature to turn on.</p>
+    <ul>
+      <li><b>Catch together, Let's Go style:</b> throw balls in a co-op wild battle; both throwing in the same
+        turn is a joint throw with a better catch rate, and then you decide <i>who keeps it</i>.</li>
+      <li><b>Voice chat:</b> push-to-talk (<kbd>V</kbd>) or open mic, louder the closer you stand on the map.</li>
+      <li><b>Time Capsule:</b> Red/Blue/Yellow and Gold/Silver/Crystal can link to chat and trade.</li>
+      <li><b>Gold/Silver with Crystal (experimental):</b> one shared story across the two cartridges.</li>
+      <li><b>Your partner's feed:</b> their catches, evolutions and eggs show up on your screen, and level-ups
+        in battle appear in a corner card.</li>
+      <li><b>Battle Tower in duo</b> (Crystal), the <b>Bug-Catching Contest</b> live, <b>Discord</b> "Ask to Join"
+        and an <b>AFK</b> status.</li>
+      <li>More VPNs, one <b>CO-OP</b> row on the title screen, your name before you link, and a smoother 2-vs-2.</li>
+    </ul>
   </section>
 
   <section>
@@ -218,8 +237,11 @@
     <table>
       <tr><td>Same network</td><td>One player presses START → <b>CO-OP ONLINE</b> → <b>HOST</b> and gets a short code.
         The other goes to <b>JOIN</b> and types the code, or the host's IP.</td></tr>
-      <tr><td>Over the internet</td><td>Both join the same free <a href="https://www.zerotier.com/">ZeroTier</a>
-        network; the host's code already carries their ZeroTier IP. The port is UDP <b>7777</b>.</td></tr>
+      <tr><td>Over the internet</td><td>Both join the same free VPN network:
+        <a href="https://www.zerotier.com/">ZeroTier</a>, <a href="https://tailscale.com/">Tailscale</a>,
+        <a href="https://www.radmin-vpn.com/">Radmin VPN</a>, Hamachi or WireGuard. The host screen lists every
+        address it found with its VPN's name (<b>SELECT</b> switches), and the code follows the one shown.
+        The port is UDP <b>7777</b>.</td></tr>
       <tr><td>If it fails</td><td>The menu says why and what to do (open UDP 7777 in the firewall, use the same mod
         version…). A dropped link reconnects on its own, and a battle waits for your partner to come back.</td></tr>
     </table>
@@ -247,6 +269,16 @@
       la historia, intercambian en el Club de Cable y pelean contra los entrenadores en <b>combates dobles 2 contra 2</b>.</p>
     <p><b>No es un MMO:</b> es su propia partida, con un amigo dentro. No hay servidor: uno de los dos crea la sesión
       desde el juego y el otro se une por la red local o por internet (con ZeroTier).</p>
+    <h3>Novedades de la 2.0 (nightly)</h3>
+    <ul>
+      <li><b>Captura en equipo, estilo Let's Go:</b> lancen Balls en un combate salvaje co-op; si los dos lanzan en el
+        mismo turno es un lanzamiento conjunto, y luego deciden <i>quién se lo queda</i>.</li>
+      <li><b>Chat de voz:</b> pulsar <kbd>V</kbd> o micro abierto, más fuerte cuanto más cerca estén en el mapa.</li>
+      <li><b>Cápsula del Tiempo:</b> Rojo/Azul/Amarillo con Oro/Plata/Cristal para chatear e intercambiar.</li>
+      <li><b>Oro/Plata con Cristal (experimental):</b> una sola historia entre los dos cartuchos.</li>
+      <li>Avisos de lo que hace el compañero, subidas de nivel en una esquina, Torre de Batalla en dúo, Concurso de
+        bichos en vivo, «Pedir unirse» en Discord y estado ausente (AFK).</li>
+    </ul>
     <h3>Lo que lo hace distinto</h3>
     <ul>
       <li>📖 <b>La historia, juntos:</b> eventos, objetos del mapa y medallas en las dos partidas a la vez.</li>
@@ -266,8 +298,10 @@
     </ol>
     <h3>Cómo conectarse</h3>
     <p>Uno pulsa START → <b>CO-OP ONLINE</b> → <b>HOST</b> y recibe un código; el otro va a <b>JOIN</b> y lo escribe.
-      Por internet, los dos entran en la misma red de <a href="https://www.zerotier.com/">ZeroTier</a> (gratis).
-      El puerto es UDP <b>7777</b>.</p>
+      Por internet, los dos entran en la misma red de una VPN gratuita: <a href="https://www.zerotier.com/">ZeroTier</a>,
+      <a href="https://tailscale.com/">Tailscale</a>, <a href="https://www.radmin-vpn.com/">Radmin VPN</a>, Hamachi o
+      WireGuard. La pantalla de anfitrión enseña todas las direcciones con el nombre de su VPN (<b>SELECT</b> cambia) y
+      el código sigue a la elegida. El puerto es UDP <b>7777</b>.</p>
   </section>
 </div>
 
