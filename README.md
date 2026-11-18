@@ -15,7 +15,7 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
 
-<p align="center">🇬🇧 English · <a href="#espanol">🇪🇸 Español</a> · 🌐 <a href="https://mochx07.github.io/PkMultiplayer/">Website</a></p>
+<p align="center">English · <a href="#espanol">Español</a> · <a href="https://mochx07.github.io/PkMultiplayer/">Website</a></p>
 
 Two players, one Johto. You see each other walk, chat (**T**), talk (**V**) and emote
 (**Y**), live the story's events together, catch wild Pokémon together, trade through the
@@ -44,29 +44,29 @@ The **2.0 nightly** builds are test builds on the [releases page](https://github
 (marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**,
 and each new feature turns on only when **both** players have it.
 
-- 🎯 **Catch together, Let's Go style:** throw balls in a co-op wild battle; both throwing in the
+- **Catch together, Let's Go style:** throw balls in a co-op wild battle; both throwing in the
   same turn is a **joint throw** (the better ball, catch rate ×1.5), the twin goes into a ball of its
   own, and then you decide **who keeps it** (me / my partner / let fate decide).
-- 🎙️ **Voice chat:** push-to-talk (**V**) or open mic, louder the closer you stand on the map.
-- ⏳ **Time Capsule:** Red/Blue/Yellow and Gold/Silver/Crystal can link to chat, emote and trade.
-- 🔀 **Gold/Silver with Crystal (experimental):** one shared story across the two cartridges.
-- 📣 **Your partner's feed:** their catches, evolutions and eggs on your screen; level-ups in a
+- **Voice chat:** push-to-talk (**V**) or open mic, louder the closer you stand on the map.
+- **Time Capsule:** Red/Blue/Yellow and Gold/Silver/Crystal can link to chat, emote and trade.
+- **Gold/Silver with Crystal (experimental):** one shared story across the two cartridges.
+- **Your partner's feed:** their catches, evolutions and eggs on your screen; level-ups in a
   battle show in a corner card instead of stopping the turn.
-- 🗼 **Battle Tower in duo** (Crystal): join once for the whole challenge. **Bug-Catching Contest**:
+- **Battle Tower in duo** (Crystal): join once for the whole challenge. **Bug-Catching Contest**:
   your partner's time and best catch, live.
-- 🌐 **More VPNs:** Tailscale, Radmin VPN, Hamachi and WireGuard besides ZeroTier.
-- 💬 Chat shows only what is sent ("typing..." once there is a letter) and stays out of the way in
+- **More VPNs:** Tailscale, Radmin VPN, Hamachi and WireGuard besides ZeroTier.
+- Chat shows only what is sent ("typing..." once there is a letter) and stays out of the way in
   battle; one **CO-OP** row on the title screen; your **name** before you link; **Discord** "Ask to
   Join" and an **AFK** status; straight beams and tidier sprites in 2-vs-2.
 
 ### What makes it different
 
-- 📖 **The story, together**: events, world items and badges happen in both saves at once.
-- ⚔️ **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
-- 🔗 **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
-- 🐾 **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
-- 🎯🎙️ **Catching together and voice chat** (2.0 nightly).
-- 🌐 **English and Spanish**, switchable in the mod's options.
+- **The story, together**: events, world items and badges happen in both saves at once.
+- **2-vs-2 doubles against the game's own trainers and leaders**, in lockstep, with HeartGold/SoulSilver's doubles rules.
+- **Soul Link** (the two-player Nuzlocke), a **linked Day-Care** and the **Battle Tower in multi** (Crystal).
+- **Your lead Pokémon follows you**, HGSS-style, and your partner sees it.
+- **Catching together and voice chat** (2.0 nightly).
+- **English and Spanish**, switchable in the mod's options.
 
 ## Installation
 
@@ -195,7 +195,7 @@ both players' `coop.log`.
 
 # PkMultiplayer en español
 
-<p align="center"><a href="#english">🇬🇧 English</a> · 🇪🇸 Español</p>
+<p align="center"><a href="#english">English</a> · Español</p>
 
 Juega **Pokémon Oro, Plata o Cristal** (y Rojo/Azul/Amarillo) con un amigo en el
 mismo mundo: se ven caminar, chatean, hablan por voz, viven los eventos de la historia
@@ -213,29 +213,29 @@ Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Moc
 (marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.58
 o posterior**, y cada novedad solo se activa cuando **los dos** la tienen.
 
-- 🎯 **Captura en equipo, estilo Let's Go:** lancen Balls en un combate salvaje co-op; si los dos
+- **Captura en equipo, estilo Let's Go:** lancen Balls en un combate salvaje co-op; si los dos
   lanzan en el mismo turno es un **lanzamiento conjunto** (la mejor Ball, ratio ×1,5), el gemelo
   entra en su propia Ball y luego deciden **quién se lo queda** (yo / para el compañero / a la suerte).
-- 🎙️ **Chat de voz:** pulsar **V** o micro abierto, más fuerte cuanto más cerca estén en el mapa.
-- ⏳ **Cápsula del Tiempo:** Rojo/Azul/Amarillo con Oro/Plata/Cristal para chatear, mandar emotes e intercambiar.
-- 🔀 **Oro/Plata con Cristal (experimental):** una sola historia entre los dos cartuchos.
-- 📣 **Lo que hace el compañero:** sus capturas, evoluciones y huevos en tu pantalla; las subidas de
+- **Chat de voz:** pulsar **V** o micro abierto, más fuerte cuanto más cerca estén en el mapa.
+- **Cápsula del Tiempo:** Rojo/Azul/Amarillo con Oro/Plata/Cristal para chatear, mandar emotes e intercambiar.
+- **Oro/Plata con Cristal (experimental):** una sola historia entre los dos cartuchos.
+- **Lo que hace el compañero:** sus capturas, evoluciones y huevos en tu pantalla; las subidas de
   nivel en combate salen en una tarjeta en la esquina en vez de parar el turno.
-- 🗼 **Torre de Batalla en dúo** (Cristal): se aceptan una vez para todo el desafío. **Concurso de
+- **Torre de Batalla en dúo** (Cristal): se aceptan una vez para todo el desafío. **Concurso de
   bichos**: el tiempo y la mejor captura del compañero, en vivo.
-- 🌐 **Más VPN:** Tailscale, Radmin VPN, Hamachi y WireGuard además de ZeroTier.
-- 💬 El chat muestra solo lo enviado («escribiendo...» con al menos una letra) y no estorba en
+- **Más VPN:** Tailscale, Radmin VPN, Hamachi y WireGuard además de ZeroTier.
+- El chat muestra solo lo enviado («escribiendo...» con al menos una letra) y no estorba en
   combate; una sola fila **CO-OP** en el título; tu **nombre** antes de enlazar; «Pedir unirse» en
   **Discord** y estado **AFK**; rayos rectos y sprites más ordenados en el 2 contra 2.
 
 ### Lo que lo hace distinto
 
-- 📖 **La historia, juntos**: los eventos, objetos del mundo y medallas se viven a la vez en las dos partidas.
-- ⚔️ **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
-- 🔗 **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
-- 🐾 **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
-- 🎯🎙️ **Captura en equipo y chat de voz** (2.0 nightly).
-- 🌐 **Español e inglés**, a elegir en las opciones del mod.
+- **La historia, juntos**: los eventos, objetos del mundo y medallas se viven a la vez en las dos partidas.
+- **Dobles 2 contra 2 contra los entrenadores y líderes del juego**, sincronizados, con reglas de HeartGold/SoulSilver.
+- **Soul Link** (el Nuzlocke de dos), **guardería compartida** y **Torre de Combate en dúo** (Cristal).
+- **Tu Pokémon te sigue** como en HGSS, y tu compañero lo ve.
+- **Captura en equipo y chat de voz** (2.0 nightly).
+- **Español e inglés**, a elegir en las opciones del mod.
 
 ## Instalación
 
