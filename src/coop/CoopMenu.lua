@@ -446,16 +446,17 @@ function CoopMenu:connectedRows(ow, page)
     return rows
   end
   local rows = {
-    -- the way into the chat on a phone, which has no T key
-    { label = "CHAT  (KEY T)", run = function()
+    -- the way into the chat on a phone, which has no T key (and, there,
+    -- no key hints: a phone has neither T, Y nor R to press)
+    { label = isPhone() and "CHAT" or "CHAT  (KEY T)", run = function()
       menu:close()
       CoopManager.openChat(menu.game, ow)
     end },
-    { label = "EMOTE  (KEY Y)", run = function()
+    { label = isPhone() and "EMOTE" or "EMOTE  (KEY Y)", run = function()
       menu:close()
       require("src.coop.CoopEmotes").openPicker(menu.game)
     end },
-    { label = ruleLabel("READY (R)", CoopManager.localReady),
+    { label = ruleLabel(isPhone() and "READY" or "READY (R)", CoopManager.localReady),
       info = { "TELL YOUR PARTNER", "YOU ARE SET FOR", "THE NEXT BATTLE." },
       run = function() CoopManager.setReady(not CoopManager.localReady) end },
     -- (the Time Capsule: their world is not ours to warp into)

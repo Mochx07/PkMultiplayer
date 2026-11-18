@@ -214,11 +214,19 @@ local function padHeld()
   return false
 end
 
--- the push-to-talk key (V, or R on a gamepad) is held, and nothing is typed
+-- on a phone, the on-screen R (src/core/TouchControls.lua keeps what each
+-- finger holds) -- the same R a gamepad talks with
+local function touchHeld()
+  local TC = package.loaded["src.core.TouchControls"]
+  return type(TC) == "table" and type(TC.held) == "table" and (TC.held.r or 0) > 0
+end
+
+-- the push-to-talk key (V, R on a gamepad, the on-screen R on a phone) is
+-- held, and nothing is typed
 function CoopVoice.pttHeld(game)
   local kb = love and love.keyboard
   local key = kb and kb.isDown and kb.isDown(CoopVoice.PTT_KEY)
-  if not (key or padHeld()) then return false end
+  if not (key or padHeld() or touchHeld()) then return false end
   if CoopManager.chatOverlay then return false end
   local top = game and game.stack and game.stack.top and game.stack:top()
   if top and (top.isChatBox or top.onTextInput) then return false end

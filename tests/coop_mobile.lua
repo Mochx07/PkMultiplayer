@@ -110,5 +110,30 @@ pcall(BattleState.update, fake, 1 / 60)
 check(opened == 0, "with no partner linked SELECT does nothing new")
 CoopManager.openChat = realOpen
 
+-- ------------------------------------------------------------ nightly.3
+-- no key hints on a phone's co-op menu, and the on-screen R talks
+do
+  osName = "Android"
+  CoopManager.connected = true
+  local CoopMenu = require("src.coop.CoopMenu")
+  local m = CoopMenu.new({ stack = { push = function() end, pop = function() end }, data = {} })
+  local okR, rows = pcall(m.connectedRows, m, nil)
+  local labels = {}
+  for _, r in ipairs(okR and rows or {}) do if type(r) == "table" then labels[#labels + 1] = tostring(r.label) end end
+  local text = table.concat(labels, " | ")
+  check(okR and not text:find("KEY", 1, true) and not text:find("(R)", 1, true),
+        "a phone's co-op menu names no keys (" .. text:sub(1, 60) .. ")")
+  local CoopVoice = require("src.coop.CoopVoice")
+  local TC = { held = {} }
+  package.loaded["src.core.TouchControls"] = TC
+  love.keyboard.isDown = function() return false end
+  check(not CoopVoice.pttHeld({ stack = { top = function() return nil end } }), "nothing held: not talking")
+  TC.held.r = 1
+  check(CoopVoice.pttHeld({ stack = { top = function() return nil end } }), "the on-screen R held: talking")
+  package.loaded["src.core.TouchControls"] = nil
+  CoopManager.connected = false
+  osName = "Linux"
+end
+
 print(("%d/%d checks passed  (co-op on a phone)"):format(total - fails, total))
 if fails > 0 then os.exit(1) end

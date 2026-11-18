@@ -170,7 +170,11 @@ if mod.options and mod.options.define then
     { key = "smartTrainers", type = "toggle", label = "SMARTER TRAINERS", default = true },
     -- voice chat (src/coop/CoopVoice.lua)
     { key = "voice", type = "choice", label = "VOICE CHAT", default = "off",
-      choices = { { "OFF", "off" }, { "PUSH V", "ptt" }, { "OPEN MIC", "open" } } },
+      -- on a phone the on-screen R talks (src/coop/CoopVoice.lua pttHeld)
+      choices = { { "OFF", "off" }, { (function()
+        local os = love and love.system and love.system.getOS and love.system.getOS()
+        return (os == "iOS" or os == "Android") and "PUSH R" or "PUSH V"
+      end)(), "ptt" }, { "OPEN MIC", "open" } } },
     { key = "voiceDistance", type = "toggle", label = "VOICE BY DISTANCE", default = true },
     -- the mod's own menus and messages (src/coop/CoopI18n.lua); AUTO follows
     -- the language the launcher translates the game to

@@ -525,6 +525,7 @@ return {
   ["P2 MOD"] = "MOD P2",
   ["PROTOCOL"] = "PROTOCOLO",
   ["READY (R)"] = "LISTO (R)",
+  ["READY"] = "LISTO",
   ["TELL YOUR PARTNER\nYOU ARE SET FOR\nTHE NEXT BATTLE."] = "AVISA A TU COMPA\nQUE ESTÁS LISTO\nPARA EL COMBATE.",
   ["You are READY!"] = "¡Estás LISTO!",
   ["You are not ready"] = "No estás listo",
