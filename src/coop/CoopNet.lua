@@ -1322,6 +1322,45 @@ function CoopNet:shutdown()
   self:close()
 end
 
+-- ADOPT THE SOCKET THE ENGINE'S LINK LADDER OPENED (nightly.3, B6 hub):
+-- src/online/net/Connector reaches the partner (LAN, router mapping, hole
+-- punch, a Link Hub's introduction) and hands over its ENet host -- the UDP
+-- socket whose NAT mappings now let the two through -- and the endpoint
+-- that worked.  The ladder races several connections and each side may keep
+-- a different one, so none of them is kept: CoopNet makes its own on that
+-- socket, the ordinary way (the host listens, the guest dials `address`),
+-- and from there it is the ordinary co-op link with its session, resends
+-- and reconnects.
+function CoopNet:adopt(h, isHost, address)
+  if not h then return false end
+  self:close()
+  self.inbox = {}
+  self.enetHost = h
+  self.isHost = isHost and true or false
+  self.closed = false
+  self.paired = false
+  self.sessionActive = false
+  self.error = nil
+  self.adopted = true
+  self:resetSession()
+  self.connectTimer = 0
+  if self.isHost then
+    self.port = tonumber(tostring(address or ""):match(":(%d+)$")) or self.port or CoopNet.DEFAULT_PORT
+    self:setState(CoopNet.STATE.LISTENING, "Hosting on the link ladder's socket")
+    CoopLog.info("NET", "Hosting on the link ladder's socket")
+    return true
+  end
+  self.address = address
+  self.port = tonumber(tostring(address or ""):match(":(%d+)$")) or CoopNet.DEFAULT_PORT
+  if not self:dial() then
+    self.error = "BAD ADDRESS"
+    return false
+  end
+  self:setState(CoopNet.STATE.CONNECTING, "Connecting to " .. tostring(address))
+  CoopLog.info("NET", "Dialling " .. tostring(address) .. " from the link ladder's socket")
+  return true
+end
+
 function CoopNet:close()
   if self.peer then
     pcall(self.peer.disconnect_now, self.peer, 2)

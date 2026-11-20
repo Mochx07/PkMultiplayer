@@ -143,3 +143,6 @@ tests/coop_cableclub.lua
 tests/drivers/gen1_gym.lua
 tests/drivers/gen1_league.lua
 tests/drivers/gen1_cableclub.lua
+tests/drivers/gen1_hub.lua
+tests/drivers/gen1_hub_menu.lua
+tests/coop_hub.lua

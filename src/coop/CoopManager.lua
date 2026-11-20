@@ -541,6 +541,20 @@ function CoopManager.join(ip, port)
   return ok
 end
 
+-- a connection the engine's link ladder made (src/coop/CoopHub.lua): from
+-- here it is the same session host() / join() would have opened
+function CoopManager.adopt(h, isHost, address)
+  CoopManager.init()
+  resetSession()
+  stampIdentity()
+  local ok = CoopManager.net:adopt(h, isHost, address)
+  if ok then
+    CoopManager.isHost = isHost and true or false
+    CoopLog.info("MANAGER", (isHost and "Hosting" or "Joined") .. " through the link hub: " .. tostring(address))
+  end
+  return ok
+end
+
 function CoopManager.disconnect()
   local game = getGame()
   if CoopManager.net and not CoopManager.net.closed then
@@ -1219,6 +1233,9 @@ end
 function CoopManager.update(ow, dt)
   dt = math.min(dt or 0.016, 0.25)
   tickTimers(dt)
+  -- a link being made through the game's link ladder (src/coop/CoopHub.lua)
+  local Hub = package.loaded["src.coop.CoopHub"]
+  if Hub and Hub.job then pcall(Hub.update, dt) end
   -- the chat drawn inside a battle goes with the battle (or when something
   -- else, a party screen, comes over it)
   local overlay = CoopManager.chatOverlay

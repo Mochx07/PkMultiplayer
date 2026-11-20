@@ -38,6 +38,13 @@ return function(game)
         .. " #" .. tostring(leader and leader.def.trainerParty))
   if not leader then love.event.quit(1) return end
   local lx, ly = leader.cellX, leader.cellY
+  -- the gym's trainers are beaten on the way to the leader (as in play):
+  -- none of them stops either player on the last steps
+  save.defeatedTrainers = save.defeatedTrainers or {}
+  for _, npc in ipairs(ow.npcs or {}) do
+    local d = npc.def or {}
+    if d.trainerClass and npc ~= leader then save.defeatedTrainers[npc.id] = true end
+  end
   -- host right below him facing up, guest one to the side
   if role == "host" then U.teleport(game, GYM, lx, ly + 1, "up")
   else U.teleport(game, GYM, lx + 1, ly + 1, "up") end
@@ -106,14 +113,19 @@ return function(game)
     check(plan and #battle.enemyParty == plan.foes, "his party has the planned size (" .. #(battle.enemyParty or {}) .. ")")
     check(#(battle.enemyParty or {}) > 2, "more than the cartridge's two")
     local k = table.concat(key, ",")
-    CoopManager.sendChat("GYM " .. k)
+    -- compared through files next to the screenshots (a chat line is too
+    -- short for six Pokemon)
+    local root = os.getenv("SHOT_DIR") or "/tmp/pkm"
+    local mine = io.open(root .. "/team_" .. role .. ".txt", "w")
+    if mine then mine:write(k) mine:close() end
+    local other = role == "host" and "guest" or "host"
     local agreed
-    for _ = 1, 60 * 15 do
-      for _, line in ipairs(CoopManager.chatLog or {}) do
-        local t = tostring(line.text):match("^GYM (.*)$")
-        if t and line.sender ~= save.player.name then agreed = (t == k) end
+    for _ = 1, 60 * 20 do
+      local f = io.open(root .. "/team_" .. other .. ".txt", "r")
+      if f then
+        local t = f:read("*a") f:close()
+        if t and t ~= "" then agreed = (t == k) break end
       end
-      if agreed ~= nil then break end
       U.wait(1)
     end
     check(agreed == true, "both copies built the same leader team")

@@ -519,6 +519,20 @@ function CoopMenu:offlineRows()
         menu.errorMsg = (CoopManager.net and CoopManager.net.error) or "FAILED TO HOST"
       end
     end }
+    -- the game's own link ladder and Link Hub: no VPN, no port to open
+    -- (src/coop/CoopHub.lua)
+    local CoopHub = require("src.coop.CoopHub")
+    if CoopHub.available() then
+      rows[#rows + 1] = { label = "HOST ONLINE", info = { "THE GAME'S LINK", "HUB FINDS A WAY:", "NO VPN NO PORTS" },
+                          run = function()
+        menu.errorMsg = nil
+        if CoopHub.host(menu.game) then
+          menu.stage = "hubHost"
+        else
+          menu.errorMsg = CoopHub.error or "FAILED TO HOST"
+        end
+      end }
+    end
     rows[#rows + 1] = { label = "JOIN", run = function()
       menu:openJoin(false)
     end }
@@ -624,6 +638,16 @@ function CoopMenu:leaveCode()
 end
 
 function CoopMenu:submitCode()
+  -- the game's own invite code (HOST ONLINE, or the LINK screen's): the
+  -- link ladder / hub reaches the host
+  local CoopHub = require("src.coop.CoopHub")
+  if not self.visitMode and CoopHub.isGameCode(self.code) then
+    local ok, why = CoopHub.join(self.game, self.code)
+    if not ok then self.errorMsg = why or "WRONG CODE" return end
+    if isPhone() then setKeyboard(false) end
+    self.stage = "hubJoin"
+    return
+  end
   local ip, port = CoopNet.parseInviteCode(self.code)
   if not ip then
     self.errorMsg = "WRONG CODE"
@@ -638,7 +662,8 @@ end
 function CoopMenu:onTextInput(text)
   if self.stage ~= "codeEntry" or type(text) ~= "string" then return end
   local clean = text:upper():gsub("[^%w%-]", "")
-  if #self.code + #clean <= 12 then self.code = self.code .. clean end
+  -- (the game's own codes are longer than the mod's: up to 24)
+  if #self.code + #clean <= 24 then self.code = self.code .. clean end
 end
 
 -- THE KEYBOARD.  While a code is typed, every key is the code's (Z and X
@@ -722,6 +747,20 @@ function CoopMenu:update(dt)
     if CoopManager.isConnected() then
       self.stage = "main"
       self.index = 1
+    end
+
+  elseif self.stage == "hubHost" or self.stage == "hubJoin" then
+    local CoopHub = require("src.coop.CoopHub")
+    if input:wasPressed("b") then
+      CoopHub.cancel()
+      self.stage = self.stage == "hubJoin" and "joinPick" or "main"
+    elseif CoopManager.isConnected() then
+      self.stage = "main"
+      self.index = 1
+    elseif CoopHub.state == "failed" then
+      self.errorMsg = CoopHub.error or "FAILED"
+      CoopHub.cancel()
+      self.stage = self.stage == "hubJoin" and "joinPick" or "main"
     end
 
   elseif self.stage == "joinPick" then
@@ -990,6 +1029,41 @@ function CoopMenu:draw()
       Font.draw("D-PAD: EDIT IP", 8, 96)
     end
     Font.draw(self.visitMode and "A:VISIT  B:BACK" or "A:JOIN  B:BACK", 8, 128)
+
+  elseif self.stage == "hubHost" or self.stage == "hubJoin" then
+    local CoopHub = require("src.coop.CoopHub")
+    local dots = string.rep(".", math.floor((love.timer and love.timer.getTime() or 0) * 2) % 4)
+    Font.drawBox(0, 0, 20, 8)
+    if self.stage == "hubHost" then
+      Font.draw("HOST ONLINE", 8, 8)
+      local code = CoopHub.code
+      if code then
+        Font.draw("YOUR CODE:", 8, 24)
+        -- split at a dash, so no group of the code is cut in two
+        local cut = #code
+        if cut > 18 then
+          cut = 0
+          for i = 1, 18 do if code:sub(i, i) == "-" then cut = i end end
+          if cut == 0 then cut = 18 end
+        end
+        Font.draw(fit(code:sub(1, cut), 18), 8, 32)
+        if #code > cut then Font.draw(fit(code:sub(cut + 1), 18), 8, 40) end
+      else
+        Font.draw("GETTING A CODE", 8, 24)
+        Font.draw(dots, 8, 32)
+      end
+    else
+      Font.draw("JOIN ONLINE", 8, 8)
+      Font.draw("REACHING THE HOST", 8, 24)
+      Font.draw(dots, 8, 32)
+    end
+    Font.drawBox(0, 8, 20, 10)
+    Font.draw(fit(tostring(CoopHub.status or ""), 18), 8, 72)
+    if self.stage == "hubHost" and CoopHub.code then
+      Font.draw("YOUR FRIEND TYPES", 8, 88)
+      Font.draw("IT IN JOIN, CODE.", 8, 96)
+    end
+    Font.draw("B:CANCEL", 8, 128)
 
   elseif self.stage == "joining" then
     Font.drawBox(0, 0, 20, 6)
