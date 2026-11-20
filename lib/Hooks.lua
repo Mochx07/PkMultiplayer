@@ -979,6 +979,21 @@ Hooks.modules["src.battle.AnimPlayer"] = function(AnimPlayer)
   end)
 end
 
+-- the Gen 1 Cable Club receptionist links with the co-op partner first
+-- (src/coop/CoopCableClub.lua); anything else is the engine's link door
+Hooks.modules["src.online.LinkRooms"] = function(LinkRooms)
+  wrap(LinkRooms, "LinkRooms", "open", function(open)
+    return function(game, room, opts, onDone, ...)
+      local okCC, CC = pcall(require, "src.coop.CoopCableClub")
+      if okCC and type(CC) == "table" and CC.applies(room, opts) then
+        local ok, handled = pcall(CC.open, game, open, room, opts, onDone)
+        if ok and handled then return end
+      end
+      return open(game, room, opts, onDone, ...)
+    end
+  end)
+end
+
 -- a lost tower battle ends a duo challenge (src/coop/CoopTower.lua)
 Hooks.modules["src.world.BattleTower"] = function(BattleTower)
   wrap(BattleTower, "BattleTower", "recordLoss", function(recordLoss)

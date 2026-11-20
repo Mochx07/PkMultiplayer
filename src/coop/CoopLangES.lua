@@ -21,6 +21,12 @@ return {
   ["PERFECT TIMING!"] = "¡SINCRONÍA PERFECTA!",
   ["GREAT TIMING!"] = "¡GRAN SINCRONÍA!",
   ["GOOD TIMING!"] = "¡BUENA SINCRONÍA!",
+  -- nightly.3: el Club de Cable con el compañero (src/coop/CoopCableClub.lua)
+  ["LINK WITH"] = "CONECTAR CON",
+  ["OTHER"] = "OTRO",
+  ["WHICH ROOM?"] = "¿QUÉ SALA?",
+  ["TRADE CENTER"] = "CENTRO DE CAMBIO",
+  ["COLOSSEUM"] = "COLISEO",
   -- nightly.3: la matriz de ediciones (src/coop/CoopEditions.lua)
   ["3RD ED. STORY"] = "HIST. 3a EDIC.",
   ["ONE STORY WITH THE"] = "UNA HISTORIA CON",
