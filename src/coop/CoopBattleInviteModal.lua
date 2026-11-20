@@ -21,7 +21,7 @@ function CoopBattleInviteModal.new(game, partnerName, trainerName, onAccept, onD
     tx = 1,
     ty = 4,
     tw = 18,
-    th = 9,
+    th = 11,
     timer = 0,
   }, CoopBattleInviteModal)
 
@@ -112,7 +112,7 @@ function CoopBattleInviteModal:draw()
     Font.draw(I18n.fit(lines[i] or "", 16), x, y + (i - 1) * 8)
   end
 
-  local row1Y, row2Y = y + 32, y + 40
+  local row1Y, row2Y = y + 32, y + 48
   Font.drawCode(Theme.cursor or 0xEC, x, self.index == 1 and row1Y or row2Y)
   Font.draw("JOIN", x + 8, row1Y)
   Font.draw("DECLINE", x + 8, row2Y)
@@ -122,5 +122,7 @@ function CoopBattleInviteModal:draw()
   end
   love.graphics.setColor(1, 1, 1, 1)
 end
+
+require("src.coop.CoopTouch").bind(CoopBattleInviteModal, "invite")
 
 return CoopBattleInviteModal

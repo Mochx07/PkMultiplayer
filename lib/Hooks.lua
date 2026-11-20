@@ -218,6 +218,24 @@ Hooks.modules["src.core.Game"] = function(Game)
     end
   end)
 
+  for _, method in ipairs({ "touchpressed", "touchmoved", "touchreleased" }) do
+    wrap(Game, "Game", method, function(original)
+      return function(self, id, x, y, ...)
+        if require("src.coop.CoopTouch").route(self, method, id, x, y) then return end
+        return original(self, id, x, y, ...)
+      end
+    end)
+  end
+
+  for _, method in ipairs({ "focus", "visible" }) do
+    wrap(Game, "Game", method, function(original)
+      return function(self, ...)
+        require("src.coop.CoopTouch").reset(self)
+        return original(self, ...)
+      end
+    end)
+  end
+
   -- T: chat (idle overworld, or a co-op double waiting on the partner);
   -- Y: the emote picker (idle overworld).  After the engine's own
   -- delegation to a state that takes keys, as in the co-op build.
@@ -422,6 +440,19 @@ Hooks.modules["src.script.MapScripts"] = function(MapScripts)
   end)
 end
 
+-- Mod screens provide their own targets; the engine pad must not cover them.
+Hooks.modules["src.core.TouchControls"] = function(controls)
+  wrap(controls, "TouchControls", "draw", function(draw)
+    return function(self, ...)
+      local game = package.loaded["src.core.Game"]
+      local top = game and game.stack and game.stack:top()
+      local CM = coopManager()
+      if (top and top.touchKind) or (CM and CM.chatOverlay) then return end
+      return draw(self, ...)
+    end
+  end)
+end
+
 Hooks.modules["src.ui.Menu"] = function(Menu)
   -- opts.header: a one-line title in its own box over the menu ("VS
   -- FALKNER"); Menu:draw (lib/patches/Menu.lua) draws it
@@ -439,6 +470,11 @@ Hooks.modules["src.ui.Menu"] = function(Menu)
       end
       local self = new(game, items, opts, ...)
       if type(self) == "table" and type(opts) == "table" then self.header = opts.header end
+      local top = game and game.stack and game.stack:top()
+      if top and top.touchKind == "text" then require("src.coop.CoopTouch").attach(self, "list") end
+      for _, item in ipairs(items or {}) do
+        if item.coopTouch then require("src.coop.CoopTouch").attach(self, "list") break end
+      end
       return self
     end
   end)
@@ -1531,6 +1567,7 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
       local a, b, c = drawUI(self, ...)
       local CM = coopManager()
       if CM and CM.drawUI then CM.drawUI(self) end
+      require("src.coop.CoopTouch").drawOpener(self.game or require("src.core.Game"))
       return a, b, c
     end
   end)
@@ -1607,7 +1644,7 @@ function Hooks.startMenuItems(next, game, items)
   if type(items) ~= "table" then return items end
   local Strings = require("src.core.Strings")
   -- it works over the internet too (ZeroTier), not only on a LAN
-  local row = { label = require("src.coop.CoopI18n").t(Strings("CO-OP ONLINE")), onSelect = function()
+  local row = { coopTouch = true, label = require("src.coop.CoopI18n").t(Strings("CO-OP ONLINE")), onSelect = function()
     local CoopMenu = require("src.coop.CoopMenu")
     game.stack:push(CoopMenu.new(game))
   end }
@@ -1648,7 +1685,7 @@ function Hooks.titleMenuItems(next, game, items)
     local done = mode == "continue" and title.onContinue or title.onNewGame
     game.stack:push(CoopNewGame.new(game, function() if done then done() end end, mode))
   end
-  local row = { label = I18n.t(Strings("CO-OP")), onSelect = function()
+  local row = { coopTouch = true, label = I18n.t(Strings("CO-OP")), onSelect = function()
     if not hasContinue then return start("new") end
     local Menu = require("src.ui.Menu")
     -- (the menu closes itself before a row's onSelect runs)
@@ -1656,6 +1693,7 @@ function Hooks.titleMenuItems(next, game, items)
       { label = I18n.t(Strings("CONTINUE")), onSelect = function() start("continue") end },
       { label = I18n.t(Strings("NEW GAME")), onSelect = function() start("new") end },
     }, { tx = 4, ty = 2, tw = 16, th = 6 })
+    require("src.coop.CoopTouch").attach(sub, "list")
     sub.coopTitleChoice = true
     game.stack:push(sub)
   end }

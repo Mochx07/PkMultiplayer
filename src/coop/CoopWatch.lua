@@ -226,4 +226,6 @@ end
 
 CoopWatch.Screen = Screen
 
+require("src.coop.CoopTouch").bind(Screen, "watch")
+
 return CoopWatch

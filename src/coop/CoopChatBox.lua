@@ -134,7 +134,7 @@ function CoopChatBox.new(game, opts)
   }, CoopChatBox)
 
   -- raises the on-screen keyboard on a phone
-  setKeyboard(true)
+  setKeyboard(not (isPhone() and self.game.coopTouchUsed))
 
   return self
 end
@@ -234,7 +234,7 @@ function CoopChatBox:update(dt)
       self:cancel()
     elseif input:wasPressed("a") then
       -- a phone keyboard swiped away comes back on A
-      setKeyboard(true)
+      setKeyboard(not (isPhone() and self.game.coopTouchUsed))
     end
   end
 end
@@ -307,5 +307,7 @@ function CoopChatBox:draw()
 
   love.graphics.setColor(1, 1, 1, 1)
 end
+
+require("src.coop.CoopTouch").bind(CoopChatBox, "chat")
 
 return CoopChatBox

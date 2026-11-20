@@ -139,3 +139,20 @@ tests/drivers/gen1_rival.lua
 tests/drivers/gen1_legend.lua
 tests/drivers/gen1_townmap.lua
 tests/drivers/gen1_bike.lua
+
+tests/coop_touch.lua
+tests/drivers/codex_touch_pair.lua
+tests/drivers/codex_touch_screens.lua
+tasks/REPORT-codex.md
+tasks/TEAM-nightly3.md
+
+# Touch verification evidence (development only)
+tasks/evidence/codex/pair-host.png
+tasks/evidence/codex/pair-guest.png
+tasks/evidence/codex/screens-host.png
+tasks/evidence/codex/screens-guest.png
+tasks/evidence/codex/pair.log
+tasks/evidence/codex/screens.log
+tasks/evidence/codex/suites.log
+tasks/evidence/codex/i18n.log
+tasks/evidence/codex/emote.log

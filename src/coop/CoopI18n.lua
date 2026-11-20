@@ -394,7 +394,7 @@ local textBoxProxy
 function I18n.textBox()
   if textBoxProxy then return textBoxProxy end
   textBoxProxy = setmetatable({
-    new = function(game, text, ...) return require("src.render.TextBox").new(game, I18n.t(text), ...) end,
+    new = function(game, text, ...) return require("src.coop.CoopTouch").attach(require("src.render.TextBox").new(game, I18n.t(text), ...), "text") end,
   }, { __index = live("src.render.TextBox") })
   return textBoxProxy
 end
@@ -410,7 +410,7 @@ function I18n.menu()
         end
         if type(opts) == "table" and type(opts.header) == "string" then opts.header = I18n.t(opts.header) end
       end
-      return require("src.ui.Menu").new(game, items, opts, ...)
+      return require("src.coop.CoopTouch").attach(require("src.ui.Menu").new(game, items, opts, ...), "list")
     end,
   }, { __index = live("src.ui.Menu") })
   return menuProxy

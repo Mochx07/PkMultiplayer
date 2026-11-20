@@ -1,0 +1,103 @@
+== host
+[driver]	ok   host: screenshot 01_name_keyboard
+[driver]	ok   host: touch name confirmed
+[driver]	ok   host: screenshot 02_role
+[driver]	ok   host: screenshot 02a_lobby_host
+[driver]	ok   host: screenshot 02b_lobby_host_address
+[driver]	ok   host: two real touch lobbies linked
+[driver]	ok   host: screenshot 02c_lobby_ready
+[driver]	ok   host: both lobbies at READY
+[driver]	ok   host: both touch READY prompts launch the session
+[driver]	ok   host: lobby completion returns to field
+[driver]	ok   host: screenshot 03_tower_invite
+[driver]	ok   host: tower prompt accepts by touch
+[driver]	ok   host: screenshot 04_tower_wait
+[driver]	ok   host: tower waiting prompt cancels by touch
+[driver]	ok   host: screenshot 03_contest_invite
+[driver]	ok   host: contest prompt accepts by touch
+[driver]	ok   host: screenshot 04_contest_wait
+[driver]	ok   host: contest waiting prompt cancels by touch
+[driver]	ok   host: screenshot 05_text_prompt
+[driver]	ok   host: mod text prompt advanced by touch
+[driver]	ok   host: screenshot 05a_long_list_top
+[driver]	ok   host: drag changes long list's visible window
+[driver]	ok   host: screenshot 05b_long_list_scroll
+[driver]	ok   host: scrolled row selects and confirms by touch
+[driver]	ok   host: screenshot 05c_vs_result
+[driver]	ok   host: VS result dismissed by touch
+[driver]	ok   host: screenshot 06_connected
+[driver]	ok   host: screenshot 07_partner
+[driver]	ok   host: screenshot 08_vs
+[driver]	ok   host: screenshot 09_record
+[driver]	ok   host: screenshot 10_replays
+[driver]	ok   host: screenshot 11_minigames
+[driver]	ok   host: screenshot 12_rules_top
+[driver]	ok   host: rules cursor moves by dragging
+[driver]	ok   host: screenshot 13_rules_scroll
+[driver]	ok   host: screenshot 14_diagnostics
+[driver]	ok   host: screenshot 15_dex
+[driver]	ok   host: screenshot 16_dex_swap
+[driver]	ok   host: screenshot 17_souls
+[driver]	ok   host: screenshot 18_watch
+[driver]	ok   host: screenshot 19_keeper
+[driver]	ok   host: keeper row selected and confirmed
+[driver]	ok   host: both screen galleries complete
+[driver]	ok   host: screenshot 20_real_battle_mode
+[driver]	ok   host: screenshot 21_real_team
+[driver]	ok   host: screenshot 22_real_wait
+[driver]	ok   host: real rival co-op battle entered with touch only
+[driver]	ok   host: real team selection driven by touch
+[driver]	ok   host: screenshot 23_real_coop_battle
+[driver]	host done: 0 failures
+== guest
+[driver]	ok   guest: screenshot 01_name_keyboard
+[driver]	ok   guest: touch name confirmed
+[driver]	ok   guest: screenshot 02_role
+[driver]	ok   guest: screenshot 02a_lobby_ip
+[driver]	ok   guest: host lobby invite available
+[driver]	ok   guest: screenshot 02b_lobby_code
+[driver]	ok   guest: two real touch lobbies linked
+[driver]	ok   guest: screenshot 02c_lobby_ready
+[driver]	ok   guest: both lobbies at READY
+[driver]	ok   guest: both touch READY prompts launch the session
+[driver]	ok   guest: lobby completion returns to field
+[driver]	ok   guest: screenshot 03_tower_invite
+[driver]	ok   guest: tower prompt accepts by touch
+[driver]	ok   guest: screenshot 04_tower_wait
+[driver]	ok   guest: tower waiting prompt cancels by touch
+[driver]	ok   guest: screenshot 03_contest_invite
+[driver]	ok   guest: contest prompt accepts by touch
+[driver]	ok   guest: screenshot 04_contest_wait
+[driver]	ok   guest: contest waiting prompt cancels by touch
+[driver]	ok   guest: screenshot 05_text_prompt
+[driver]	ok   guest: mod text prompt advanced by touch
+[driver]	ok   guest: screenshot 05a_long_list_top
+[driver]	ok   guest: drag changes long list's visible window
+[driver]	ok   guest: screenshot 05b_long_list_scroll
+[driver]	ok   guest: scrolled row selects and confirms by touch
+[driver]	ok   guest: screenshot 05c_vs_result
+[driver]	ok   guest: VS result dismissed by touch
+[driver]	ok   guest: screenshot 06_connected
+[driver]	ok   guest: screenshot 07_partner
+[driver]	ok   guest: screenshot 08_vs
+[driver]	ok   guest: screenshot 09_record
+[driver]	ok   guest: screenshot 10_replays
+[driver]	ok   guest: screenshot 11_minigames
+[driver]	ok   guest: screenshot 12_rules_top
+[driver]	ok   guest: rules cursor moves by dragging
+[driver]	ok   guest: screenshot 13_rules_scroll
+[driver]	ok   guest: screenshot 14_diagnostics
+[driver]	ok   guest: screenshot 15_dex
+[driver]	ok   guest: screenshot 16_dex_swap
+[driver]	ok   guest: screenshot 17_souls
+[driver]	ok   guest: screenshot 18_watch
+[driver]	ok   guest: screenshot 19_keeper
+[driver]	ok   guest: keeper row selected and confirmed
+[driver]	ok   guest: both screen galleries complete
+[driver]	ok   guest: screenshot 20_real_rival_invite
+[driver]	ok   guest: screenshot 21_real_team
+[driver]	ok   guest: real rival co-op battle entered with touch only
+[driver]	ok   guest: real team selection driven by touch
+[driver]	ok   guest: real rival invite answered by touch
+[driver]	ok   guest: screenshot 23_real_coop_battle
+[driver]	guest done: 0 failures

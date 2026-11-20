@@ -1,0 +1,57 @@
+== host
+[driver]	ok   host: real engine virtual touch controls enabled
+[driver]	ok   host: screenshot 00_field
+[driver]	ok   host: touch opens co-op menu from field
+[driver]	ok   host: screenshot 01_menu_offline
+[driver]	ok   host: screenshot 02_port
+[driver]	ok   host: port entered by touch
+[driver]	ok   host: HOST tapped
+[driver]	ok   host: screenshot 03_host_code
+[driver]	host: displayed invite 34CP-4HT7RB
+[driver]	ok   host: two real copies linked
+[driver]	ok   host: screenshot 04_menu_linked
+[driver]	ok   host: CHAT tapped
+[driver]	ok   host: screenshot 05_chat_keyboard
+[driver]	ok   host: received partner's touch-typed chat
+[driver]	ok   host: screenshot 06_chat_received
+[driver]	ok   host: screenshot 07_emotes
+[driver]	ok   host: emote picked by touch
+[driver]	ok   host: READY toggled by touch
+[driver]	ok   host: screenshot 08_ready
+[driver]	ok   host: partner READY received
+[driver]	ok   host: screenshot 09_partner
+[driver]	ok   host: screenshot 10_vs
+[driver]	ok   host: screenshot 11_wait
+[driver]	ok   host: touch invitation acceptance starts real VS battle
+[driver]	ok   host: screenshot 12_vs_battle
+[driver]	ok   host: no synthetic key queue used
+[driver]	host done: 0 failures
+== guest
+[driver]	ok   guest: real engine virtual touch controls enabled
+[driver]	ok   guest: screenshot 00_field
+[driver]	ok   guest: touch opens co-op menu from field
+[driver]	ok   guest: screenshot 01_menu_offline
+[driver]	ok   guest: screenshot 02_join_list
+[driver]	ok   guest: screenshot 02a_address_entry
+[driver]	ok   guest: code keyboard opened by touch
+[driver]	ok   guest: empty code rejected
+[driver]	ok   guest: read host's displayed invite
+[driver]	ok   guest: invite typed only on on-screen keyboard
+[driver]	ok   guest: screenshot 03_join_keyboard
+[driver]	ok   guest: two real copies linked
+[driver]	ok   guest: screenshot 04_menu_linked
+[driver]	ok   guest: CHAT tapped
+[driver]	ok   guest: screenshot 05_chat_keyboard
+[driver]	ok   guest: received partner's touch-typed chat
+[driver]	ok   guest: screenshot 06_chat_received
+[driver]	ok   guest: screenshot 07_emotes
+[driver]	ok   guest: emote picked by touch
+[driver]	ok   guest: READY toggled by touch
+[driver]	ok   guest: screenshot 08_ready
+[driver]	ok   guest: partner READY received
+[driver]	ok   guest: real battle invite received
+[driver]	ok   guest: screenshot 09_battle_invite
+[driver]	ok   guest: touch invitation acceptance starts real VS battle
+[driver]	ok   guest: screenshot 12_vs_battle
+[driver]	ok   guest: no synthetic key queue used
+[driver]	guest done: 0 failures

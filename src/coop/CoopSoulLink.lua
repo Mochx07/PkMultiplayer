@@ -285,4 +285,6 @@ end
 
 CoopSoulLink.Screen = Screen
 
+require("src.coop.CoopTouch").bind(Screen, "souls")
+
 return CoopSoulLink

@@ -257,4 +257,6 @@ end
 
 CoopDex.Screen = Screen
 
+require("src.coop.CoopTouch").bind(Screen, "dex")
+
 return CoopDex

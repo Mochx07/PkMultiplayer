@@ -1358,4 +1358,6 @@ function CoopStory.repairSave(save)
   return repaired
 end
 
+require("src.coop.CoopTouch").bind(WaitHere, "wait")
+
 return CoopStory

@@ -498,4 +498,6 @@ end
 
 CoopManager.onTick("CoopCatch", function(dt) CoopCatch.tick(dt) end)
 
+require("src.coop.CoopTouch").bind(Aim, "aim")
+
 return CoopCatch
