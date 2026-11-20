@@ -233,4 +233,6 @@ function CoopBattleSelect:draw()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+require("src.coop.CoopTouch").bind(CoopBattleSelect, "team")
+
 return CoopBattleSelect

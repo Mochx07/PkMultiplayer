@@ -166,6 +166,7 @@ local function openLinkState(game, mode, asker, linkId, fmt, best)
     ls.stage = "waitMode"
     ls:sendHello(nil)
   end
+  require("src.coop.CoopTouch").attach(ls, "link")
   game.stack:push(ls)
   return ls
 end

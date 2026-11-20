@@ -577,7 +577,7 @@ end
 function CoopMenu:openJoin(visit)
   self.visitMode = visit and true or nil
   self.errorMsg = nil
-  self.stage, self.pickIndex = "joinPick", 1
+  self.stage, self.pickIndex, self.pickScroll = "joinPick", 1, 1
 end
 
 function CoopMenu:joinRows()
@@ -629,7 +629,7 @@ end
 function CoopMenu:openCode()
   self.code, self.errorMsg = "", nil
   self.stage = "codeEntry"
-  setKeyboard(true)
+  setKeyboard(not (isPhone() and self.game.coopTouchUsed))
 end
 
 function CoopMenu:leaveCode()
@@ -968,10 +968,15 @@ function CoopMenu:draw()
     end
     Font.drawBox(0, 5, 20, 13)
     Font.draw(self.visitMode and "VISIT WHO?" or "JOIN WHO?", 8, 48)
-    for i, row in ipairs(rows) do
-      Font.draw(fit(row.label, 16), 24, 56 + i * 10)
+    local first = self.pickScroll or 1
+    if self.pickIndex < first then first = self.pickIndex end
+    if self.pickIndex > first + 5 then first = self.pickIndex - 5 end
+    self.pickScroll = first
+    for i = first, math.min(#rows, first + 5) do
+      Font.draw(fit(rows[i].label, 16), 24, 66 + (i - first) * 10)
     end
-    Font.drawCode(CURSOR, 12, 56 + self.pickIndex * 10)
+    Font.drawCode(CURSOR, 12, 66 + (self.pickIndex - first) * 10)
+    if first + 5 < #rows then Font.drawCode(DOWN_ARROW, 144, 116) end
     Font.draw("A:OK  B:BACK", 8, 128)
 
   elseif self.stage == "codeEntry" then
@@ -1078,5 +1083,7 @@ function CoopMenu:draw()
 
   love.graphics.setColor(1, 1, 1, 1)
 end
+
+require("src.coop.CoopTouch").bind(CoopMenu, "menu")
 
 return CoopMenu

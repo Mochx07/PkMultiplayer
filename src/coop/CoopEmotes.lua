@@ -373,4 +373,6 @@ function CoopEmotes.openPicker(game)
   return true
 end
 
+require("src.coop.CoopTouch").bind(Picker, "emotes")
+
 return CoopEmotes

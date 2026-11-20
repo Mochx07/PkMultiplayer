@@ -6,6 +6,18 @@
 -- by \n.  Box widths: a menu row 16 letters, a box line 18, the status line
 -- two lines of 18.  A line missing here shows in English.
 return {
+  ["QUIT"] = "SALIR",
+  ["OK"] = "OK",
+  ["PARTNER NOT READY"] = "COMPAÑERO NO LISTO",
+  ["UP"] = "SUBE",
+  ["DOWN"] = "BAJA",
+  ["TAP A DIGIT"] = "TOCA UN DIGITO",
+  ["BACK"] = "ATRAS",
+  ["DEL"] = "BOR",
+  ["SPACE"] = "ESP",
+  ["SEND"] = "ENV",
+  ["NEXT IP"] = "OTRA IP",
+
   -- ---------------------------------------------------------- the menus
   ["CO-OP ONLINE"] = "CO-OP",
   -- ------------------------------------------------- 1.6.1: lo que faltaba

@@ -609,4 +609,6 @@ function CoopNewGame:draw()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+require("src.coop.CoopTouch").bind(CoopNewGame, "lobby")
+
 return CoopNewGame

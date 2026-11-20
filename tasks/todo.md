@@ -76,11 +76,11 @@ Orden (Mochi): A primero.
       probado Rojo<->Amarillo).
 
 ## E. Móvil
-- [ ] E1 Táctil en las pantallas del mod (menú co-op, invitación, selección de equipo, emotes, VS).
+- [x] E1 Táctil en las pantallas del mod (menú co-op, invitación, selección de equipo, emotes, VS).
 - [x] E2 Sin "(KEY T)"/"(KEY Y)"/"(R)" en el menú co-op del móvil (chat, emote y LISTO ya se abren
       desde ese menú); voz: la R táctil hace de "pulsar para hablar" (opción "PUSH R" en móvil).
       Suite `coop_mobile` (16).
-- [ ] E3 Prueba con eventos táctiles simulados en Xvfb.
+- [x] E3 Prueba con eventos táctiles simulados en Xvfb.
 
 ## F. Combate
 - [ ] F1 C3 + revisión del 2v2 de Gen 1 (animaciones, objetivos, cuadro del compañero).

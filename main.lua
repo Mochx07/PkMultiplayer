@@ -65,6 +65,7 @@ end
 
 -- the mod's own modules (registered under 1, after the generation check)
 local MODULES = {
+  "src.coop.CoopTouch",
   "src.coop.CoopBattle", "src.coop.CoopBattleInviteModal",
   "src.coop.CoopBattleSelect", "src.coop.CoopChatBox", "src.coop.CoopEmotes",
   "src.coop.CoopLink", "src.coop.CoopLog", "src.coop.CoopManager",

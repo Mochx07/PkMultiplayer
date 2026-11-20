@@ -98,4 +98,6 @@ function CoopWaitModal:draw()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+require("src.coop.CoopTouch").bind(CoopWaitModal, "wait")
+
 return CoopWaitModal
