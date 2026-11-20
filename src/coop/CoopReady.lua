@@ -79,10 +79,60 @@ function CoopManager.askBigBattle(ow, npc, onDone)
     return false
   end
   if not CoopManager.isBigBattleClass(class, game.save, party) then return false end
-  if not CoopManager.partnerAvailable(ow, false, true) then return false end
-  if not mapsMatch(CoopManager.partner.map, ow.map.id) then return false end
-  CoopManager.warnNotReady()
+  if not CoopManager.isConnected() then return false end
+  local okS, CoopStory = pcall(require, "src.coop.CoopStory")
+  -- Walked into a big battle together (Silph Co. 11F Giovanni): if both
+  -- triggered it, the guest yields to the host and stands by for the invite.
+  if okS and CoopStory and CoopStory.heldHere and CoopStory.heldHere(ow, class) then
+    local localHold = CoopStory.stepHold and CoopStory.stepHold.map == ow.map.id
+                      and CoopStory.stepHold.class == class
+    if not CoopManager.isHost or not localHold then
+      CoopStory.stepHold = nil
+      if onDone then onDone() end
+      return true
+    end
+  end
   local name = CoopManager.trainerDisplayName(game, class, party)
+  local Menu = require("src.coop.CoopI18n").menu()
+  -- Partner is linked and healthy on another map: offer WAIT <PARTNER> / SOLO
+  if not mapsMatch(CoopManager.partner.map, ow.map.id) then
+    if (CoopManager.partner.healthy or 0) <= 0 or not (okS and CoopStory and CoopStory.WaitHere) then
+      return false
+    end
+    local pname = require("src.coop.CoopI18n").truncate(string.upper(CoopManager.partner.name or "PARTNER"), 8)
+    local function goSolo()
+      CoopManager.bigBattle = { solo = true, oppClass = class, partyIndex = party, at = now() }
+      ow:engageTrainer(npc, onDone)
+    end
+    local function waitPartner()
+      if not (CoopManager.isConnected() and CoopManager.net) then return goSolo() end
+      CoopManager.net:send({ type = "coop_story_hold", map = ow.map.id, class = class })
+      local w = setmetatable({
+        game = game, ow = ow, name = pname, timer = 0, hereFor = 0,
+        timeout = CoopStory.WAIT_MAX or 300,
+        onDone = function(arrived)
+          if CoopManager.isConnected() and CoopManager.net then
+            CoopManager.net:send({ type = "coop_story_release", map = ow.map.id })
+          end
+          if arrived then
+            ow:engageTrainer(npc, onDone)
+          else
+            goSolo()
+          end
+        end,
+      }, CoopStory.WaitHere)
+      game.stack:push(w)
+    end
+    ow._askingBigBattle = true
+    game.stack:push(Menu.new(game, {
+      { label = "WAIT " .. pname, onSelect = waitPartner },
+      { label = Strings("SOLO"), onSelect = goSolo },
+    }, { tx = 3, ty = 4, tw = 14, header = require("src.coop.CoopI18n").truncate("VS " .. name, 12), cancelable = true,
+         onCancel = goSolo }))
+    return true
+  end
+  if not CoopManager.partnerAvailable(ow, false, true) then return false end
+  CoopManager.warnNotReady()
   local function answer(choice)
     if choice == "coop" and CoopManager.isConnected() then
       local inviteId = newInviteId()
@@ -96,7 +146,7 @@ function CoopManager.askBigBattle(ow, npc, onDone)
     end
     ow:engageTrainer(npc, onDone)
   end
-  local Menu = require("src.coop.CoopI18n").menu()
+  ow._askingBigBattle = true
   game.stack:push(Menu.new(game, {
     { label = Strings("CO-OP"), onSelect = function() answer("coop") end },
     { label = Strings("SOLO"), onSelect = function() answer("solo") end },

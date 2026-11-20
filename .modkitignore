@@ -139,3 +139,7 @@ tests/drivers/gen1_rival.lua
 tests/drivers/gen1_legend.lua
 tests/drivers/gen1_townmap.lua
 tests/drivers/gen1_bike.lua
+tests/drivers/six_tower_fuji.lua
+tests/drivers/six_silph_personal.lua
+tasks/REPORT-six.md
+tasks/TEAM-nightly3.md

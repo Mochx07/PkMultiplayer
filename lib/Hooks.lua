@@ -409,15 +409,51 @@ end
 
 -- RED / BLUE / YELLOW'S STORY IS LUA: a talk handler is a function, not
 -- script rows, so ScriptRunner never told CoopStory about it.  Each one is
--- handed out inside a story context of its own (CoopStory.wrapTalk).
+-- handed out inside a story context of its own (CoopStory.wrapTalk), and
+-- map hooks (Pokemon Tower 6F's Marowak, Silph Co. 11F's Giovanni, Vermilion
+-- Dock's S.S. Anne departure) are wrapped the same way.
 Hooks.modules["src.script.MapScripts"] = function(MapScripts)
+  local liftKeyFixed = setmetatable({}, { __mode = "k" })
   wrap(MapScripts, "MapScripts", "talkScript", function(talkScript)
-    return function(...)
-      local script = talkScript(...)
+    return function(mapId, textConst, ...)
+      local script = talkScript(mapId, textConst, ...)
       if type(script) ~= "function" then return script end
+      -- Yellow's Rocket Hideout B4F grunt drops the Lift Key on defeat; if he
+      -- was beaten by trainer sight rather than talk, talking to him afterwards
+      -- still reveals the key ball so the elevator is never soft-locked.
+      if mapId == "ROCKET_HIDEOUT_B4F" and textConst == "TEXT_ROCKETHIDEOUTB4F_ROCKET" then
+        local raw = script
+        local fixed = liftKeyFixed[raw]
+        if not fixed then
+          fixed = function(game, ow, npc, done, ...)
+            if ow and ow.trainerDefeated and ow:trainerDefeated(npc)
+               and game and game.save and game.save.flags
+               and not game.save.flags.EVENT_ROCKET_DROPPED_LIFT_KEY then
+              game.save.flags.EVENT_ROCKET_DROPPED_LIFT_KEY = true
+              local okC, Commands = pcall(require, "src.script.Commands")
+              if okC and Commands and Commands.show_object then
+                Commands.show_object({ game = game, save = game.save, overworld = ow },
+                  "ROCKET_HIDEOUT_B4F", "ROCKETHIDEOUTB4F_LIFT_KEY")
+              end
+            end
+            return raw(game, ow, npc, done, ...)
+          end
+          liftKeyFixed[raw] = fixed
+        end
+        script = fixed
+      end
       local ok, CoopStory = pcall(require, "src.coop.CoopStory")
       if not (ok and CoopStory.wrapTalk) then return script end
       return CoopStory.wrapTalk(script)
+    end
+  end)
+  wrap(MapScripts, "MapScripts", "get", function(get)
+    return function(mapId, ...)
+      local hooks = get(mapId, ...)
+      if type(hooks) ~= "table" then return hooks end
+      local ok, CoopStory = pcall(require, "src.coop.CoopStory")
+      if not (ok and CoopStory.wrapMapHooks) then return hooks end
+      return CoopStory.wrapMapHooks(mapId, hooks)
     end
   end)
 end
@@ -458,10 +494,19 @@ Hooks.modules["src.render.Font"] = function(Font)
   -- opens with one ("¡%s te espera!") lost it too.  Where the charmap has no
   -- glyph for them they take a code of their own, drawn as the font's own ?
   -- or ! rotated half a turn in the same cell, and measured as that glyph.
+  -- Gen 1's font also has no "&" in its charmap (Gen 2's does), so "MOCHI &
+  -- TOBY" drew a blank space; give "&" an 8x8 pixel glyph when missing.
   local INVERTED = { ["\194\161"] = { code = -0x7FA1, mark = "!" },   -- ¡
                      ["\194\191"] = { code = -0x7FBF, mark = "?" } }  -- ¿
   local INVERTED_CODE = {}
   for _, v in pairs(INVERTED) do INVERTED_CODE[v.code] = v.mark end
+  local AMP_CODE = -0x7F26
+  local AMP_PIXELS = {
+    { 2, 0, 2, 1 }, { 1, 1, 1, 2 }, { 4, 1, 1, 2 }, { 2, 3, 2, 1 },
+    { 1, 4, 1, 1 }, { 4, 4, 1, 1 }, { 6, 4, 1, 1 },
+    { 0, 5, 1, 1 }, { 5, 5, 1, 1 },
+    { 1, 6, 4, 1 }, { 6, 6, 1, 1 },
+  }
   local plainSplit
   local function markCode(code)
     local mark = INVERTED_CODE[code]
@@ -473,10 +518,19 @@ Hooks.modules["src.render.Font"] = function(Font)
     return function(text, ...)
       if type(text) == "string" then text = cleanUTF8(text) end
       local spans = origSplit(text, ...)
-      if type(text) == "string" and type(spans) == "table" and text:find("\194[\161\191]") then
-        for _, span in ipairs(spans) do
-          local inv = span.code == nil and INVERTED[text:sub(span.from, span.to)]
-          if inv and markCode(inv.code) then span.code = inv.code end
+      if type(text) == "string" and type(spans) == "table" then
+        if text:find("\194[\161\191]") then
+          for _, span in ipairs(spans) do
+            local inv = span.code == nil and INVERTED[text:sub(span.from, span.to)]
+            if inv and markCode(inv.code) then span.code = inv.code end
+          end
+        end
+        if text:find("&", 1, true) then
+          for _, span in ipairs(spans) do
+            if span.code == nil and text:sub(span.from, span.to) == "&" then
+              span.code = AMP_CODE
+            end
+          end
         end
       end
       return spans
@@ -484,6 +538,12 @@ Hooks.modules["src.render.Font"] = function(Font)
   end)
   wrap(Font, "Font", "drawCode", function(origDrawCode)
     return function(code, x, y, ...)
+      if code == AMP_CODE then
+        for _, p in ipairs(AMP_PIXELS) do
+          love.graphics.rectangle("fill", x + p[1], y + p[2], p[3], p[4])
+        end
+        return
+      end
       local plain = INVERTED_CODE[code] and markCode(code)
       if not plain then return origDrawCode(code, x, y, ...) end
       local w = Font.advanceOf(plain)
@@ -497,6 +557,7 @@ Hooks.modules["src.render.Font"] = function(Font)
   end)
   wrap(Font, "Font", "advanceOf", function(origAdvanceOf)
     return function(code, ...)
+      if code == AMP_CODE then return 8 end
       local plain = INVERTED_CODE[code] and markCode(code)
       return origAdvanceOf(plain or code, ...)
     end
@@ -1401,7 +1462,10 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
       -- a co-op double's result, shown once the overworld is back
       local CoopSummary = package.loaded["src.coop.CoopSummary"]
       if CoopSummary and CoopSummary.finish then pcall(CoopSummary.finish, battle, result) end
-      return afterBattle(self, result, battle, ...)
+      local a, b, c = afterBattle(self, result, battle, ...)
+      local CoopStory = package.loaded["src.coop.CoopStory"]
+      if CoopStory and CoopStory.onAfterBattle then pcall(CoopStory.onAfterBattle) end
+      return a, b, c
     end
   end)
 
@@ -1436,14 +1500,143 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
     end
   end)
 
-  -- A on the walking Pokemon: it answers itself (it has no map text)
+  -- A on the walking Pokemon: it answers itself (it has no map text).
+  -- In Gen 1, hand-ported Lua talk functions on trainers (gym leaders, Rocket
+  -- Hideout Giovanni, Game Corner Rocket, Cerulean thief) handle both the
+  -- undefeated and defeated states themselves, and item-ball pickups share
+  -- the item and itemsTaken key with the partner via CoopStory.recordAction.
   wrap(OverworldState, "OverworldState", "talkTo", function(talkTo)
     return function(self, npc, ...)
       if type(npc) == "table" and npc.pkmFollower then
         local okF, FollowMon = pcall(require, "src.follow.FollowMon")
         if okF and FollowMon.talk(self.game or package.loaded["src.core.Game"], self, npc) then return end
       end
+      local GV = package.loaded["src.core.GameVersion"]
+      if GV and GV.isGen1 and GV.isGen1() and type(npc) == "table" and type(npc.def) == "table" then
+        local d = npc.def
+        local game = self.game or package.loaded["src.core.Game"]
+        if d.trainerClass and not self:trainerDefeated(npc) and self.map then
+          local okM, MS = pcall(require, "src.script.MapScripts")
+          local ts = okM and MS and MS.talkScript and MS.talkScript(self.map.id, d.text)
+          if type(ts) == "function" then
+            if npc.facePlayer then npc:facePlayer(self.player) end
+            self:showMapText(d.text, npc, function() npc.frozen = false end)
+            return
+          end
+        end
+        if d.item and d.item ~= "0" and d.item ~= 0 and not d.fruitTree then
+          local okS, CoopStory = pcall(require, "src.coop.CoopStory")
+          if okS and CoopStory and CoopStory.recordAction then
+            return CoopStory.recordAction(game, self, function()
+              return talkTo(self, npc)
+            end)
+          end
+        end
+      end
       return talkTo(self, npc, ...)
+    end
+  end)
+
+  for _, name in ipairs({ "tryHiddenObject", "tryCardKeyDoor" }) do
+    wrap(OverworldState, "OverworldState", name, function(original)
+      return function(self, fx, fy, ...)
+        local okS, CoopStory = pcall(require, "src.coop.CoopStory")
+        local game = self.game or package.loaded["src.core.Game"]
+        if okS and CoopStory and CoopStory.recordAction then
+          return CoopStory.recordAction(game, self, function()
+            return original(self, fx, fy)
+          end)
+        end
+        return original(self, fx, fy, ...)
+      end
+    end)
+  end
+
+  wrap(OverworldState, "OverworldState", "billsHouseBillExits", function(billsHouseBillExits)
+    return function(self, ...)
+      local a, b, c = billsHouseBillExits(self, ...)
+      pcall(function()
+        local game = self.game or package.loaded["src.core.Game"]
+        local save = game and game.save
+        local CoopStory = require("src.coop.CoopStory")
+        if save and CoopStory and CoopStory.deliver then
+          save.flags = save.flags or {}
+          save.flags.EVENT_USED_CELL_SEPARATOR_ON_BILL = true
+          save.flags.EVENT_MET_BILL = true
+          save.flags.EVENT_MET_BILL_2 = true
+          CoopStory.deliver({ game = game, save = save, overworld = self }, {
+            map = "BILLS_HOUSE",
+            rewards = {
+              { kind = "set_flag", id = "EVENT_USED_CELL_SEPARATOR_ON_BILL" },
+              { kind = "set_flag", id = "EVENT_MET_BILL" },
+              { kind = "set_flag", id = "EVENT_MET_BILL_2" },
+              { kind = "toggle", map = "BILLS_HOUSE", obj = "BILLSHOUSE_BILL1", visible = true },
+            },
+          })
+        end
+      end)
+      return a, b, c
+    end
+  end)
+
+  wrap(OverworldState, "OverworldState", "engageTrainer", function(engageTrainer)
+    return function(self, npc, onDone, ...)
+      local GV = package.loaded["src.core.GameVersion"]
+      if not (GV and GV.isGen1 and GV.isGen1()) then
+        return engageTrainer(self, npc, onDone, ...)
+      end
+      local game = self.game or package.loaded["src.core.Game"]
+      local okS, CoopStory = pcall(require, "src.coop.CoopStory")
+      local ctx = (okS and CoopStory and CoopStory.beginLua) and CoopStory.beginLua(game, self) or nil
+      if ctx and ctx.coopStory then
+        ctx.coopStory.battled = true
+        if CoopStory.stepHold and self.map and CoopStory.stepHold.map == self.map.id then
+          ctx.coopHoldSent = true
+          ctx.coopHoldSent_map = self.map.id
+          CoopStory.stepHold = nil
+        end
+      end
+      local closed = false
+      local function close(...)
+        if not closed then
+          closed = true
+          -- Yellow's Rocket Hideout B4F grunt drops the Lift Key the moment
+          -- his battle ends, even when engaged by trainer sight.
+          if type(npc) == "table" and type(npc.def) == "table"
+             and npc.def.name == "ROCKETHIDEOUTB4F_ROCKET"
+             and self:trainerDefeated(npc)
+             and game and game.save and game.save.flags
+             and not game.save.flags.EVENT_ROCKET_DROPPED_LIFT_KEY then
+            game.save.flags.EVENT_ROCKET_DROPPED_LIFT_KEY = true
+            local okC, Commands = pcall(require, "src.script.Commands")
+            if okC and Commands and Commands.show_object then
+              Commands.show_object({ game = game, save = game.save, overworld = self },
+                "ROCKET_HIDEOUT_B4F", "ROCKETHIDEOUTB4F_LIFT_KEY")
+            end
+          end
+          if self.map and self.map.id == "SILPH_CO_11F"
+             and game and game.save and game.save.flags
+             and game.save.flags.EVENT_BEAT_SILPH_CO_GIOVANNI then
+            local okM, MS = pcall(require, "src.script.MapScripts")
+            local hooks = okM and MS and MS.get and MS.get("SILPH_CO_11F")
+            if hooks and hooks.onEnter then pcall(hooks.onEnter, game, self) end
+          end
+          if ctx and CoopStory and CoopStory.finishLua then
+            pcall(CoopStory.finishLua, ctx)
+          end
+        end
+        if onDone then return onDone(...) end
+      end
+      self._askingBigBattle = nil
+      local a, b, c = engageTrainer(self, npc, close, ...)
+      if self._askingBigBattle then
+        self._askingBigBattle = nil
+        closed = true
+        if ctx and CoopStory and CoopStory.current == ctx.coopStory then
+          CoopStory.current = nil
+        end
+      end
+      return a, b, c
     end
   end)
 

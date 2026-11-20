@@ -88,6 +88,28 @@ end
 local LEAGUE_ENTRANCES = { WILLS_ROOM = true, KOGAS_ROOM = true, BRUNOS_ROOM = true,
                            KARENS_ROOM = true, LANCES_ROOM = true }
 
+-- Gen 1 Safari Zone gate: each player pays and plays their own Safari game,
+-- and declining "Leaving early?" warps only that player back into the zone
+local PERSONAL_MAPS = { SAFARI_ZONE_GATE = true }
+
+-- Gen 1 maps whose onEnter hook only refreshes blocks or toggles from flags
+-- (never queues a cutscene), safe to re-run live when partner flags arrive
+local LIVE_REFRESH_MAPS = {
+  GAME_CORNER = true,
+  POKEMON_TOWER_7F = true,
+  MR_FUJIS_HOUSE = true,
+  SILPH_CO_2F = true, SILPH_CO_3F = true, SILPH_CO_4F = true,
+  SILPH_CO_5F = true, SILPH_CO_6F = true, SILPH_CO_7F = true,
+  SILPH_CO_8F = true, SILPH_CO_9F = true, SILPH_CO_10F = true,
+  SILPH_CO_11F = true, SAFFRON_CITY = true,
+  ROUTE_12 = true, ROUTE_16 = true,
+  VICTORY_ROAD_1F = true, VICTORY_ROAD_2F = true, VICTORY_ROAD_3F = true,
+  POKEMON_MANSION_1F = true, POKEMON_MANSION_2F = true,
+  POKEMON_MANSION_3F = true, POKEMON_MANSION_B1F = true,
+  CINNABAR_GYM = true,
+  LORELEIS_ROOM = true, BRUNOS_ROOM = true, AGATHAS_ROOM = true,
+}
+
 -- the outbox holds at most this many events; the oldest go first
 CoopStory.OUTBOX_MAX = 300
 
@@ -117,6 +139,10 @@ local NOT_SHARED_FLAGS = { ENGINE_FLASH = true, ENGINE_POKEMON_MODE = true }
 for i = 0, 7 do NOT_SHARED_FLAGS[string.format("EVENT_G2_%04d", i)] = true end
 
 local function snapshot(save)
+  local toggles = {}
+  for map, objs in pairs(type(save and save.objectToggles) == "table" and save.objectToggles or {}) do
+    toggles[map] = copyTable(objs)
+  end
   return { flags = copyTable(save and save.flags), scenes = copyTable(save and save.g2Scenes),
            call = save and save.g2SpecialCall,
            -- `variablesprite`: who stands where in the story (the Rocket
@@ -125,25 +151,46 @@ local function snapshot(save)
            -- the script WRAM mirror (Underground switches, event variables)
            wram = copyTable(save and save.g2Wram),
            rival = save and save.player and save.player.rival,
-           roam = save and save.g2RoamReleased == true }
+           roam = save and save.g2RoamReleased == true,
+           toggles = toggles,
+           taken = copyTable(save and save.itemsTaken),
+           hidden = copyTable(save and save.hiddenTaken),
+           trainers = copyTable(save and save.defeatedTrainers) }
 end
 
 -- what the script changed, as rewards the partner's copy can apply
 local function stateChanges(save, before)
   local out = {}
   if not (save and before) then return out end
+  local flags = save.flags or {}
+  local wasFlags = before.flags or {}
+  -- Pokemon Tower 7F's rescue script warps out without hiding 7F's Mr. Fuji;
+  -- record the hide in objectToggles so the partner (and any re-entry) sees
+  -- the room empty once he is at his house
+  if flags.EVENT_RESCUED_MR_FUJI == true and not wasFlags.EVENT_RESCUED_MR_FUJI then
+    save.objectToggles = save.objectToggles or {}
+    save.objectToggles.POKEMON_TOWER_7F = save.objectToggles.POKEMON_TOWER_7F or {}
+    save.objectToggles.POKEMON_TOWER_7F.POKEMONTOWER7F_MR_FUJI = false
+  end
+  -- Yellow spells Silph Co. 11F's single grunt SILPHCO11F_ROCKET where Red/Blue
+  -- have ROCKET1 and ROCKET2; hide both spellings so a Red <-> Yellow pair clears 11F
+  if flags.EVENT_BEAT_SILPH_CO_GIOVANNI == true and not wasFlags.EVENT_BEAT_SILPH_CO_GIOVANNI then
+    save.objectToggles = save.objectToggles or {}
+    save.objectToggles.SILPH_CO_11F = save.objectToggles.SILPH_CO_11F or {}
+    save.objectToggles.SILPH_CO_11F.SILPHCO11F_ROCKET = false
+  end
   local keys = {}
-  for k in pairs(save.flags or {}) do keys[k] = true end
-  for k in pairs(before.flags) do keys[k] = true end
+  for k in pairs(flags) do keys[k] = true end
+  for k in pairs(wasFlags) do keys[k] = true end
   for k in pairs(keys) do
-    local now = (save.flags or {})[k] == true
-    local was = before.flags[k] == true
+    local now = flags[k] == true
+    local was = wasFlags[k] == true
     if now ~= was and not NOT_SHARED_FLAGS[k] then
       out[#out + 1] = { kind = now and "set_flag" or "clear_flag", id = k }
     end
   end
   for k, v in pairs(save.g2Scenes or {}) do
-    if before.scenes[k] ~= v then out[#out + 1] = { kind = "scene_key", map = k, scene = v } end
+    if (before.scenes or {})[k] ~= v then out[#out + 1] = { kind = "scene_key", map = k, scene = v } end
   end
   if save.g2SpecialCall ~= before.call and save.g2SpecialCall ~= nil then
     out[#out + 1] = { kind = "special_call", id = save.g2SpecialCall }
@@ -168,6 +215,29 @@ local function stateChanges(save, before)
   -- the Burned Tower: the three beasts run off on both games
   if save.g2RoamReleased == true and not before.roam then
     out[#out + 1] = { kind = "roam_release" }
+  end
+  local beforeToggles = before.toggles or {}
+  for map, objs in pairs(type(save.objectToggles) == "table" and save.objectToggles or {}) do
+    if type(objs) == "table" then
+      local was = beforeToggles[map] or {}
+      for obj, visible in pairs(objs) do
+        if was[obj] ~= visible then
+          out[#out + 1] = { kind = "toggle", map = map, obj = obj, visible = visible }
+        end
+      end
+    end
+  end
+  local beforeTaken = before.taken or {}
+  for k, v in pairs(type(save.itemsTaken) == "table" and save.itemsTaken or {}) do
+    if v and not beforeTaken[k] then out[#out + 1] = { kind = "taken", key = k } end
+  end
+  local beforeHidden = before.hidden or {}
+  for k, v in pairs(type(save.hiddenTaken) == "table" and save.hiddenTaken or {}) do
+    if v and not beforeHidden[k] then out[#out + 1] = { kind = "hidden_taken", key = k } end
+  end
+  local beforeTrainers = before.trainers or {}
+  for k, v in pairs(type(save.defeatedTrainers) == "table" and save.defeatedTrainers or {}) do
+    if v and not beforeTrainers[k] then out[#out + 1] = { kind = "trainer", npcId = k } end
   end
   return out
 end
@@ -209,17 +279,36 @@ end
 -- (`here`) is lived together -- the names, the lines, the warp, the
 -- CO-OP/SOLO question.
 function CoopStory.begin(ctx, script)
-  CoopStory.current = nil
+  local preBefore = CoopStory.pendingBefore
+  CoopStory.pendingBefore = nil
+  local outer = CoopStory.current and CoopStory.current.lua and CoopStory.current or nil
   if not ctx or ctx.coopRemote or ctx.phoneCaller then return end
   -- a map callback only re-derives this map from the save as it loads (who
   -- stands where, which scene is up); sent across it would overwrite the
   -- partner's own -- the Bug Contest gate's scene in the middle of theirs
   if ctx.mapCallback then return end
-  if not sharing(ctx.save) then return end
+  if not sharing(ctx.save) then
+    CoopStory.current = nil
+    return
+  end
   local ow = ctx.overworld
   local here = partnerHere(ow)
   local CM = manager()
   local class, party = CoopStory.findBigBattle(script, ctx.save)
+  -- A Lua talk/victory handler that starts a helper runner (Mt. Moon fossil,
+  -- Pokemon Tower 7F grunt exit) keeps its own outer story context so items
+  -- and flags written before runner:run are still part of one event; when
+  -- the runner itself is the big battle (Pokemon Tower 2F rival), the runner
+  -- takes over and the outer wrapper stands down.
+  if outer then
+    if not class then
+      outer.handedToRunner = true
+      ctx.coopStory = outer
+      return
+    end
+    outer.personal = true
+  end
+  CoopStory.current = nil
   -- THE PARTNER IS ALREADY LIVING THIS SCENE FOR BOTH OF YOU.  A scene that
   -- starts as the map loads (the rival in the BURNED TOWER) fires on each
   -- game as each player walks in; theirs is waiting for you, so this copy
@@ -236,14 +325,17 @@ function CoopStory.begin(ctx, script)
     personal = false,
     duo = shortName(CM.getLocalPlayerName(ctx.game)) .. " & " .. shortName(CM.partner.name or "PARTNER"),
     lines = 0,
-    before = snapshot(ctx.save),
+    before = preBefore or (outer and outer.before) or snapshot(ctx.save),
   }
   CoopStory.current = ctx.coopStory
   -- A LEAGUE CHAMBER'S DOOR IS EACH PLAYER'S OWN.  Its scene walks you in
   -- and shuts the door behind you.  Sent across, it set the partner's scene
   -- and door flag too: they walked in after you with no scene, onto the
   -- door already shut (reported from play: "he walks through the door").
-  if not class and LEAGUE_ENTRANCES[ctx.coopStory.map or ""] then
+  -- The Safari Zone gate is personal the same way: each player pays and
+  -- leaves or stays in their own Safari game.
+  if (not class and LEAGUE_ENTRANCES[ctx.coopStory.map or ""])
+     or PERSONAL_MAPS[ctx.coopStory.map or ""] then
     ctx.coopStory.personal = true
     ctx.coopStory.here = false
     return
@@ -361,6 +453,10 @@ function CoopStory.observe(ctx, name, row)
   if name == "start_battle" and row[2] == "wild" then
     -- a scripted wild Pokemon: the partner gets to meet their own
     st.personal = true
+  elseif name == "set_field" and row[2] == "safari" then
+    -- Safari Zone admission / early exit belongs to this player alone
+    st.personal = true
+    st.here = false
   elseif name == "give_item" or name == "g2_giveitem" then
     -- a refused gift (bag full) set lastCheck false and is not shared
     if ctx.lastCheck ~= false and row[2] then
@@ -464,6 +560,14 @@ CoopStory.releaseHold = releaseHold
 
 function CoopStory.finish(ctx)
   local st = ctx and ctx.coopStory
+  if st and st.lua then
+    if st.luaCloseDone then
+      return CoopStory.finishLua({ game = ctx.game, save = ctx.save, overworld = ctx.overworld,
+                                   coopStory = st, coopHoldSent = ctx.coopHoldSent,
+                                   coopHoldSent_map = ctx.coopHoldSent_map })
+    end
+    return
+  end
   if CoopStory.current == st then CoopStory.current = nil end
   -- the scene's flags go first (below), so the partner's own copy of the
   -- scene is already closed by the time the hold on it lifts
@@ -477,8 +581,18 @@ function CoopStory.finish(ctx)
   if not st or st.personal then return done() end
   -- flags, scenes and the armed call first, the warp after everything
   for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
-  -- the scene walks the partner along only if they were in it
-  if st.warp and st.here then st.rewards[#st.rewards + 1] = st.warp end
+  -- the scene walks the partner along only if they were in it; if the script
+  -- walked the player after the warp (e.g. Vermilion Dock's two steps past
+  -- the ticket guard), land the partner at the final cell on that map
+  if st.warp and st.here then
+    local ow = ctx.overworld
+    if ow and ow.map and ow.map.id == st.warp.map and ow.player then
+      st.warp.x = ow.player.cellX or st.warp.x
+      st.warp.y = ow.player.cellY or st.warp.y
+      st.warp.facing = ow.player.facing or st.warp.facing
+    end
+    st.rewards[#st.rewards + 1] = st.warp
+  end
   CoopStory.deliver(ctx, st)
   done()
 end
@@ -532,15 +646,12 @@ end
 
 local function luaSnapshot(save)
   local s = snapshot(save)
-  s.toggles = {}
-  for map, objs in pairs(type(save.objectToggles) == "table" and save.objectToggles or {}) do
-    s.toggles[map] = copyTable(objs)
-  end
-  s.taken = copyTable(save.itemsTaken)
-  s.hidden = copyTable(save.hiddenTaken)
   s.bag = copyTable(save.inventory)
   s.money = tonumber(save.money) or 0
+  s.coins = tonumber(save.coins) or 0
   s.monKeys, s.monCount = monKeys(save)
+  s.safari = save.safari ~= nil
+  s.safariNags = tonumber(save.safariNags) or 0
   return s
 end
 CoopStory.luaSnapshot = luaSnapshot
@@ -548,6 +659,10 @@ CoopStory.luaSnapshot = luaSnapshot
 -- what a handler changed beyond the flags, and whether it was personal
 local function luaChanges(save, before, battled)
   local out = {}
+  if (save.safari ~= nil) ~= (before.safari == true)
+     or (tonumber(save.safariNags) or 0) ~= (tonumber(before.safariNags) or 0) then
+    return out, true
+  end
   local keys, count = monKeys(save)
   if count ~= before.monCount then return out, true end
   for k in pairs(before.monKeys) do
@@ -575,22 +690,6 @@ local function luaChanges(save, before, battled)
       out[#out + 1] = { kind = "money", amount = money - before.money }
     end
   end
-  for map, objs in pairs(type(save.objectToggles) == "table" and save.objectToggles or {}) do
-    if type(objs) == "table" then
-      local was = before.toggles[map] or {}
-      for obj, visible in pairs(objs) do
-        if was[obj] ~= visible then
-          out[#out + 1] = { kind = "toggle", map = map, obj = obj, visible = visible }
-        end
-      end
-    end
-  end
-  for k, v in pairs(type(save.itemsTaken) == "table" and save.itemsTaken or {}) do
-    if v and not before.taken[k] then out[#out + 1] = { kind = "taken", key = k } end
-  end
-  for k, v in pairs(type(save.hiddenTaken) == "table" and save.hiddenTaken or {}) do
-    if v and not before.hidden[k] then out[#out + 1] = { kind = "hidden_taken", key = k } end
-  end
   return out, false
 end
 CoopStory.luaChanges = luaChanges
@@ -615,13 +714,15 @@ function CoopStory.beginLua(game, ow)
   if not (okV and V.isGen1 and V.isGen1()) then return nil end
   local save = game and game.save
   if type(save) ~= "table" or not sharing(save) then return nil end
+  local mapId = ow and ow.map and ow.map.id
+  if PERSONAL_MAPS[mapId or ""] then return nil end
   -- a handler inside a story already being recorded adds nothing to it
   luaCurrent()
   if CoopStory.current then return nil end
   local CM = manager()
   local ctx = { game = game, save = save, overworld = ow }
   ctx.coopStory = {
-    map = ow and ow.map and ow.map.id,
+    map = mapId,
     here = partnerHere(ow),
     rewards = {},
     personal = false,
@@ -638,7 +739,15 @@ end
 function CoopStory.finishLua(ctx)
   local st = ctx and ctx.coopStory
   if not st then return end
+  if st.handedToRunner and not st.luaCloseDone then
+    local r = ctx.overworld and ctx.overworld.runner
+    if r and r.isRunning and r:isRunning() then
+      st.luaCloseDone = true
+      return
+    end
+  end
   if CoopStory.current == st then CoopStory.current = nil end
+  releaseHold(ctx)
   if st.here then
     pcall(function() require("src.coop.CoopDuo").sendSceneEnd(st.map) end)
   end
@@ -647,7 +756,138 @@ function CoopStory.finishLua(ctx)
   if personal then return end
   for _, r in ipairs(stateChanges(ctx.save, st.before)) do st.rewards[#st.rewards + 1] = r end
   for _, r in ipairs(more) do st.rewards[#st.rewards + 1] = r end
+  if st.warp and st.here then st.rewards[#st.rewards + 1] = st.warp end
   CoopStory.deliver(ctx, st)
+end
+
+-- Synchronous Gen 1 actions that bypass ScriptRunner and talkScript:
+-- picking up an item ball (LIFT_KEY, SILPH_SCOPE, CARD_KEY, GOLD_TEETH),
+-- finding a hidden item, opening a Silph Co. Card Key door, or Bill's
+-- Cell Separator exit.
+function CoopStory.recordAction(game, ow, fn)
+  local okV, V = pcall(require, "src.core.GameVersion")
+  if not (okV and V.isGen1 and V.isGen1()) then return fn() end
+  local save = game and game.save
+  local mapId = ow and ow.map and ow.map.id
+  if type(save) ~= "table" or not sharing(save) or CoopStory.current
+     or PERSONAL_MAPS[mapId or ""] then
+    return fn()
+  end
+  local before = luaSnapshot(save)
+  local a, b, c = fn()
+  if (tonumber(save.coins) or 0) ~= (tonumber(before.coins) or 0) then
+    return a, b, c
+  end
+  local more, personal = luaChanges(save, before, false)
+  if not personal then
+    local rewards = stateChanges(save, before)
+    for _, r in ipairs(more) do rewards[#rewards + 1] = r end
+    if #rewards > 0 then
+      local ctx = { game = game, save = save, overworld = ow }
+      CoopStory.deliver(ctx, { map = mapId, rewards = rewards })
+    end
+  end
+  return a, b, c
+end
+
+-- Wrap Gen 1 map hooks (MapScripts.get) for coordinate triggers and map-entry
+-- scripts that mutate story state outside ScriptRunner (Pokemon Tower 6F's
+-- ghost Marowak, Silph Co. 11F's Giovanni, Vermilion Dock's S.S. Anne
+-- departure, Route 25's Bill toggle).
+local wrappedMapHooks = setmetatable({}, { __mode = "k" })
+
+function CoopStory.wrapMapHooks(mapId, hooks)
+  if type(hooks) ~= "table" then return hooks end
+  local w = wrappedMapHooks[hooks]
+  if w then return w end
+  w = {}
+  for k, v in pairs(hooks) do w[k] = v end
+
+  if mapId == "POKEMON_TOWER_6F" and type(hooks.onStep) == "function" then
+    local origStep = hooks.onStep
+    w.onStep = function(game, ow, x, y, ...)
+      if game and game.save and not game.save.flags.EVENT_BEAT_GHOST_MAROWAK
+         and x == 10 and y == 16 then
+        if CoopStory.heldHere(ow, "GHOST_MAROWAK") then
+          if ow and ow.scriptMove and ow.player then ow:scriptMove(ow.player, "right", 1) end
+          return true
+        end
+        local ok, ctx = pcall(CoopStory.beginLua, game, ow)
+        if not ok then ctx = nil end
+        local triggered = origStep(game, ow, x, y, ...)
+        if triggered and ctx and ctx.coopStory then
+          ctx.coopStory.battled = true
+          ctx.coopStory.marowak = true
+          CoopStory.activeStepCtx = ctx
+          local CM = manager()
+          if CM and CM.net and CM.isConnected and CM.isConnected() then
+            CM.net:send({ type = "coop_story_hold", map = "POKEMON_TOWER_6F", class = "GHOST_MAROWAK" })
+            ctx.coopHoldSent, ctx.coopHoldSent_map = true, "POKEMON_TOWER_6F"
+          end
+        elseif ctx then
+          CoopStory.finishLua(ctx)
+        end
+        return triggered
+      end
+      return origStep(game, ow, x, y, ...)
+    end
+  elseif mapId == "SILPH_CO_11F" and type(hooks.onStep) == "function" then
+    local origStep = hooks.onStep
+    w.onStep = function(game, ow, x, y, ...)
+      if game and game.save and not game.save.flags.EVENT_BEAT_SILPH_CO_GIOVANNI
+         and ((x == 6 and y == 13) or (x == 7 and y == 12)) then
+        if CoopStory.heldHere(ow, "OPP_GIOVANNI")
+           or (CoopStory.stepHold and CoopStory.stepHold.map == "SILPH_CO_11F")
+           or (ow and ow.scriptMoves and #ow.scriptMoves > 0) then
+          return true
+        end
+        local triggered = origStep(game, ow, x, y, ...)
+        if triggered then
+          local CM = manager()
+          if CM and CM.net and CM.isConnected and CM.isConnected() then
+            CM.net:send({ type = "coop_story_hold", map = "SILPH_CO_11F", class = "OPP_GIOVANNI" })
+            CoopStory.stepHold = { map = "SILPH_CO_11F", class = "OPP_GIOVANNI" }
+          end
+        end
+        return triggered
+      end
+      return origStep(game, ow, x, y, ...)
+    end
+  end
+
+  if mapId == "VERMILION_DOCK" and type(hooks.onEnter) == "function" then
+    local origEnter = hooks.onEnter
+    w.onEnter = function(game, ow, ...)
+      local save = game and game.save
+      local before = (type(save) == "table" and sharing(save)) and snapshot(save) or nil
+      local qLen = ow and ow.scriptQueue and #ow.scriptQueue or 0
+      local res = origEnter(game, ow, ...)
+      local newLen = ow and ow.scriptQueue and #ow.scriptQueue or 0
+      if before and newLen > qLen then
+        CoopStory.pendingBefore = before
+      end
+      return res
+    end
+  elseif mapId == "ROUTE_25" and type(hooks.onEnter) == "function" then
+    local origEnter = hooks.onEnter
+    w.onEnter = function(game, ow, fromMapId, ...)
+      local f = game and game.save and game.save.flags
+      if f and f.EVENT_MET_BILL_2 and not f.EVENT_LEFT_BILLS_HOUSE_AFTER_HELPING then
+        return CoopStory.recordAction(game, ow, function() return origEnter(game, ow, fromMapId) end)
+      end
+      return origEnter(game, ow, fromMapId, ...)
+    end
+  end
+
+  wrappedMapHooks[hooks] = w
+  return w
+end
+
+function CoopStory.onAfterBattle()
+  local ctx = CoopStory.activeStepCtx
+  if not ctx then return end
+  CoopStory.activeStepCtx = nil
+  pcall(CoopStory.finishLua, ctx)
 end
 
 -- the handler, run inside its story context; `done` closes it (once)
@@ -678,12 +918,13 @@ function CoopStory.wrapTalk(handler)
 end
 
 -- OverworldState:pushBattle, inside a handler: a trainer battle's money and
--- items stay out of the event, a wild one makes it personal
+-- items stay out of the event, a wild one makes it personal (except the
+-- Pokemon Tower 6F uncatchable ghost Marowak, which is a shared story gate)
 function CoopStory.onBattle(battle)
   local st = luaCurrent()
   if not (st and type(battle) == "table") then return end
   st.battled = true
-  if battle.kind == "wild" then st.personal = true end
+  if battle.kind == "wild" and not battle.noCatch then st.personal = true end
 end
 
 -- TextBox.new, inside a handler: the partner standing here reads along
@@ -747,6 +988,7 @@ function WaitHere:finish(arrived)
     end
   end
   if self.runner and self.runner.resume then self.runner:resume() end
+  if self.onDone then self.onDone(self.arrived) end
 end
 
 function WaitHere:update(dt)
@@ -1117,11 +1359,20 @@ function CoopStory.onPartnerRewards(game, msg)
         local inv = save.inventory or {}
         local held = tonumber(inv[r.id]) or 0
         if held > 0 then
-          local left = held - math.min(held, tonumber(r.count) or 1)
-          inv[r.id] = left > 0 and left or nil
+          local take = math.min(held, tonumber(r.count) or 1)
+          local okB, Bag = pcall(require, "src.inventory.Bag")
+          if okB and Bag and Bag.remove then
+            Bag.remove(save, r.id, take)
+          else
+            local left = held - take
+            inv[r.id] = left > 0 and left or nil
+          end
         end
       elseif r.kind == "set_flag" then
         Commands.set_flag(ctx, r.id)
+        if r.id == "EVENT_RESCUED_MR_FUJI" and Commands.hide_object then
+          Commands.hide_object(ctx, "POKEMON_TOWER_7F", "POKEMONTOWER7F_MR_FUJI")
+        end
       elseif r.kind == "clear_flag" then
         Commands.clear_flag(ctx, r.id)
       elseif r.kind == "scene" and Commands.g2_set_scene then
@@ -1164,8 +1415,19 @@ function CoopStory.onPartnerRewards(game, msg)
       require("src.coop.CoopLog").warn("STORY", "reward " .. tostring(r.kind) .. " failed: " .. tostring(err))
     end
   end
-  -- an item ball the partner picked up leaves this screen too
+  -- an item ball the partner picked up leaves this screen too, and any door
+  -- or barrier flag the partner unlocked (Silph Co. card key doors, Rocket
+  -- Hideout lift gate, Game Corner poster) updates on the live map
   if resync and ow.syncObjectVisibility then pcall(ow.syncObjectVisibility, ow) end
+  if changed and ow then
+    if ow.stampClosedDoors then pcall(ow.stampClosedDoors, ow) end
+    local curMap = ow.map and ow.map.id
+    if curMap and LIVE_REFRESH_MAPS[curMap] then
+      local okM, MS = pcall(require, "src.script.MapScripts")
+      local hooks = okM and MS and MS.get and MS.get(curMap)
+      if hooks and hooks.onEnter then pcall(hooks.onEnter, game, ow) end
+    end
+  end
   local okD, CoopDuo = pcall(require, "src.coop.CoopDuo")
   if #gifts > 0 and here and okD and CoopDuo.on() then
     -- 1.20 duo: handed over in a box each, with the jingle, as the cartridge

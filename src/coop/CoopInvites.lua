@@ -139,6 +139,15 @@ function CoopManager.startGuestBattle(game, ow2, msg, chosenMons)
         if cOw and cOw.checkVictoryRewards and msg.oppClass then
           pcall(cOw.checkVictoryRewards, cOw, msg.oppClass, msg.partyIndex)
         end
+        -- Silph Co. 11F Giovanni's post-battle Rocket exodus runs in the host's
+        -- onStep callback rather than onVictory; run the floor's onEnter repair
+        -- here too so Giovanni and the Rockets leave the guest's screen at once
+        if cOw and cOw.map and game.save and game.save.flags
+           and game.save.flags.EVENT_BEAT_SILPH_CO_GIOVANNI then
+          local okM, MS = pcall(require, "src.script.MapScripts")
+          local hooks = okM and MS and MS.get and MS.get(cOw.map.id)
+          if hooks and hooks.onEnter then pcall(hooks.onEnter, game, cOw) end
+        end
       end
       if cOw and cOw.afterBattle then
         pcall(cOw.afterBattle, cOw, result, p2Battle)
