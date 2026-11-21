@@ -39,9 +39,13 @@ Orden (Mochi): A primero.
       reales en los dos sentidos (Amarillo->Rojo y Rojo->Amarillo).
 
 ## B. Gen 1 al nivel de lo que ya tiene Gen 2
-- [ ] B1 Gimnasios de Gen 1 en equipo (revisar pools gen1 de CoopGyms con pruebas reales, Amarillo
-      con sus equipos propios).
-- [ ] B2 Liga de Gen 1 (Lorelei, Bruno, Agatha, Lance, campeón) en 2v2; Salón de la Fama para los dos.
+- [x] B1 Gimnasios de Gen 1 en equipo: revisados y probados los 8 gimnasios en Rojo (Pewter a Viridian)
+      y los 8 en Amarillo con sus equipos propios (`gen1_gym.lua`, 16/16 con 0 fallos, mismo equipo en
+      las dos copias y medalla para ambos).
+- [x] B2 Liga de Gen 1 (Lorelei, Bruno, Agatha, Lance y campeón) en 2v2; Salón de la Fama para los dos
+      (`CoopStory.tick` arma `save.pendingHallOfFame` antes de teletransportar al invitado a
+      `HALL_OF_FAME` en Gen 1; `gen1_league.lua` en las 5 salas, 0 fallos en host e invitado,
+      `hallOfFame 0 -> 1` en ambos).
 - [x] B3 Rival 2v2 en Gen 1 (OPP_RIVAL1/2/3; el de Amarillo con Eevee). Hecho: CoopGyms empareja en
       Gen 1 entre la misma edición o su pareja (Rojo/Azul por el contrainicial, Amarillo por
       rivalStarter con sus combates fijos); `findBigBattle` reconoce `rival_battle`. Driver
@@ -50,11 +54,17 @@ Orden (Mochi): A primero.
       x1,5 PS, Mewtwo x2, dos acciones por turno) CAPTURABLES juntos (CoopBoss.CATCHABLE + lanzar a
       tiempo + quién se lo queda); los Snorlax ya eran el jefe "snorlax". Driver `gen1_legend` (Zapdos,
       dos Rojo reales: mismo PS 245 en las dos).
-- [ ] B5 Historia de Gen 1: S.S. Anne, Torre Pokémon (Marowak, Silph Scope), Guarida Rocket, Silph S.A.
-      (Giovanni), Safari (personal), Poké Flauta; esperas y escenas a dos (story.duo) en Gen 1.
-- [ ] B6 Hub de Gen 1 (Mochi: "1, 2 y la interfaz"): el Club de Cable de Gen 1 (Coliseo / Centro
-      de Intercambio, 2º piso del Centro), el hub online del launcher (plaza, GTS, salas) adaptado
-      al co-op en Gen 1, y su interfaz.
+- [x] B5 Historia de Gen 1 (`n3/six` fusionada): S.S. Anne, Torre Pokémon (Marowak, Mr. Fuji, Poké
+      Flauta), Guarida Rocket (Lift Key Rojo/Amarillo, Giovanni, Silph Scope), Silph S.A. (puertas Card
+      Key, Lapras personal, Giovanni + éxodo Rocket), Safari (personal, surf/dientes/fuerza compartidos)
+      y Snorlax; escenas a dos (`story.duo`, glifo `&` en Gen 1). Suite `coop_gen1_story` (133/133) y
+      drivers `six_tower_fuji`, `six_silph_personal` en el árbol fusionado (0 fallos).
+- [x] B6 Hub de Gen 1: Club de Cable con el compañero (`src/coop/CoopCableClub.lua`: la recepcionista
+      ofrece `<compañero>` / `OTRO` y abre Centro de Intercambio o Coliseo por el enlace co-op sin
+      código; `coop_cableclub` 13/13, driver `gen1_cableclub` 0 fallos) y conexión por la escalera y
+      Link Hub del juego (`src/coop/CoopHub.lua`: `HOST ONLINE` + `JOIN` por código en `CoopMenu` y
+      `CoopNewGame`, Ctrl-V y teclado táctil hasta 24 caracteres en dos líneas; `coop_hub` 13/13,
+      `coop_touch` 5121/5121, drivers `gen1_hub`, `gen1_hub_menu`, `codex_touch_pair` con 0 fallos).
 - [~] B7 Minijuegos en Gen 1: contrarreloj en la Ruta Ciclista de Kanto HECHA (BikeTrial.GEN1: puerta
       ROUTE_16_GATE_1F carril 8-9, ROUTE_17 de 144 casillas, meta al entrar en ROUTE_18; driver
       `gen1_bike` con dos Rojo reales: 23,4 s vs 22,6 s, mismo ganador). Falta: otro en lugar del de Karpa.

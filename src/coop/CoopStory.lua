@@ -1481,6 +1481,14 @@ function CoopStory.tick(dt, game)
       CoopStory.feed = {}
       local f = type(w.facing) == "string" and w.facing:lower() or "down"
       if f ~= "up" and f ~= "down" and f ~= "left" and f ~= "right" then f = "down" end
+      -- Gen 1's HALL_OF_FAME onEnter only runs Oak's induction and credits
+      -- when save.pendingHallOfFame is armed by the Champions Room script
+      if w.map == "HALL_OF_FAME" and game.save then
+        local okV, V = pcall(require, "src.core.GameVersion")
+        if okV and V and V.isGen1 and V.isGen1() then
+          game.save.pendingHallOfFame = true
+        end
+      end
       pcall(ow.startWarpTo, ow, w.map, w.x, w.y, f)
     end
   end

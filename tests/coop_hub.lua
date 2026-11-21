@@ -57,5 +57,35 @@ check(CoopHub.isGameCode(nil) == false, "no code: no")
 CoopHub.cancel()
 check(CoopHub.state == nil and CoopHub.job == nil, "cancel leaves nothing behind")
 
+-- Ctrl-V pasting in both CoopMenu and CoopNewGame preserves full 24-char hub codes
+love.system = love.system or {}
+love.keyboard = love.keyboard or {}
+local origClip = love.system.getClipboardText
+local origDown = love.keyboard.isDown
+love.system.getClipboardText = function() return "3ZVS-N3PZ-CHQ9-3HEG-Y" end
+love.keyboard.isDown = function(k) return k == "lctrl" end
+local fakeGame = { data = {}, stack = { pop = function() end }, input = { wasPressed = function() return false end } }
+local CoopMenu = require("src.coop.CoopMenu")
+local menu = CoopMenu.new(fakeGame)
+menu.stage, menu.code = "codeEntry", ""
+menu:onKeyPressed("v")
+check(menu.code == "3ZVS-N3PZ-CHQ9-3HEG-Y", "CoopMenu Ctrl-V preserves full Link Hub code")
+
+local CoopNewGame = require("src.coop.CoopNewGame")
+local lobby = CoopNewGame.new(fakeGame, function() end, "new")
+lobby.stage, lobby.code = "codeEntry", ""
+lobby:onKeyPressed("v")
+check(lobby.code == "3ZVS-N3PZ-CHQ9-3HEG-Y", "CoopNewGame Ctrl-V preserves full Link Hub code")
+
+local joinedCode
+local origHubJoin = CoopHub.join
+CoopHub.join = function(_, code) joinedCode = code return true end
+lobby:submitCode()
+check(joinedCode == "3ZVS-N3PZ-CHQ9-3HEG-Y" and lobby.stage == "connecting" and lobby.hubJoining == true,
+      "CoopNewGame submitCode routes Link Hub codes through CoopHub.join")
+CoopHub.join = origHubJoin
+love.system.getClipboardText = origClip
+love.keyboard.isDown = origDown
+
 print(("%d/%d checks passed  (co-op through the link hub)"):format(total - fails, total))
 if fails > 0 then os.exit(1) end

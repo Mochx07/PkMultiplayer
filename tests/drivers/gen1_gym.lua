@@ -21,9 +21,19 @@ return function(game)
   save.player.name = role == "host" and "MOCHI" or "TOBY"
   save.flags = save.flags or {}
   save.flags.EVENT_GOT_STARTER = true
-  local team = role == "host" and { { "SQUIRTLE", 16 }, { "PIDGEY", 13 }, { "RATTATA", 12 } }
-    or { { "BULBASAUR", 15 }, { "SPEAROW", 12 } }
-  for _, t in ipairs(team) do table.insert(save.party, Pokemon.new(game.data, t[1], t[2])) end
+  local GYM_LEVEL = {
+    PEWTER_GYM = 16, CERULEAN_GYM = 20, VERMILION_GYM = 24, CELADON_GYM = 30,
+    FUCHSIA_GYM = 44, SAFFRON_GYM = 44, CINNABAR_GYM = 48, VIRIDIAN_GYM = 52,
+  }
+  local lv = GYM_LEVEL[GYM] or 16
+  local team = role == "host" and { { "SQUIRTLE", lv }, { "PIDGEY", lv - 3 }, { "RATTATA", lv - 4 } }
+    or { { "BULBASAUR", lv - 1 }, { "SPEAROW", lv - 4 } }
+  for _, t in ipairs(team) do
+    local mon = Pokemon.new(game.data, t[1], t[2])
+    -- reliable single-target non-Normal lead move (hits Ghosts, never hits ally)
+    mon.moves[1] = { id = role == "host" and "WATER_GUN" or "VINE_WHIP", pp = 25 }
+    table.insert(save.party, mon)
+  end
 
   -- the leader of this gym, wherever the map puts him
   U.teleport(game, GYM, 4, 10, "up")
@@ -133,17 +143,34 @@ return function(game)
     -- win it quickly: the same change on both copies at the same point
     -- (before any turn) keeps them in step
     if os.getenv("PKM_WIN") ~= "0" then
-      for _, m in ipairs(battle.enemyParty or {}) do m.hp = 1 end
+      for _, m in ipairs(battle.enemyParty or {}) do
+        m.hp = 1
+        if m.stats then m.stats.speed, m.stats.attack, m.stats.special = 1, 1, 1 end
+      end
       local P = require("src.battle.BattleState").POS
       for _, pos in ipairs({ P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do
         local b = battle:battlerAt(pos)
-        if b and b.mon then b.mon.hp = 1 end
+        if b and b.mon then
+          b.mon.hp = 1
+          if b.mon.stats then b.mon.stats.speed, b.mon.stats.attack, b.mon.stats.special = 1, 1, 1 end
+        end
       end
       local done = false
       for i = 1, 60 * 240 do
         local t = game.stack:top()
         if t == game.overworld then done = true break end
-        if i % 15 == 0 then U.tap(game, "a") end
+        if i % 15 == 0 then
+          if t and t.forceSwitch and t.index then
+            local list = t.party or save.party or {}
+            local cur = list[t.index]
+            if not cur or (cur.hp or 0) <= 0 then
+              for idx, m in ipairs(list) do
+                if (m.hp or 0) > 0 then t.index = idx break end
+              end
+            end
+          end
+          U.tap(game, "a")
+        end
         U.wait(1)
       end
       check(done, "the battle ended and both are back in the gym")

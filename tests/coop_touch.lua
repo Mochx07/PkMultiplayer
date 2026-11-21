@@ -64,7 +64,7 @@ game.renderer.uiPresentation = { x = 137, y = 31, scaleX = 3, scaleY = 3 }
 local Menu = require("src.coop.CoopMenu")
 CM.connected = false
 local m = mount(Menu.new(game))
-for _, stage in ipairs({"main", "diag", "hosting", "joinPick", "codeEntry", "portEntry", "addrEntry", "joining"}) do
+for _, stage in ipairs({"main", "diag", "hosting", "hubHost", "hubJoin", "joinPick", "codeEntry", "portEntry", "addrEntry", "joining"}) do
   m.stage, m.portEdit, m.portPos, m.code = stage, {0,7,7,7,7}, 5, ""
   geometry(m, "menu " .. stage)
 end
@@ -104,6 +104,12 @@ tap(m, "up") check(m.addrPos == 5 and m.addr[5] == (was + 1) % 10, "IP digit is 
 m.stage, m.code = "codeEntry", ""
 tap(m, "key:A") tap(m, "key:9") tap(m, "erase")
 check(m.code == "A", "code keyboard types and erases")
+-- Long Link Hub invite codes (up to 24 chars) can be typed and drawn cleanly
+for ch in ("BCD-EFGH-JKLM-NPQR-STUV"):gmatch(".") do tap(m, "key:" .. ch) end
+check(#m.code == 24, "code keyboard accepts full 24-char Link Hub code")
+local okDraw = pcall(m.draw, m)
+check(okDraw, "long Link Hub code renders cleanly on touch keyboard")
+m.code = "A"
 tap(m, "ok") check(m.errorMsg == "WRONG CODE", "invalid code rejected")
 tap(m, "back") check(m.stage == "joinPick", "keyboard back returns to address list")
 -- Every connected menu page uses the same row geometry.

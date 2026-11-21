@@ -685,7 +685,7 @@ function CoopMenu:onKeyPressed(key)
   elseif key == "v" and ctrl then
     local ok, clip = pcall(function() return love.system.getClipboardText() end)
     if ok and type(clip) == "string" then
-      self.code = clip:upper():gsub("[^%w%-]", ""):sub(1, 12)
+      self.code = clip:upper():gsub("[^%w%-]", ""):sub(1, 24)
     end
   end
 end
@@ -984,7 +984,16 @@ function CoopMenu:draw()
     Font.draw(self.visitMode and "VISIT WITH CODE" or "JOIN WITH CODE", 8, 12)
     Font.drawBox(0, 4, 20, 14)
     local blink = math.floor((love.timer and love.timer.getTime() or 0) * 2) % 2 == 0
-    Font.draw((self.code or "") .. (blink and "_" or ""), 16, 52)
+    local shown = (self.code or "") .. (blink and "_" or "")
+    if #shown <= 16 then
+      Font.draw(shown, 16, 52)
+    else
+      local cut = 0
+      for i = 1, 18 do if shown:sub(i, i) == "-" then cut = i end end
+      if cut == 0 then cut = 18 end
+      Font.draw(fit(shown:sub(1, cut), 18), 8, 46)
+      Font.draw(fit(shown:sub(cut + 1), 18), 8, 56)
+    end
     Font.draw("TYPE THE CODE,", 8, 72)
     Font.draw("CTRL-V PASTES IT.", 8, 80)
     -- the reason and what to do, whole: four rows above the key help

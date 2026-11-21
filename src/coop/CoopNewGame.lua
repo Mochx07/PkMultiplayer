@@ -162,7 +162,7 @@ function CoopNewGame:onTextInput(text)
   end
   if self.stage ~= "codeEntry" or type(text) ~= "string" then return end
   local clean = text:upper():gsub("[^%w%-]", "")
-  if #self.code + #clean <= 12 then self.code = self.code .. clean end
+  if #self.code + #clean <= 24 then self.code = self.code .. clean end
 end
 
 function CoopNewGame:onKeyPressed(key)
@@ -193,17 +193,26 @@ function CoopNewGame:onKeyPressed(key)
     self.stage = "ipEntry"
   elseif key == "v" and ctrl then
     local ok, clip = pcall(function() return love.system.getClipboardText() end)
-    if ok and type(clip) == "string" then self.code = clip:upper():gsub("[^%w%-]", ""):sub(1, 12) end
+    if ok and type(clip) == "string" then self.code = clip:upper():gsub("[^%w%-]", ""):sub(1, 24) end
   end
 end
 
 function CoopNewGame:submitCode()
+  local okH, CoopHub = pcall(require, "src.coop.CoopHub")
+  if okH and CoopHub and CoopHub.isGameCode and CoopHub.isGameCode(self.code) then
+    local ok, why = CoopHub.join(self.game, self.code)
+    if not ok then self.errorMsg = why or "WRONG CODE" return end
+    self.errorMsg = nil
+    self.hubJoining = true
+    self.stage = "connecting"
+    return
+  end
   local ip, port = CoopNet.parseInviteCode(self.code)
   if not ip then
     self.errorMsg = "WRONG CODE"
     return
   end
-  self.ip, self.port, self.errorMsg = ip, port, nil
+  self.ip, self.port, self.errorMsg, self.hubJoining = ip, port, nil, nil
   if CoopManager.join(ip, port) then
     self.stage = "connecting"
   else
@@ -213,6 +222,10 @@ function CoopNewGame:submitCode()
 end
 
 function CoopNewGame:leave()
+  if self.hubJoining then
+    pcall(function() require("src.coop.CoopHub").cancel() end)
+    self.hubJoining = nil
+  end
   if CoopManager.lobby == self then CoopManager.lobby = nil end
 end
 
@@ -298,8 +311,17 @@ function CoopNewGame:update(dt)
   if self.stage == "connecting" then
     local net = CoopManager.net
     if CoopManager.connected then
+      self.hubJoining = nil
       self:enterConfirm()
       if self.started then return end
+    elseif self.hubJoining then
+      local CoopHub = require("src.coop.CoopHub")
+      if CoopHub.state == "failed" then
+        local err = CoopHub.error
+        CoopHub.cancel()
+        self.hubJoining = nil
+        self:resetToRole(err or "CONNECTION FAILED")
+      end
     elseif not net or net.closed then
       self:resetToRole((net and net.error) or "CONNECTION FAILED")
     end
@@ -419,6 +441,10 @@ function CoopNewGame:update(dt)
     end
     if input:wasPressed("b") then
       pcall(Sound.play, self.game.data, "Menu")
+      if self.hubJoining then
+        pcall(function() require("src.coop.CoopHub").cancel() end)
+        self.hubJoining = nil
+      end
       CoopManager.disconnect()
       self:resetToRole(nil)
     end
@@ -554,7 +580,16 @@ function CoopNewGame:draw()
   elseif self.stage == "codeEntry" then
     local blink = math.floor(self.timer * 2) % 2 == 0
     Font.draw("HOST'S CODE:", 8, 32)
-    Font.draw((self.code or "") .. (blink and "_" or ""), 16, 48)
+    local shown = (self.code or "") .. (blink and "_" or "")
+    if #shown <= 16 then
+      Font.draw(shown, 16, 48)
+    else
+      local cut = 0
+      for i = 1, 18 do if shown:sub(i, i) == "-" then cut = i end end
+      if cut == 0 then cut = 18 end
+      Font.draw(fit(shown:sub(1, cut), 18), 8, 44)
+      Font.draw(fit(shown:sub(cut + 1), 18), 8, 54)
+    end
     Font.draw("TYPE THE CODE,", 8, 72)
     Font.draw("CTRL-V PASTES IT.", 8, 80)
     footer = "ENTER:OK  ESC:BACK"
@@ -575,6 +610,12 @@ function CoopNewGame:draw()
       end
       Font.draw("CODE: " .. tostring(CoopNet.inviteCode(pick.ip, self.port) or "?"), 8, 88)
       Font.draw("PORT: " .. self.port, 8, 96)
+    elseif self.hubJoining then
+      local CoopHub = require("src.coop.CoopHub")
+      Font.draw("JOIN ONLINE", 8, 32)
+      Font.draw(dots, 8, 40)
+      Font.draw(fit(tostring(CoopHub.status or "REACHING THE HOST"), 18), 8, 56)
+      Font.draw("PLEASE WAIT", 8, 96)
     else
       Font.draw("CONNECTING" .. dots, 8, 32)
       Font.draw("TO:", 8, 48)

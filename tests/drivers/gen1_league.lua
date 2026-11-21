@@ -37,9 +37,14 @@ return function(game)
     if BEAT[r] then f[BEAT[r]] = true end
   end
   if ROOM == "CHAMPIONS_ROOM" then f.EVENT_LANCES_ROOM_LOCK_DOOR = true end
-  local team = role == "host" and { { "BLASTOISE", 58 }, { "PIDGEOT", 55 }, { "RAICHU", 54 } }
-    or { { "VENUSAUR", 57 }, { "FEAROW", 54 } }
-  for _, t in ipairs(team) do table.insert(save.party, Pokemon.new(game.data, t[1], t[2])) end
+  local team = role == "host" and { { "BLASTOISE", 68 }, { "PIDGEOT", 64 }, { "RAICHU", 64 } }
+    or { { "VENUSAUR", 66 }, { "FEAROW", 63 } }
+  for _, t in ipairs(team) do
+    local mon = Pokemon.new(game.data, t[1], t[2])
+    -- reliable single-target non-Normal lead move (hits Ghosts, never hits ally)
+    mon.moves[1] = { id = role == "host" and "WATER_GUN" or "VINE_WHIP", pp = 25 }
+    table.insert(save.party, mon)
+  end
   local hofBefore = #(save.hallOfFame or {})
 
   local ow
@@ -126,23 +131,41 @@ return function(game)
     U.log(("%s: %s / %s brings %s%s"):format(role, tostring(battle.oppClass), tostring(battle.trainerB and battle.trainerB.name),
       table.concat(names, " "), battle.enemyPartyB and (" + " .. #battle.enemyPartyB) or ""))
     for _, list in ipairs({ battle.enemyParty or {}, battle.enemyPartyB or {} }) do
-      for _, m in ipairs(list) do m.hp = 1 end
+      for _, m in ipairs(list) do
+        m.hp = 1
+        if m.stats then m.stats.speed, m.stats.attack, m.stats.special = 1, 1, 1 end
+      end
     end
     local P = require("src.battle.BattleState").POS
     for _, pos in ipairs({ P.OPPONENT_LEFT, P.OPPONENT_RIGHT }) do
       local b = battle:battlerAt(pos)
-      if b and b.mon then b.mon.hp = 1 end
+      if b and b.mon then
+        b.mon.hp = 1
+        if b.mon.stats then b.mon.stats.speed, b.mon.stats.attack, b.mon.stats.special = 1, 1, 1 end
+      end
     end
     -- through the battle and whatever follows (Oak, the Hall of Fame, the
     -- credits) until the overworld is back
     local back = false
     for i = 1, 60 * 600 do
       local t = game.stack:top()
-      if t == game.overworld and i > 60 * 5 and not (game.overworld.runner and game.overworld.runner:isRunning()) then
+      local hofReady = BEAT[ROOM] ~= nil or #(save.hallOfFame or {}) > hofBefore
+      if hofReady and t == game.overworld and i > 60 * 5 and not (game.overworld.runner and game.overworld.runner:isRunning()) then
         back = true
         break
       end
-      if i % 12 == 0 then U.tap(game, "a") end
+      if i % 12 == 0 then
+        if t and t.forceSwitch and t.index then
+          local list = t.party or save.party or {}
+          local cur = list[t.index]
+          if not cur or (cur.hp or 0) <= 0 then
+            for idx, m in ipairs(list) do
+              if (m.hp or 0) > 0 then t.index = idx break end
+            end
+          end
+        end
+        U.tap(game, "a")
+      end
       U.wait(1)
     end
     check(back, "back in the overworld after it")

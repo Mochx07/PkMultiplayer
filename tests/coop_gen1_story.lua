@@ -858,6 +858,26 @@ do
   end
 end
 
+-- 7. Gen 1 Hall of Fame partner warp arms save.pendingHallOfFame
+do
+  local p2 = newGame("TOBY")
+  local warpedMap, armedAtWarp
+  p2.overworld = {
+    map = { id = "CHAMPIONS_ROOM" },
+    startWarpTo = function(_, map)
+      warpedMap = map
+      armedAtWarp = p2.save.pendingHallOfFame
+    end,
+  }
+  local realIdle = CoopManager.overworldIdle
+  CoopManager.overworldIdle = function() return true end
+  CoopStory.pendingWarp = { kind = "warp", map = "HALL_OF_FAME", x = 4, y = 7, facing = "up" }
+  CoopStory.tick(0.016, p2)
+  CoopManager.overworldIdle = realIdle
+  check(warpedMap == "HALL_OF_FAME" and armedAtWarp == true,
+        "Gen 1 partner warp to HALL_OF_FAME arms save.pendingHallOfFame before warping")
+end
+
 BattleState.newWild, BattleState.newTrainer = origNewWild, origNewTrainer
 GV.set(wasGame)
 CoopManager.isConnected = realIsConnected

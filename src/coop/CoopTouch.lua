@@ -297,7 +297,16 @@ local function drawKeyboard(s)
     F.raw.draw(i18n().fitGlyphs(rows[#rows - 1] or ""), 8, 36)
     F.raw.draw(i18n().fitGlyphs(rows[#rows] or "") .. (#(rows[#rows] or "") < 18 and "_" or ""), 8, 46)
   else
-    F.raw.draw((s.stage == "name" and s.nameEdit.buf or (s.code or "")) .. "_", 8, 24)
+    local text = (s.stage == "name" and s.nameEdit.buf or (s.code or "")) .. "_"
+    if #text <= 18 then
+      F.raw.draw(text, 8, 24)
+    else
+      local cut = 0
+      for i = 1, 18 do if text:sub(i, i) == "-" then cut = i end end
+      if cut == 0 then cut = 18 end
+      F.raw.draw(text:sub(1, cut), 8, 20)
+      F.raw.draw(text:sub(cut + 1, cut + 18), 8, 30)
+    end
     if s.errorMsg then F.draw(s.errorMsg, 8, 44) end
   end
 end
