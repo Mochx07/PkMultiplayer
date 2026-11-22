@@ -167,3 +167,4 @@ tasks/evidence/codex/emote.log
 tests/drivers/six_tower_fuji.lua
 tests/drivers/six_silph_personal.lua
 tasks/REPORT-six.md
+tasks/release-2.0.0-nightly.3.md

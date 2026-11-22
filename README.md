@@ -41,23 +41,29 @@ no fork of the game to download, just this zip.
 ### New in 2.0 (nightly)
 
 The **2.0 nightly** builds are test builds on the [releases page](https://github.com/Mochx07/PkMultiplayer/releases)
-(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**,
-and each new feature turns on only when **both** players have it.
+(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**.
+Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players must be on nightly.3).
 
-- **Catch together, Let's Go style:** throw balls in a co-op wild battle; both throwing in the
-  same turn is a **joint throw** (the better ball, catch rate ×1.5), the twin goes into a ball of its
-  own, and then you decide **who keeps it** (me / my partner / let fate decide).
-- **Voice chat:** push-to-talk (**V**) or open mic, louder the closer you stand on the map.
+- **Gen 1 co-op parity (Red, Blue and Yellow):** all 8 Kanto gyms, the Pokémon League and Hall of Fame,
+  rival 2-vs-2 battles, catchable legendary bosses (Articuno, Zapdos, Moltres, Mewtwo), shared Kanto
+  storyline (S.S. Anne, Pokémon Tower, Rocket Hideout, Silph Co., Safari Zone, Snorlax), Kanto's Bike
+  Trial, direct Cable Club linking with your partner, and separated 2-vs-2 back sprites.
+- **Edition matrix (protocol 17):** Red/Blue with Yellow and Gold/Silver with Crystal share one story
+  through a single receiver filter while keeping edition-exclusive events safely in their own save.
+- **Official Link Hub (no VPN needed):** `HOST ONLINE` and `JOIN` by code (up to 24 characters, Ctrl+V
+  or touch keyboard) link straight through the game's own connection ladder and official Link Hub.
+- **2-vs-1 wild co-op and timed joint catching:** wild co-op battles face a single wild Pokémon (no
+  mirrored twin); both players throwing a Ball on the same turn triggers a shrinking-ring timing
+  bonus (up to ×3 catch rate), followed by **who keeps it** (me / my partner / let fate decide).
+- **Partner on the Town Map:** your partner's avatar head shows directly on the Gen 1 and Gen 2 Town
+  Map, even across different editions.
+- **Mobile touch support:** touch controls across the mod's menus, invites, VS screens, emotes and
+  code entry; no keyboard hints on phones and on-screen/gamepad **R** for push-to-talk (**PUSH R**).
+- **Voice chat:** push-to-talk (**V** / **R**) or open mic, louder the closer you stand on the map.
 - **Time Capsule:** Red/Blue/Yellow and Gold/Silver/Crystal can link to chat, emote and trade.
-- **Gold/Silver with Crystal (experimental):** one shared story across the two cartridges.
-- **Your partner's feed:** their catches, evolutions and eggs on your screen; level-ups in a
-  battle show in a corner card instead of stopping the turn.
-- **Battle Tower in duo** (Crystal): join once for the whole challenge. **Bug-Catching Contest**:
-  your partner's time and best catch, live.
-- **More VPNs:** Tailscale, Radmin VPN, Hamachi and WireGuard besides ZeroTier.
-- Chat shows only what is sent ("typing..." once there is a letter) and stays out of the way in
-  battle; one **CO-OP** row on the title screen; your **name** before you link; **Discord** "Ask to
-  Join" and an **AFK** status; straight beams and tidier sprites in 2-vs-2.
+- **Your partner's feed & QoL:** partner catches, evolutions and eggs on your screen; level-ups in a
+  corner card; Battle Tower in duo (Crystal); live Bug-Catching Contest; Tailscale, Radmin VPN,
+  Hamachi and WireGuard besides ZeroTier; Discord "Ask to Join" and **AFK** status; solo emotes.
 
 ### What makes it different
 
@@ -213,22 +219,31 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 
 Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Mochx07/PkMultiplayer/releases)
 (marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.58
-o posterior**, y cada novedad solo se activa cuando **los dos** la tienen.
+o posterior**. Desde la **2.0.0-nightly.3** el enlace usa **protocolo 17** (los dos jugadores deben
+usar nightly.3).
 
-- **Captura en equipo, estilo Let's Go:** lancen Balls en un combate salvaje co-op; si los dos
-  lanzan en el mismo turno es un **lanzamiento conjunto** (la mejor Ball, ratio ×1,5), el gemelo
-  entra en su propia Ball y luego deciden **quién se lo queda** (yo / para el compañero / a la suerte).
-- **Chat de voz:** pulsar **V** o micro abierto, más fuerte cuanto más cerca estén en el mapa.
+- **Paridad de Gen 1 (Rojo, Azul y Amarillo):** los 8 gimnasios de Kanto, la Liga Pokémon y el Salón
+  de la Fama en 2 contra 2, rival en 2 contra 2, legendarios capturables como jefes (Articuno,
+  Zapdos, Moltres, Mewtwo), historia co-op de Kanto (S.S. Anne, Torre Pokémon, Guarida Rocket,
+  Silph S.A., Zona Safari, Snorlax), Contrarreloj en bici en Ruta Ciclista, enlace directo en el
+  Club de Cable y espaldas separadas en los dobles de Gen 1.
+- **Matriz de ediciones (protocolo 17):** Rojo/Azul con Amarillo y Oro/Plata con Cristal comparten
+  historia con un solo filtro al recibir, manteniendo los eventos exclusivos de edición a salvo en
+  su propia partida.
+- **Link Hub oficial sin VPN:** `HOST ONLINE` y `JOIN` por código (hasta 24 caracteres, Ctrl+V o
+  teclado táctil) conectan directo a través de la escalera de red y el Link Hub oficial del juego.
+- **Salvajes 2 contra 1 y captura conjunta sincronizada:** los salvajes en pareja son ahora un solo
+  Pokémon frente a los dos jugadores; si ambos lanzan Ball en el mismo turno sale un aro de puntería
+  (hasta ×3 de captura) y luego deciden **quién se lo queda** (yo / para el compañero / a la suerte).
+- **Compañero en el Mapa:** la cabeza de tu compañero se ve en el Mapa de Gen 1 y Gen 2, incluso
+  entre ediciones distintas.
+- **Soporte táctil en móvil:** toque en las pantallas del mod (menús, invitaciones, VS, emotes y
+  teclado táctil para códigos), sin pistas de teclado y botón **R** para hablar (**PUSH R**).
+- **Chat de voz:** pulsar **V** / **R** o micro abierto, más fuerte cuanto más cerca estén en el mapa.
 - **Cápsula del Tiempo:** Rojo/Azul/Amarillo con Oro/Plata/Cristal para chatear, mandar emotes e intercambiar.
-- **Oro/Plata con Cristal (experimental):** una sola historia entre los dos cartuchos.
-- **Lo que hace el compañero:** sus capturas, evoluciones y huevos en tu pantalla; las subidas de
-  nivel en combate salen en una tarjeta en la esquina en vez de parar el turno.
-- **Torre de Batalla en dúo** (Cristal): se aceptan una vez para todo el desafío. **Concurso de
-  bichos**: el tiempo y la mejor captura del compañero, en vivo.
-- **Más VPN:** Tailscale, Radmin VPN, Hamachi y WireGuard además de ZeroTier.
-- El chat muestra solo lo enviado («escribiendo...» con al menos una letra) y no estorba en
-  combate; una sola fila **CO-OP** en el título; tu **nombre** antes de enlazar; «Pedir unirse» en
-  **Discord** y estado **AFK**; rayos rectos y sprites más ordenados en el 2 contra 2.
+- **Más mejoras de la 2.0:** actividad del compañero, subidas de nivel en esquina, Torre de Batalla en
+  dúo (Cristal), Concurso de bichos en vivo, más VPNs (Tailscale, Radmin VPN, Hamachi y WireGuard),
+  Discord («Pedir unirse» y **AFK**) y emotes también en solitario.
 
 ### Lo que lo hace distinto
 

@@ -3,6 +3,66 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 2.0.0-nightly.3
+
+**Nightly** (versión de prueba) centrada en Gen 1 (Rojo/Azul/Amarillo), terceras ediciones,
+conexión por Link Hub y soporte táctil en móvil. La estable sigue siendo la 1.6.17.
+**Protocolo nuevo (17):** los dos jugadores necesitan `2.0.0-nightly.3` (ya no enlaza con
+protocolo 16; cada copia avisa qué versión tiene el otro). Necesita Gen2Recomped 0.8.58 o posterior.
+
+### Añadido
+
+- **Protocolo 17 y matriz de ediciones (`CoopEditions`):** Rojo/Azul con Amarillo y Oro/Plata con
+  Cristal comparten historia bajo un único filtro al recibir (`3RD ED. STORY` encendida por defecto):
+  los eventos comunes se comparten o traducen por nombre, y los exclusivos de edición (Jessie y
+  James, iniciales regalados y Pikachu en Amarillo; eventos exclusivos de Cristal) se quedan en su
+  partida con un aviso para el compañero en vez de romper el guardado.
+- **Gen 1 al nivel de Gen 2 (Rojo, Azul y Amarillo):**
+  - **Los 8 gimnasios en equipo** (16/16 verificados en Rojo y Amarillo, de Ciudad Plateada a Verde)
+    en combate doble 2 contra 2 con medalla y MT para ambos.
+  - **Liga Pokémon y Salón de la Fama en 2 contra 2** (Lorelei, Bruno, Agatha, Lance y campeón),
+    registrando el Salón de la Fama en las dos partidas.
+  - **Rival en 2 contra 2** (contrainicial en Rojo/Azul y línea de Eevee en Amarillo).
+  - **Legendarios de Kanto como jefes capturables juntos:** Articuno, Zapdos, Moltres (×1,5 PS) y
+    Mewtwo (×2 PS), con dos acciones por turno y captura compartida.
+  - **Historia co-op de Kanto:** S.S. Anne, Torre Pokémon (Marowak, Sr. Fuji, Poké Flauta), Guarida
+    Rocket (Llave Ascensor, Giovanni, Visor Silph), Silph S.A. (puertas Llave Magnética, Lapras
+    personal, Giovanni y retirada Rocket), Zona Safari (MO y Dientes compartidos) y Snorlax, con
+    escenas a dos (`story.duo`).
+  - **Club de Cable y Link Hub oficial sin VPN:** en el Club de Cable la recepcionista pregunta
+    `LINK WITH <compañero> / OTHER` para entrar directo al Centro de Intercambio o Coliseo por el
+    enlace co-op sin código; además `HOST ONLINE` y `JOIN` por código (hasta 24 caracteres, `Ctrl+V`
+    o teclado táctil) conectan mediante la escalera y Link Hub oficial del juego.
+  - **Contrarreloj en bici en Gen 1:** Ruta Ciclista de Kanto (Puerta Ruta 16 → Ruta 17 → Ruta 18).
+- **Compañero en el Mapa de Kanto y Johto (`CoopTownMap`):** la cabeza del avatar de tu compañero
+  aparece situada sobre el mapa del pueblo, incluso entre ediciones distintas (Rojo ↔ Amarillo).
+- **Captura conjunta con puntería sincronizada (`catch.aim`):** cuando los dos lanzan una Ball en
+  el mismo turno aparece un aro que se cierra en 1,2 s sobre el Pokémon salvaje; ambos pulsan A al
+  unísono y el margen decide el multiplicador (hasta ×3 en PERFECTA ≤100 ms, ×2,25 ≤250 ms, ×1,75
+  ≤450 ms, ×1,5 base).
+- **Controles táctiles en móvil:** todas las pantallas del mod (menú co-op, invitaciones, equipo,
+  emotes, VS y teclado táctil para códigos del Link Hub) responden al toque; se ocultan las pistas
+  de teclado (`(KEY T)`/`(KEY Y)`/`(R)`) en móvil y el botón `R` táctil o del mando sirve para
+  hablar (`PUSH R`).
+
+### Cambiado
+
+- **Salvajes en pareja ahora son 2 contra 1:** un único Pokémon salvaje frente a los dos jugadores
+  (se quitó el gemelo espejo).
+- **Espaldas separadas en dobles de Gen 1:** los sprites de P1 y P2 se sitúan lado a lado sin
+  encimarse.
+- **Ball de captura más alta en dobles:** la Poké Ball ya no queda tapada por los nombres del HUD
+  (Gen 1 y Gen 2).
+- **Aviso si el juego es anterior a 0.8.58:** en vez de cargar en silencio sin parches, se registra
+  en el log y se avisa en pantalla.
+
+### Arreglado
+
+- **Emotes en solitario:** usar `EMOTE` sin compañero conectado ahora muestra el globo sobre tu
+  propio personaje en lugar de cerrar el menú sin hacer nada.
+- **Códigos largos del Link Hub (24 caracteres):** conservados íntegros al pegar con `Ctrl+V`, en el
+  teclado táctil y desde Nueva Partida Co-op, con salto limpio en dos líneas.
+
 ## 2.0.0-nightly.2
 
 **Nightly** (versión de prueba). La estable sigue siendo la 1.6.17. Mismo protocolo: enlaza
