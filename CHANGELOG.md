@@ -3,6 +3,20 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 2.0.0-nightly.5
+
+**Nightly** (versión de prueba) con los parches regenerados y verificados contra **Gen2Recomped
+0.8.60** (`886aea62`). Incluye todas las novedades y arreglos de `2.0.0-nightly.4` (ruleta en
+captura conjunta, sprite 1v1 en salvajes 2 contra 1, arreglo de la Meseta Añil, modo táctil en PC
+y teclado `W`/`L` en español). Protocolo 17. **Necesita Gen2Recomped 0.8.60 o posterior** (si aún
+estás en 0.8.58, usa `2.0.0-nightly.4`).
+
+### Cambiado
+
+- **Parches actualizados a Gen2Recomped 0.8.60 (`886aea62`):** todas las 131 funciones parcheadas
+  y la suite completa (61 suites) verificadas sobre la base `0.8.60`; `manifest.json` y el aviso de
+  versión mínima en `main.lua` ahora apuntan a `>=0.8.60`.
+
 ## 2.0.0-nightly.4
 
 **Nightly** (versión de prueba) con mejoras en captura conjunta, batallas salvajes 2 contra 1,

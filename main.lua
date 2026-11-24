@@ -449,7 +449,7 @@ Hooks.installQuit()
 -- land on functions that are no longer theirs, and things go wrong in odd
 -- places.  Say so in the log and on screen (once the game is up).  A copy
 -- run from source reports 0.0.0-dev or 0.7.6 and is left alone.
-local MIN_ENGINE = "0.8.58"
+local MIN_ENGINE = "0.8.60"
 do
   local okV, V = pcall(require, "src.core.Version")
   local engine = okV and type(V) == "table" and tostring(V.engine or "") or ""

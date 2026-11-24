@@ -9,7 +9,7 @@ Crystal (and Red/Blue/Yellow) with a friend, in the same world.</b></p>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?label=release&color=39ff88"></a>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Mochx07/PkMultiplayer/total"></a>
   <a href="https://github.com/Mochx07/PkMultiplayer/releases"><img alt="Nightly" src="https://img.shields.io/github/v/release/Mochx07/PkMultiplayer?include_prereleases&label=nightly&color=ff9f1c"></a>
-  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Gen2Recomped 0.8.49 (stable) / 0.8.58+ (nightly)" src="https://img.shields.io/badge/Gen2Recomped-0.8.49%20%7C%200.8.58%2B%20nightly-blue"></a>
+  <a href="https://github.com/UNDERdecoded/Gen2Recomped"><img alt="Gen2Recomped 0.8.49 (stable) / 0.8.60+ (nightly)" src="https://img.shields.io/badge/Gen2Recomped-0.8.49%20%7C%200.8.60%2B%20nightly-blue"></a>
   <img alt="2 players" src="https://img.shields.io/badge/players-2%20(%2B4%20visitors)-orange">
   <img alt="English and Spanish" src="https://img.shields.io/badge/language-EN%20%7C%20ES-lightgrey">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green"></a>
@@ -41,7 +41,7 @@ no fork of the game to download, just this zip.
 ### New in 2.0 (nightly)
 
 The **2.0 nightly** builds are test builds on the [releases page](https://github.com/Mochx07/PkMultiplayer/releases)
-(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**.
+(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.60 or later**.
 Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players must be on nightly.3+).
 
 - **Gen 1 co-op parity (Red, Blue and Yellow):** all 8 Kanto gyms, the Pokémon League and Hall of Fame,
@@ -219,7 +219,7 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 ### Novedades de la 2.0 (nightly)
 
 Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Mochx07/PkMultiplayer/releases)
-(marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.58
+(marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.60
 o posterior**. Desde la **2.0.0-nightly.3** el enlace usa **protocolo 17** (los dos jugadores deben
 usar nightly.3+).
 
