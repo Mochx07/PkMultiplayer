@@ -248,26 +248,182 @@ local function shortName(n)
   return require("src.coop.CoopI18n").truncate(tostring(n or ""), 7)
 end
 
+-- Leading pure read-only guard commands evaluated on a disposable probe ctx
+-- before scanning for a big battle, so inactive coord triggers (Indigo Plateau
+-- Mon/Wed rival rematch) or already-beaten Elite Four members never pop up a
+-- phantom CO-OP/SOLO prompt whose script immediately returns.
+local GUARD_SKIP = {
+  label = true, g2_nop = true, face_player = true, face = true, face_npc = true,
+}
+local GUARD_EVAL = {
+  check_flag = true, check_item = true, check_dex_owned = true,
+  g2_check_scene = true, g2_readvar = true, g2_compare = true,
+  g2_setvar = true, g2_addvar = true, g2_divide_var = true,
+  g2_check_just_battled = true, g2_endifjustbattled = true,
+  g2_checktime = true, g2_check_money = true, g2_check_poke = true,
+  g2_check_coins = true, g2_check_party_egg = true,
+}
+local unpack = table.unpack or unpack
+
+local function resolveScriptTarget(target, labels, len)
+  if target == "end" then return nil end
+  if type(target) == "string" then return labels[target] end
+  if type(target) == "number" and target >= 1 and target <= len and target % 1 == 0 then
+    return target
+  end
+  return nil
+end
+
+local function copyArray(arr)
+  local out = {}
+  for i = 1, #(arr or {}) do out[i] = arr[i] end
+  return out
+end
+
+local function bigBattleFromRow(CM, row, save)
+  if type(row) ~= "table" then return nil end
+  local class, party
+  if row[1] == "g2_load_trainer" then
+    class, party = row[2], row[3]
+  elseif row[1] == "start_battle" and row[2] == "trainer" then
+    class, party = row[3], row[4]
+  elseif row[1] == "rival_battle" then
+    -- Red / Blue / Yellow's rival: his class and the fight's base party
+    -- (Commands.rival_battle adds the starter's offset)
+    class, party = row[2], row[3]
+  end
+  if type(class) == "string" and CM.isBigBattleClass(class, save, party) then
+    return class, party
+  end
+  return nil
+end
+
 -- The trainer an event leads to, when it is one worth deciding about before
--- the talking starts (CoopManager.isBigBattleClass): scanned off the script
--- rows, `loadtrainer` (Gen 2) or a trainer `start_battle`.
-function CoopStory.findBigBattle(script, save)
+-- the talking starts (CoopManager.isBigBattleClass): evaluates leading
+-- read-only guard checks first, then scans only rows reachable from there.
+function CoopStory.findBigBattle(script, save, ctx)
   local CM = manager()
   if not (CM and CM.isBigBattleClass and type(script) == "table") then return nil end
-  for _, row in ipairs(script) do
-    if type(row) == "table" then
-      local class, party
-      if row[1] == "g2_load_trainer" then
-        class, party = row[2], row[3]
-      elseif row[1] == "start_battle" and row[2] == "trainer" then
-        class, party = row[3], row[4]
-      elseif row[1] == "rival_battle" then
-        -- Red / Blue / Yellow's rival: his class and the fight's base party
-        -- (Commands.rival_battle adds the starter's offset)
-        class, party = row[2], row[3]
+  local len = #script
+  if len == 0 then return nil end
+  local labels = {}
+  for i = 1, len do
+    local row = script[i]
+    if type(row) == "table" and row[1] == "label" and type(row[2]) == "string" and labels[row[2]] == nil then
+      labels[row[2]] = i
+    end
+  end
+
+  local okC, Commands = pcall(require, "src.script.Commands")
+  if okC then pcall(require, "src.script.Gen2Commands") end
+  local probe = {
+    save = save,
+    game = ctx and ctx.game,
+    overworld = ctx and ctx.overworld,
+    justBattled = ctx and ctx.justBattled,
+    lastCheck = false,
+    g2Var = 0,
+    g2Stack = {},
+  }
+
+  -- Phase 1: evaluate pure read-only leading guards without mutating live state.
+  local pc = 1
+  for _ = 1, 256 do
+    if not pc or pc < 1 or pc > len then return nil end
+    local row = script[pc]
+    if type(row) ~= "table" then
+      pc = pc + 1
+    else
+      local class, party = bigBattleFromRow(CM, row, save)
+      if class then return class, party end
+      local cmd = row[1]
+      if GUARD_SKIP[cmd] then
+        pc = pc + 1
+      elseif cmd == "end" then
+        return nil
+      elseif cmd == "jump" then
+        pc = resolveScriptTarget(row[2], labels, len)
+        if not pc then return nil end
+      elseif cmd == "jump_if_true" then
+        if probe.lastCheck then
+          pc = resolveScriptTarget(row[2], labels, len)
+          if not pc then return nil end
+        else
+          pc = pc + 1
+        end
+      elseif cmd == "jump_if_false" then
+        if not probe.lastCheck then
+          pc = resolveScriptTarget(row[2], labels, len)
+          if not pc then return nil end
+        else
+          pc = pc + 1
+        end
+      elseif cmd == "g2_call" then
+        probe.g2Stack[#probe.g2Stack + 1] = row[2]
+        pc = pc + 1
+      elseif cmd == "g2_return" then
+        if #probe.g2Stack > 0 then
+          pc = resolveScriptTarget(table.remove(probe.g2Stack), labels, len)
+          if not pc then return nil end
+        else
+          return nil
+        end
+      elseif cmd == "g2_readmem" and type(save) == "table" then
+        local addr = row[2] or probe.g2HalfwordVar
+        local val = (type(save.g2Wram) == "table" and addr and save.g2Wram[addr]) or 0
+        probe.g2Var = val
+        probe.lastCheck = val ~= 0
+        pc = pc + 1
+      elseif GUARD_EVAL[cmd] and type(save) == "table" and okC and type(Commands[cmd]) == "function" then
+        local ok, ret = pcall(Commands[cmd], probe, unpack(row, 2))
+        if not ok then break end
+        if ret == "end" then return nil end
+        pc = pc + 1
+      else
+        break
       end
-      if type(class) == "string" and CM.isBigBattleClass(class, save) then
-        return class, party
+    end
+  end
+
+  -- Phase 2: reachability DFS from the post-guard pc following branches and calls.
+  local work = { { pc = pc, stack = copyArray(probe.g2Stack) } }
+  local visited = {}
+  while #work > 0 do
+    local frame = table.remove(work)
+    local p, cs = frame.pc, frame.stack
+    while p and p >= 1 and p <= len do
+      local key = tostring(p) .. ":" .. tostring(cs[#cs] or "")
+      if visited[key] then break end
+      visited[key] = true
+      local row = script[p]
+      if type(row) ~= "table" then
+        p = p + 1
+      else
+        local class, party = bigBattleFromRow(CM, row, save)
+        if class then return class, party end
+        local cmd = row[1]
+        if cmd == "end" then
+          break
+        elseif cmd == "g2_return" then
+          if #cs > 0 then
+            p = resolveScriptTarget(table.remove(cs), labels, len)
+          else
+            break
+          end
+        elseif cmd == "g2_call" then
+          cs[#cs + 1] = row[2]
+          p = p + 1
+        elseif cmd == "jump" then
+          p = resolveScriptTarget(row[2], labels, len)
+        elseif cmd == "jump_if_true" or cmd == "jump_if_false" then
+          local branch = resolveScriptTarget(row[2], labels, len)
+          if branch then
+            work[#work + 1] = { pc = branch, stack = copyArray(cs) }
+          end
+          p = p + 1
+        else
+          p = p + 1
+        end
       end
     end
   end
@@ -294,7 +450,7 @@ function CoopStory.begin(ctx, script)
   local ow = ctx.overworld
   local here = partnerHere(ow)
   local CM = manager()
-  local class, party = CoopStory.findBigBattle(script, ctx.save)
+  local class, party = CoopStory.findBigBattle(script, ctx.save, ctx)
   -- A Lua talk/victory handler that starts a helper runner (Mt. Moon fossil,
   -- Pokemon Tower 7F grunt exit) keeps its own outer story context so items
   -- and flags written before runner:run are still part of one event; when
@@ -572,6 +728,19 @@ function CoopStory.finish(ctx)
   -- the scene's flags go first (below), so the partner's own copy of the
   -- scene is already closed by the time the hold on it lifts
   local function done()
+    -- If this script sent a big-battle CO-OP invite that never launched a
+    -- battle, cancel it now so the partner is never left stranded in READ ALONG.
+    if ctx and ctx.coopBigInviteId then
+      local CM = manager()
+      local big = CM and CM.bigBattle
+      if big and big.inviteId == ctx.coopBigInviteId then
+        CM.bigBattle = nil
+        if CM.net and CM.isConnected and CM.isConnected() then
+          CM.net:send({ type = "coop_battle_cancel", inviteId = ctx.coopBigInviteId })
+        end
+      end
+      ctx.coopBigInviteId = nil
+    end
     releaseHold(ctx)
     -- 1.20 duo: the partner reading along hears the scene is over
     if st and st.here then

@@ -342,5 +342,100 @@ do
   T.check(not ctx.coopSkipScript and offered[1] == "OPP_RIVAL1", "only one claimed it: that one leads, host or guest")
 end
 
+-- ---------------------------------------------------------------------
+-- Leading guard pre-evaluation: Indigo Plateau PokéCenter rival rematch
+-- (S5A_48FF) and defeated Elite Four members must NOT pop up CO-OP / SOLO
+-- when their leading flag / weekday checks immediately jump to g2_return.
+-- ---------------------------------------------------------------------
+do
+  local INDIGO_RIVAL = {
+    { "check_flag", "EVENT_G2_0793" },
+    { "jump_if_false", "S5A_49D7" },
+    { "check_flag", "ENGINE_INDIGO_PLATEAU_RIVAL_FIGHT" },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_readvar", 11 },
+    { "g2_compare", "eq", 0 },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_compare", "eq", 2 },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_compare", "eq", 4 },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_compare", "eq", 5 },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_compare", "eq", 6 },
+    { "jump_if_true", "S5A_49D7" },
+    { "g2_place", 4, 17, 9 },
+    { "jump", "S5A_497A" },
+    { "label", "S5A_49D7" },
+    { "g2_return" },
+    { "label", "S5A_497A" },
+    { "g2_load_trainer", "OPP_RIVAL2", 6 },
+    { "start_battle" },
+    { "g2_return" },
+  }
+  local gI = newGame("MOCHI")
+  local todayW = tonumber(os.date("%w")) or 0
+  -- Mt. Moon flag unset: inactive trigger
+  gI.save.flags.EVENT_G2_0793 = false
+  gI.save.g2DayOffset = (1 - todayW) % 7 -- Monday
+  T.check(CoopStory.findBigBattle(INDIGO_RIVAL, gI.save) == nil,
+          "Indigo rival: no CO-OP prompt when Mt. Moon flag is false")
+  -- Mt. Moon flag set, but Tuesday (day 2): inactive trigger
+  gI.save.flags.EVENT_G2_0793 = true
+  gI.save.g2DayOffset = (2 - todayW) % 7 -- Tuesday
+  T.check(CoopStory.findBigBattle(INDIGO_RIVAL, gI.save) == nil,
+          "Indigo rival: no CO-OP prompt on non-Mon/Wed weekday")
+  -- Mt. Moon flag set, Monday (day 1), already fought today: inactive trigger
+  gI.save.g2DayOffset = (1 - todayW) % 7
+  gI.save.flags.ENGINE_INDIGO_PLATEAU_RIVAL_FIGHT = true
+  T.check(CoopStory.findBigBattle(INDIGO_RIVAL, gI.save) == nil,
+          "Indigo rival: no CO-OP prompt if already fought today")
+  -- Mt. Moon flag set, Monday (day 1), not yet fought: real battle trigger!
+  gI.save.flags.ENGINE_INDIGO_PLATEAU_RIVAL_FIGHT = false
+  local cls, party = CoopStory.findBigBattle(INDIGO_RIVAL, gI.save)
+  T.check(cls == "OPP_RIVAL2" and party == 6,
+          "Indigo rival: detects OPP_RIVAL2 when all guards pass on Monday")
+  -- Defeated Elite Four talk script
+  local WILL_TALK = {
+    { "face_player" },
+    { "check_flag", "EVENT_G2_1464" },
+    { "jump_if_true", "AFTER_DEFEAT" },
+    { "show_text", "WILL_BEFORE" },
+    { "g2_load_trainer", "OPP_ELITE_FOUR_WILL", 1 },
+    { "start_battle" },
+    { "g2_return" },
+    { "label", "AFTER_DEFEAT" },
+    { "show_text", "WILL_AFTER" },
+    { "g2_return" },
+  }
+  gI.save.flags.EVENT_G2_1464 = false
+  T.check(CoopStory.findBigBattle(WILL_TALK, gI.save) == "OPP_ELITE_FOUR_WILL",
+          "Will unbeaten: detects OPP_ELITE_FOUR_WILL")
+  gI.save.flags.EVENT_G2_1464 = true
+  T.check(CoopStory.findBigBattle(WILL_TALK, gI.save) == nil,
+          "Will already beaten: no CO-OP prompt on post-battle dialogue")
+
+  -- Safety net: unconsumed bigBattle invite cancels when script finishes
+  CoopManager.partner.map = "INDIGO_PLATEAU_POKECENTER1_F"
+  menus, sent = {}, {}
+  local realAvail = CoopManager.partnerAvailable
+  CoopManager.partnerAvailable = function() return true end
+  local owI = { game = gI, map = { id = "INDIGO_PLATEAU_POKECENTER1_F" } }
+  local rI = newRunner()
+  local ctxI = { game = gI, save = gI.save, overworld = owI, runner = rI }
+  rI.co = coroutine.create(function() realOffer(ctxI, "OPP_RIVAL2", 6) end)
+  rI:resume()
+  if menus[1] then menus[1].items[1].onSelect() end
+  T.check(CoopManager.bigBattle ~= nil and ctxI.coopBigInviteId ~= nil,
+          "safety net: offerBigBattle records inviteId on ctx")
+  sent = {}
+  CoopStory.finish(ctxI)
+  local cancelled
+  for _, m in ipairs(sent) do if m.type == "coop_battle_cancel" then cancelled = m end end
+  T.check(cancelled ~= nil and CoopManager.bigBattle == nil,
+          "safety net: unconsumed bigBattle invite cancels on CoopStory.finish")
+  CoopManager.partnerAvailable = realAvail
+end
+
 CoopManager.offerBigBattle = realOffer
 T.finish("co-op big battle waits for the partner")

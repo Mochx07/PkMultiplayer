@@ -235,5 +235,77 @@ local broken = { game = game, update = function() error("touch fixture error") e
 local ok = pcall(T.action, broken, "a")
 check(not ok and game.input == real, "action restores input even on error")
 check(not game.input.pressQueue, "touch actions leave no queued engine keys")
+
+-- Desktop touch mode exits cleanly on keyboard/gamepad input and ignores empty
+-- mouse window-focus clicks when inactive.
+do
+  game.coopTouchUsed = true
+  local c = mount(require("src.coop.CoopChatBox").new(game))
+  check(T.keyboard(c), "touch keyboard active when coopTouchUsed is true")
+  T.exitTouch(game)
+  check(not game.coopTouchUsed and not T.keyboard(c), "exitTouch dismisses desktop touch mode and keyboard")
+  -- Mouse focus click on empty space while touch mode is off must neither enable touch nor cancel
+  local listMenu = mount(require("src.coop.CoopI18n").menu().new(game, {
+    { label = "CO-OP", onSelect = function() end },
+    { label = "SOLO", onSelect = function() end },
+  }, { tx = 3, ty = 4, tw = 14, th = 6 }))
+  local handled = T.route(game, "touchpressed", "mouse", 0, 0)
+  check(not handled and not game.coopTouchUsed and game.stack:top() == listMenu,
+    "desktop mouse click outside menu when touch inactive does not enable touch or cancel")
+  -- List row targets stay strictly inside the menu's inner border
+  for _, r in ipairs(T.targets(listMenu)) do
+    if r.id:find("^row:") then
+      check(r.y >= (listMenu.ty + 1) * 8 and r.y + r.h <= (listMenu.ty + listMenu.th - 1) * 8,
+        "list row " .. r.id .. " stays inside menu frame border")
+    end
+  end
+  -- Compact wait modal BACK button clears the bottom dialogue area (y < 96)
+  local cwait = mount(require("src.coop.CoopWaitModal").new(game, "BLUE", function() end, 150,
+    { compact = true, lines = { "READ ALONG..." } }))
+  geometry(cwait, "compact wait")
+  local cwBack = target(cwait, "back")
+  check(cwBack and cwBack.y >= 32 and cwBack.y + cwBack.h <= 96,
+    "compact wait BACK sits below top box and clears bottom dialogue")
+  -- Invite modal BACK button sits cleanly outside the modal box
+  local invBack = target(invite, "back")
+  check(invBack and invBack.y >= (invite.ty + invite.th) * 8,
+    "invite BACK button sits outside modal box")
+  -- Overworld CO-OP button opener is completely removed
+  local fakeOw = { map = { id = "INDIGO_PLATEAU_POKECENTER1_F" } }
+  game.overworld = fakeOw
+  mount(fakeOw)
+  local sx, sy = screenPoint(140, 138)
+  check(not T.route(game, "touchpressed", 1, sx, sy) and game.stack:top() == fakeOw,
+    "overworld CO-OP corner opener is disabled")
+  -- Touch keyboard renders W and L literally even when Spanish translation maps W->V / L->D
+  local Font = require("src.render.Font")
+  local savedService = package.loaded["src.translation.Service"]
+  package.loaded["src.translation.Service"] = {
+    engineKeys = true,
+    display = function(s)
+      if s == "W" then return "V" end
+      if s == "L" then return "D" end
+      return s
+    end,
+  }
+  local origEncode, origDrawCode, origAdvance = Font.encode, Font.drawCode, Font.advanceOf
+  local drawn = {}
+  Font.encode = function(txt)
+    local out = {}
+    for i = 1, #txt do out[i] = txt:byte(i) end
+    return out
+  end
+  Font.drawCode = function(code) drawn[#drawn + 1] = string.char(code) end
+  Font.advanceOf = function() return 8 end
+  game.coopTouchUsed = true
+  local chatKb = mount(require("src.coop.CoopChatBox").new(game))
+  chatKb:draw()
+  local joined = table.concat(drawn)
+  check(joined:find("W", 1, true) ~= nil and joined:find("L", 1, true) ~= nil,
+    "touch keyboard draws W and L literally instead of localized V/D")
+  Font.encode, Font.drawCode, Font.advanceOf = origEncode, origDrawCode, origAdvance
+  package.loaded["src.translation.Service"] = savedService
+end
+
 print(("%d/%d checks passed (co-op touch)"):format(total - failures, total))
 if failures > 0 then os.exit(1) end

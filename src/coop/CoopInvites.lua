@@ -506,6 +506,7 @@ function CoopManager.offerBigBattle(ctx, oppClass, partyIndex)
 
   if choice == "coop" and CoopManager.isConnected() then
     local inviteId = newInviteId()
+    ctx.coopBigInviteId = inviteId
     CoopManager.bigBattle = { inviteId = inviteId, oppClass = oppClass, partyIndex = partyIndex,
                               name = name, at = now() }
     CoopManager.net:send({ type = "coop_story_hold", map = ow.map.id, class = oppClass })

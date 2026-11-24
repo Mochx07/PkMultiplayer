@@ -397,6 +397,157 @@ local function currentBattle()
   return CB and CB.currentBattle
 end
 
+-- Visual roulette modal shown when both players disagree on who keeps a
+-- jointly caught Pokemon (both want it, both pass it, or both leave it to fate).
+-- Deterministic from (seed, turn) so both screens spin identically and land on
+-- the exact same keeper.
+local Roulette = {}
+Roulette.__index = Roulette
+Roulette.isOpaque = false
+Roulette.isCoopRoulette = true
+Roulette.HOLD_TIME = 0.85
+
+local function buildRouletteSteps(keeper, seed, turn)
+  -- Start on slot 1 ("host") and alternate 1 <-> 2 each tick; pick a
+  -- deterministic step count whose parity guarantees landing on `keeper`.
+  local s = math.abs(math.floor(tonumber(seed) or 1))
+  local tr = math.abs(math.floor(tonumber(turn) or 0))
+  local base = 12 + ((s * 13 + tr * 5) % 4) * 2 -- even: 12, 14, 16, 18
+  local steps = (keeper == "host") and base or (base + 1)
+  local times = {}
+  for i = 1, steps do
+    local p = (i - 1) / math.max(1, steps - 1)
+    -- Decelerate smoothly from 0.05s to 0.24s per step (~1.8s total).
+    times[i] = 0.05 + 0.19 * (p * p)
+  end
+  return times
+end
+
+function Roulette.new(battle, opts)
+  local times = buildRouletteSteps(opts.keeper, opts.seed, opts.turn)
+  local hostName = battle.isCoopGuest and (opts.them or "PARTNER") or (opts.me or "YOU")
+  local guestName = battle.isCoopGuest and (opts.me or "YOU") or (opts.them or "PARTNER")
+  return setmetatable({
+    game = battle.game,
+    battle = battle,
+    keeper = opts.keeper,
+    hostName = hostName,
+    guestName = guestName,
+    winnerName = opts.keeper == "host" and hostName or guestName,
+    reason = opts.reason or "FATE DECIDES!",
+    times = times,
+    step = 0,
+    stepTimer = 0,
+    slot = 1, -- 1 = host (left), 2 = guest (right)
+    landed = false,
+    holdTimer = 0,
+    done = false,
+    onDone = opts.onDone,
+  }, Roulette)
+end
+
+function Roulette:finish()
+  if self.done then return end
+  self.done = true
+  local stack = self.game and self.game.stack
+  if stack and stack.states then
+    for i = #stack.states, 1, -1 do
+      if stack.states[i] == self then table.remove(stack.states, i) break end
+    end
+  end
+  if self.onDone then self.onDone() end
+end
+
+function Roulette:update(dt)
+  if self.done then return end
+  dt = dt or 1 / 60
+  if not self.landed then
+    self.stepTimer = self.stepTimer + dt
+    local dur = self.times[self.step + 1] or 0.08
+    while not self.landed and self.stepTimer >= dur do
+      self.stepTimer = self.stepTimer - dur
+      self.step = self.step + 1
+      self.slot = (self.step % 2 == 0) and 1 or 2
+      if self.step >= #self.times then
+        self.landed = true
+        self.slot = (self.keeper == "host") and 1 or 2
+        pcall(function() require("src.core.Sound").play(self.battle and self.battle.data, "Get_Item1") end)
+        break
+      else
+        pcall(function() require("src.core.Sound").play(self.battle and self.battle.data, "Press_AB") end)
+        dur = self.times[self.step + 1] or 0.08
+      end
+    end
+  else
+    self.holdTimer = self.holdTimer + dt
+    if self.holdTimer >= Roulette.HOLD_TIME then
+      self:finish()
+    end
+  end
+end
+
+function Roulette:draw()
+  local g = love.graphics
+  local Font = I18n().font()
+  local fit = I18n().fit
+  local raw = require("src.render.Font")
+
+  g.setColor(1, 1, 1, 1)
+  Font.drawBox(1, 2, 18, 10)
+
+  local function centerDraw(label, y, maxChars)
+    local text = fit(label, maxChars or 16)
+    local w = Font.width(text)
+    local x = math.max(16, math.floor((160 - w) / 2))
+    g.setColor(0, 0, 0, 1)
+    Font.draw(text, x, y)
+  end
+
+  centerDraw("ROULETTE!", 25, 16)
+  centerDraw(self.reason, 36, 16)
+
+  -- Two player slots inside x = 16..144, y = 56..74.
+  local slots = {
+    { x = 16, name = self.hostName },
+    { x = 84, name = self.guestName },
+  }
+  for idx, sl in ipairs(slots) do
+    local active = self.slot == idx
+    if active then
+      if self.landed then
+        g.setColor(0.55, 0.92, 0.55, 1)
+      else
+        g.setColor(1.0, 0.90, 0.45, 1)
+      end
+      g.rectangle("fill", sl.x, 56, 60, 18)
+      g.setColor(0, 0, 0, 1)
+      g.rectangle("line", sl.x + 0.5, 56.5, 59, 17)
+      g.rectangle("line", sl.x + 1.5, 57.5, 57, 15)
+      if raw.drawCode then raw.drawCode(0xEE, sl.x + 26, 46) end
+    else
+      g.setColor(1, 1, 1, 1)
+      g.rectangle("fill", sl.x, 56, 60, 18)
+      g.setColor(0.65, 0.65, 0.65, 1)
+      g.rectangle("line", sl.x + 0.5, 56.5, 59, 17)
+    end
+    local label = I18n().truncate(tostring(sl.name or ""), 7)
+    local lw = raw.width and raw.width(label) or (#label * 8)
+    local tx = sl.x + math.max(2, math.floor((60 - lw) / 2))
+    g.setColor(0, 0, 0, 1)
+    require("src.coop.CoopTouch").drawLiteral(label, tx, 61)
+  end
+
+  if self.landed then
+    centerDraw(string.format(t("WINNER: %s!"), self.winnerName), 79, 16)
+  else
+    local dots = string.rep(".", (self.step % 3) + 1)
+    centerDraw(t("SPINNING") .. dots, 79, 16)
+  end
+  g.setColor(1, 1, 1, 1)
+end
+
+CoopCatch.Roulette = Roulette
+
 function CoopCatch.askKeeper(battle)
   local c = battle.coop or {}
   local caught = battle.coopCaught
@@ -411,6 +562,16 @@ function CoopCatch.askKeeper(battle)
     if not p then return end
     p.mine = pick
     send({ type = "coop_catch_keep", pick = pick, turn = p.turn })
+    if not p.theirs then
+      battle.queue = {}
+      battle.nextInsert = 0
+      battle.current = nil
+      battle.msgWaiting = false
+      battle.msgPrompt = false
+      battle.shown = {}
+      battle.phase = "messages"
+      battle:say(string.format(t("Waiting for %s..."), p.them or "PARTNER"))
+    end
     CoopCatch.settle(battle)
   end
   battle:say(string.format(t("Who keeps\n%s?"), caught.target.name or "IT"))
@@ -452,7 +613,7 @@ function CoopCatch.settle(battle)
   local keeper, byCoin = CoopCatch.decide(frame(battle, p.mine, false), frame(battle, p.theirs, true), c.seed, p.turn)
   local mineIsKeeper = (keeper == "host") == (not battle.isCoopGuest)
   CoopLog.battle("CATCH", string.format("keeper %s (%s; me %s, partner %s)", keeper,
-                 byCoin and "coin" or "agreed", tostring(p.mine), tostring(p.theirs)))
+                 byCoin and "roulette" or "agreed", tostring(p.mine), tostring(p.theirs)))
   local game = battle.game
   -- the menu, if it is still up (the time ran out)
   if p.menu and game and game.stack then
@@ -462,24 +623,57 @@ function CoopCatch.settle(battle)
   end
   local caught = battle.coopCaught
   if not caught then return end
-  battle.queue = {}
-  battle.nextInsert = 0
-  battle.phase = "messages"
-  if byCoin then battle:say(t("The coin decides...")) end
-  if mineIsKeeper then
-    battle.enemy = caught.target
-    battle:act(function() battle:storeCaughtMon() end)
-  else
-    -- the partner's now (SHARE DEX passes it on as theirs); this copy ends
-    -- the battle the way a catch does, with nothing stored and no EXP
-    battle:sayNext(string.format(t("%s took\n%s!"), p.them or "PARTNER", caught.target.name or "IT"))
-    battle:act(function()
-      battle.noExp = true
-      battle.result = "caught"
-      battle.afterQueue = "finish"
-    end)
+
+  local function finalize()
+    battle.queue = {}
+    battle.nextInsert = 0
+    battle.current = nil
+    battle.msgWaiting = false
+    battle.msgPrompt = false
+    battle.shown = {}
+    battle.phase = "messages"
+    if mineIsKeeper then
+      battle.enemy = caught.target
+      battle:act(function() battle:storeCaughtMon() end)
+    else
+      -- the partner's now (SHARE DEX passes it on as theirs); this copy ends
+      -- the battle the way a catch does, with nothing stored and no EXP
+      battle:say(string.format(t("%s took\n%s!"), p.them or "PARTNER", caught.target.name or "IT"))
+      battle:act(function()
+        battle.noExp = true
+        battle.result = "caught"
+        battle.afterQueue = "finish"
+      end)
+    end
   end
-  if battle.phase ~= "messages" then battle.phase = "messages" end
+
+  if byCoin and game and game.stack then
+    local reason = "FATE DECIDES!"
+    if p.mine == "me" and p.theirs == "me" then
+      reason = "BOTH WANT IT!"
+    elseif p.mine == "partner" and p.theirs == "partner" then
+      reason = "BOTH PASSED IT!"
+    end
+    battle.queue = {}
+    battle.nextInsert = 0
+    battle.current = nil
+    battle.msgWaiting = false
+    battle.msgPrompt = false
+    battle.shown = {}
+    battle.phase = "messages"
+    game.stack:push(Roulette.new(battle, {
+      keeper = keeper,
+      seed = c.seed,
+      turn = p.turn,
+      me = p.me,
+      them = p.them,
+      reason = reason,
+      onDone = finalize,
+    }))
+    return
+  end
+
+  finalize()
 end
 
 CoopManager.handlers.coop_catch_keep = function(_, msg)
@@ -499,5 +693,6 @@ end
 CoopManager.onTick("CoopCatch", function(dt) CoopCatch.tick(dt) end)
 
 require("src.coop.CoopTouch").bind(Aim, "aim")
+require("src.coop.CoopTouch").bind(Roulette, "roulette")
 
 return CoopCatch

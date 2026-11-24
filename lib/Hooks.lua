@@ -196,6 +196,7 @@ Hooks.modules["src.core.Game"] = function(Game)
   wrap(Game, "Game", "returnToTitle", function(returnToTitle)
     return function(self, ...)
       sayGoodbye()
+      pcall(function() require("src.coop.CoopTouch").exitTouch(self) end)
       return returnToTitle(self, ...)
     end
   end)
@@ -243,14 +244,26 @@ Hooks.modules["src.core.Game"] = function(Game)
   if Game.gamepadpressed then
     wrap(Game, "Game", "gamepadpressed", function(gamepadpressed)
       return function(self, ...)
+        pcall(function() require("src.coop.CoopTouch").exitTouch(self) end)
         local CD = package.loaded["src.coop.CoopDiscord"]
         if CD and CD.onInput then pcall(CD.onInput) end
         return gamepadpressed(self, ...)
       end
     end)
   end
+  if Game.gamepadaxis then
+    wrap(Game, "Game", "gamepadaxis", function(gamepadaxis)
+      return function(self, joystick, axis, value, ...)
+        if math.abs(tonumber(value) or 0) > 0.5 then
+          pcall(function() require("src.coop.CoopTouch").exitTouch(self) end)
+        end
+        return gamepadaxis(self, joystick, axis, value, ...)
+      end
+    end)
+  end
   wrap(Game, "Game", "keypressed", function(keypressed)
     return function(self, key, ...)
+      pcall(function() require("src.coop.CoopTouch").exitTouch(self) end)
       local CD = package.loaded["src.coop.CoopDiscord"]
       if CD and CD.onInput then pcall(CD.onInput) end
       -- the chat open inside a co-op double takes every key but the
@@ -323,6 +336,7 @@ Hooks.modules["src.core.Game"] = function(Game)
   -- ...and the letters typed into it
   wrap(Game, "Game", "textinput", function(textinput)
     return function(self, text, ...)
+      pcall(function() require("src.coop.CoopTouch").exitTouch(self) end)
       local CMo = coopManager()
       local overlay = CMo and CMo.chatOverlay
       if overlay and overlay.game == self then
@@ -1775,7 +1789,6 @@ Hooks.modules["src.world.OverworldController"] = function(OverworldState)
       local a, b, c = drawUI(self, ...)
       local CM = coopManager()
       if CM and CM.drawUI then CM.drawUI(self) end
-      require("src.coop.CoopTouch").drawOpener(self.game or require("src.core.Game"))
       return a, b, c
     end
   end)

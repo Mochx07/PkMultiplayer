@@ -28,8 +28,8 @@ function T.action(s, button)
   if not ok then error(err) end
 end
 
-local function add(out, id, x, y, w, h, run, label)
-  out[#out + 1] = { id = id, x = x, y = y, w = w, h = h, run = run, label = label }
+local function add(out, id, x, y, w, h, run, label, raw)
+  out[#out + 1] = { id = id, x = x, y = y, w = w, h = h, run = run, label = label, raw = raw }
 end
 local function button(out, s, id, x, y, w, h, key, label)
   add(out, id, x, y, w, h, function() T.action(s, key) end, label)
@@ -39,9 +39,66 @@ local function back(out, s, y)
   button(out, s, "back", 104, y or 128, 48, 12, "b", label)
 end
 
+-- Draw text literally without Font.localize (which translates single-letter
+-- Win/Loss keys "W" -> "V" and "L" -> "D" in Spanish) or CoopI18n.t.
+local function drawLiteral(text, x, y)
+  local raw = require("src.render.Font")
+  if type(text) ~= "string" or text == "" then return 0 end
+  if raw.encode and raw.drawCode and raw.advanceOf then
+    local pen = x
+    for _, code in ipairs(raw.encode(text)) do
+      raw.drawCode(code, pen, y)
+      pen = pen + raw.advanceOf(code)
+    end
+    return pen - x
+  end
+  return raw.draw(text, x, y)
+end
+T.drawLiteral = drawLiteral
+
+local function literalWidth(text)
+  local raw = require("src.render.Font")
+  if type(text) ~= "string" or text == "" then return 0 end
+  if raw.encode and raw.advanceOf then
+    local w = 0
+    for _, code in ipairs(raw.encode(text)) do
+      w = w + raw.advanceOf(code)
+    end
+    return w
+  end
+  return raw.width(text)
+end
+
+local function drawCursor(g, x, y)
+  g.setColor(0, 0, 0, 1)
+  g.rectangle("fill", x + 1, y + 7, 6, 1)
+end
+
 function T.isPhone()
   local osName = love and love.system and love.system.getOS and love.system.getOS()
   return osName == "Android" or osName == "iOS"
+end
+
+function T.exitTouch(game)
+  if not game or T.isPhone() or os.getenv("POKEPORT_TOUCH") == "1" then return end
+  if not game.coopTouchUsed then return end
+  game.coopTouchUsed = false
+  T.reset(game)
+  local cmObj = cm()
+  local overlay = cmObj and cmObj.chatOverlay
+  if overlay then
+    overlay.touchActive = false
+    overlay.touchGesture = nil
+  end
+  local stack = game.stack and game.stack.states
+  if type(stack) == "table" then
+    for _, st in ipairs(stack) do
+      if type(st) == "table" then
+        st.touchActive = false
+        st.touchGesture = nil
+      end
+    end
+  end
 end
 
 function T.keyboard(s)
@@ -59,7 +116,7 @@ local function keyboard(out, s)
       add(out, "key:" .. ch, 5 + (col - 1) * 15, 62 + (row - 1) * 13, 15, 13, function()
         s.swallowOpenKey = false
         s:onTextInput(ch)
-      end, ch)
+      end, ch, true)
     end
   end
   add(out, "erase", 5, 114, 45, 13, function()
@@ -171,12 +228,13 @@ function T.targets(s)
   elseif kind == "invite" then
     local x, y = (s.tx + 1) * 8, (s.ty + 1) * 8
     for n = 1, 2 do
-      add(out, "answer:" .. n, x, y + 32 + (n - 1) * 16, 128, 16, function()
+      add(out, "answer:" .. n, x, y + 32 + (n - 1) * 16, 128, 14, function()
         s.index = n
         if n == 2 then T.cancel(s) elseif s.armed then T.action(s, "a") end
       end)
     end
-    back(out, s, y + 64)
+    local backY = math.min(132, (s.ty + (s.th or 11)) * 8 + 4)
+    back(out, s, backY)
   elseif kind == "emotes" then
     local list = require("src.coop.CoopEmotes").LIST
     local x0 = math.floor((160 - (#list - 1) * 20) / 2)
@@ -188,11 +246,20 @@ function T.targets(s)
     back(out, s, 56)
   elseif kind == "list" then
     local visible = math.min(s.maxVisible or #s.items, #s.items)
+    local innerTop = (s.ty + 1) * 8
+    local innerBot = math.min(144, (s.ty + s.th - 1) * 8)
     for row = 1, visible do
       local n = (s.scroll or 0) + row
-      local y = (s.ty + s.th - 2 - (visible - row) * s.rowStep) * 8
-      add(out, "row:" .. n, (s.tx + 1) * 8, y,
-        (s.tw - 2) * 8, math.min(s.rowStep * 8, 144 - y),
+      local textY = (s.ty + s.th - 2 - (visible - row) * s.rowStep) * 8
+      local pad = s.rowStep > 1 and 2 or 0
+      local top = math.max(innerTop, textY - pad)
+      local bot = math.min(innerBot, top + (s.rowStep > 1 and 12 or 8))
+      if row < visible then
+        local nextY = (s.ty + s.th - 2 - (visible - (row + 1)) * s.rowStep) * 8
+        bot = math.min(bot, nextY - pad)
+      end
+      add(out, "row:" .. n, (s.tx + 1) * 8, top,
+        (s.tw - 2) * 8, math.max(1, bot - top),
         function() s.index = n T.action(s, "a") end)
     end
     -- The BACK strip is outside the menu and never covers its last row.
@@ -202,6 +269,14 @@ function T.targets(s)
     back(out, s)
   elseif kind == "aim" then
     button(out, s, "throw", 8, 100, 144, 32, "a")
+  elseif kind == "roulette" then
+    return out
+  elseif kind == "wait" then
+    if s.compact then
+      back(out, s, (s.lines and s.lines[2]) and 42 or 34)
+    else
+      back(out, s)
+    end
   elseif kind == "link" then
     if s.stage == "battleOptions" then
       button(out, s, "down", 8, 56, 64, 16, "down", "DOWN")
@@ -246,13 +321,20 @@ function T.scroll(s, delta)
 end
 
 function T.pressed(s, id, px, py)
+  local desktop = not T.isPhone() and os.getenv("POKEPORT_TOUCH") ~= "1"
+  local x, y = T.toGame(s.game, px, py)
+  local target
+  for _, r in ipairs(T.targets(s)) do if T.hit(r, x, y) then target = r break end end
+  -- On desktop while touch mode is inactive, ignore mouse clicks on empty
+  -- background or letterbox so focusing the window neither turns on touch UI
+  -- nor cancels the active screen.
+  if desktop and id == "mouse" and not s.game.coopTouchUsed and not target then
+    return false
+  end
   s.game.coopTouchUsed = true
   s.touchActive = true
   if T.keyboard(s) and T.isPhone() and love.keyboard and love.keyboard.setTextInput then love.keyboard.setTextInput(false) end
   if s.touchGesture then return true end -- one owner; other fingers cannot confirm
-  local x, y = T.toGame(s.game, px, py)
-  local target
-  for _, r in ipairs(T.targets(s)) do if T.hit(r, x, y) then target = r break end end
   s.touchGesture = { id = id, x = px, y = py, lastY = py, target = target, dragged = false,
     stage = s.stage, page = s.page }
   return true
@@ -281,7 +363,9 @@ function T.released(s, id, px, py)
   local x, y = T.toGame(s.game, px, py)
   if g.target then
     if T.hit(g.target, x, y) then g.target.run() end
-  else T.cancel(s) end
+  elseif s.touchKind ~= "roulette" then
+    T.cancel(s)
+  end
   return true
 end
 
@@ -292,20 +376,24 @@ local function drawKeyboard(s)
   F.draw(s.touchKind == "chat" and "CHAT" or (s.stage == "name" and "YOUR NAME:" or "HOST'S CODE:"), 8, 4)
   if s.touchKind == "chat" then
     local lines = cm().chatLines(18, 2)
-    for n, line in ipairs(lines) do F.raw.draw(i18n().fitGlyphs(i18n().truncate(line, 18)), 8, 8 + n * 8) end
+    for n, line in ipairs(lines) do drawLiteral(i18n().fitGlyphs(i18n().truncate(line, 18)), 8, 8 + n * 8) end
     local rows = require("src.coop.CoopChatBox").layout(s.text) or {}
-    F.raw.draw(i18n().fitGlyphs(rows[#rows - 1] or ""), 8, 36)
-    F.raw.draw(i18n().fitGlyphs(rows[#rows] or "") .. (#(rows[#rows] or "") < 18 and "_" or ""), 8, 46)
+    drawLiteral(i18n().fitGlyphs(rows[#rows - 1] or ""), 8, 36)
+    local last = i18n().fitGlyphs(rows[#rows] or "")
+    local w = drawLiteral(last, 8, 46)
+    if #last < 18 and 8 + w <= 148 then drawCursor(g, 8 + w, 46) end
   else
-    local text = (s.stage == "name" and s.nameEdit.buf or (s.code or "")) .. "_"
-    if #text <= 18 then
-      F.raw.draw(text, 8, 24)
+    local text = i18n().fitGlyphs(s.stage == "name" and s.nameEdit.buf or (s.code or ""))
+    if #text <= 17 then
+      local w = drawLiteral(text, 8, 24)
+      drawCursor(g, 8 + w, 24)
     else
       local cut = 0
-      for i = 1, 18 do if text:sub(i, i) == "-" then cut = i end end
+      for i = 1, math.min(18, #text) do if text:sub(i, i) == "-" then cut = i end end
       if cut == 0 then cut = 18 end
-      F.raw.draw(text:sub(1, cut), 8, 20)
-      F.raw.draw(text:sub(cut + 1, cut + 18), 8, 30)
+      drawLiteral(text:sub(1, cut), 8, 20)
+      local w2 = drawLiteral(text:sub(cut + 1, cut + 18), 8, 30)
+      if 8 + w2 <= 148 then drawCursor(g, 8 + w2, 30) end
     end
     if s.errorMsg then F.draw(s.errorMsg, 8, 44) end
   end
@@ -330,6 +418,7 @@ function T.draw(s)
     if s.stage == "ipEntry" then clear(8, 68, 144, 40) end
   elseif s.touchKind == "team" or s.touchKind == "dex" then clear(8, 128, 144, 12)
   end
+  local lh = (F.raw and F.raw.glyphHeight and F.raw.glyphHeight()) or 8
   for _, r in ipairs(T.targets(s)) do
     -- Black one-pixel outlines remain readable on both Game Boy palettes.
     g.setColor(0, 0, 0, 0.35)
@@ -337,7 +426,10 @@ function T.draw(s)
     if r.label then
       g.setColor(1, 1, 1, 1) g.rectangle("fill", r.x + 1, r.y + 1, r.w - 2, r.h - 2)
       g.setColor(0, 0, 0, 1)
-      F.draw(r.label, r.x + 2, r.y + 2)
+      local lw = r.raw and literalWidth(r.label) or F.width(r.label)
+      local tx = r.x + math.max(2, math.floor((r.w - lw) / 2))
+      local ty = r.y + math.max(1, math.floor((r.h - lh) / 2))
+      if r.raw then drawLiteral(r.label, tx, ty) else F.draw(r.label, tx, ty) end
     end
   end
   g.setColor(1, 1, 1, 1)
@@ -365,18 +457,10 @@ function T.route(game, method, id, x, y)
   local s = owners[id]
   if method == "touchpressed" then
     s = cm().chatOverlay or game.stack:top()
-    if not (s and s.touchKind) then
-      local gx, gy = T.toGame(game, x, y)
-      if cm().overworldIdle(game, game.overworld) and s == game.overworld and T.hit({ x = 120, y = 132, w = 40, h = 12 }, gx, gy) then
-        game.coopTouchUsed = true
-        local menu = require("src.coop.CoopMenu").new(game)
-        menu.touchActive = true game.stack:push(menu)
-        owners[id] = false
-        return true
-      end
-      return false
-    end
+    if not (s and s.touchKind) then return false end
+    if s:touchpressed(id, x, y) == false then return false end
     owners[id] = s
+    return true
   elseif s == false then
     if method == "touchreleased" then owners[id] = nil end
     return true
@@ -395,11 +479,5 @@ function T.reset(game)
   game.coopTouchOwners = nil
 end
 
-function T.drawOpener(game)
-  if not cm().overworldIdle(game, game.overworld) then return end
-  local g = love.graphics
-  g.setColor(1, 1, 1, 1) g.rectangle("fill", 120, 132, 40, 12)
-  g.setColor(0, 0, 0, 1) require("src.render.MicroFont").draw(i18n().t("CO-OP"), 124, 135)
-  g.setColor(1, 1, 1, 1)
-end
+function T.drawOpener() end
 return T

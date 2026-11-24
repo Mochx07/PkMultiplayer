@@ -304,24 +304,39 @@ do
   T.check(#throws == 2 and h and h.rate == nil and h.ball == "POKE_BALL", "one ball: an ordinary throw, on both copies")
 end
 
--- caught: the turn stops, both are asked, and they agree
+-- caught: the turn stops, both are asked; agreement skips roulette, disagreement spins roulette
 for _, case in ipairs({
-  { "host says ME, guest says FOR HOST", "me", "partner", "host" },
-  { "both leave it to fate", "coin", "coin", nil },
-  { "both want it: the coin", "me", "me", nil },
-  { "fate vs a name (the guest gives it to the host): the host", "coin", "partner", "host" },
+  { "host says ME, guest says FOR HOST", "me", "partner", "host", false },
+  { "both leave it to fate", "coin", "coin", nil, true },
+  { "both want it: roulette", "me", "me", nil, true },
+  { "both pass it: roulette", "partner", "partner", nil, true },
+  { "fate vs a name (the guest gives it to the host): the host", "coin", "partner", "host", false },
 }) do
   throws = {}
   local pair = wildPair("FIX_EASY", nil, 777)
-  local hostMoves = 0
-  local orig = pair.hb.executeAction
   pair.turn("ball:MASTER_BALL", "move")
   T.check(pair.hb.coopCaught and pair.gb.coopCaught, case[1] .. ": caught on both copies")
   local askedH = pair.answer("host", case[2])
+  -- Before partner replies, host shows a waiting message instead of stale prompt
+  T.check(pair.hb.queue and pair.hb.queue[1] and tostring(pair.hb.queue[1].text or ""):find("Waiting", 1, true) ~= nil,
+          case[1] .. ": shows waiting feedback before partner answers")
   pair.deliver("guest")
   local askedG = pair.answer("guest", case[3])
   pair.deliver("host")
   T.check(askedH and askedG, case[1] .. ": both were asked WHO KEEPS IT?")
+  local topH, topG = pair.hostGame.stack:top(), pair.guestGame.stack:top()
+  if case[5] then
+    T.check(topH and topH.isCoopRoulette and topG and topG.isCoopRoulette,
+            case[1] .. ": roulette modal pushed on both screens")
+    T.check(topH.keeper == topG.keeper and #topH.times == #topG.times,
+            case[1] .. ": both roulettes have identical deterministic spin and winner")
+    local okDrawH = pcall(topH.draw, topH)
+    local okDrawG = pcall(topG.draw, topG)
+    T.check(okDrawH and okDrawG, case[1] .. ": roulette renders cleanly on both copies")
+  else
+    T.check(not (topH and topH.isCoopRoulette) and not (topG and topG.isCoopRoulette),
+            case[1] .. ": agreement settles immediately without roulette")
+  end
   drain(pair.hb); drain(pair.gb)
   local hostKept = #pair.hostGame.save.party == 2
   local guestKept = #pair.guestGame.save.party == 2
@@ -341,6 +356,49 @@ do
   T.check(a1 == a2, "the coin falls the same way for the same battle and turn")
   T.check(CoopCatch.decide("coin", "guest", 1, 1) == "guest" and CoopCatch.decide("host", "coin", 1, 1) == "host",
           "fate and a name: the name")
+end
+
+-- 2 players vs 1 wild Pokemon: wild foe renders with its full 1v1 sprite/layout
+do
+  local pair = wildPair("FIX_EASY", nil, 101)
+  local hb = pair.hb
+  T.check(hb:isLoneWildFoe() == true, "co-op wild 2v1 battle identifies lone wild foe")
+  local gSolo = newGame("SOLO", { "FIXMON_A" }, 30)
+  local solo = BattleState.newWild(gSolo, "FIX_EASY", 10)
+  solo:placeBattler(P.OPPONENT_LEFT, solo.enemy)
+  local fakePic = {
+    getWidth = function() return 48 end,
+    getHeight = function() return 48 end,
+    getDimensions = function() return 48, 48 end,
+  }
+  hb.enemy.sprite = fakePic
+  solo.enemy.sprite = fakePic
+  hb.picImage = function(_, s) return s end
+  solo.picImage = function(_, s) return s end
+  hb.battlerPic = function(_, b) return b.sprite end
+  local boxCoop = hb:animPicBox(P.OPPONENT_LEFT)
+  local boxSolo = solo:animPicBox(P.OPPONENT_LEFT)
+  T.check(boxCoop and boxSolo and boxCoop.to[1] == boxSolo.to[1] and boxCoop.to[2] == boxSolo.to[2] and boxCoop.k == boxSolo.k,
+          "lone wild animPicBox matches 1v1 wild battle box exactly")
+  local drawnScale, usedDoublePic
+  local origAt = hb.drawBattlerPicAt
+  hb.drawBattlerPicAt = function(self, battler, x, y, sc)
+    drawnScale = sc
+    usedDoublePic = self.doublePicDraw
+  end
+  hb:drawBattlerPic(hb.enemy, 104, 8, 1)
+  T.check(drawnScale == 1 and not usedDoublePic, "lone wild drawBattlerPic renders at full 1v1 scale without double shrink")
+  -- Player battler in the same 2v1 battle still shrinks for 2-player back layout
+  hb.player.sprite = fakePic
+  drawnScale, usedDoublePic = nil, nil
+  hb:drawBattlerPic(hb.player, 16, 48, 1)
+  T.check(drawnScale and drawnScale < 1, "player back sprite in 2v1 still uses double shrink")
+  hb.drawBattlerPicAt = origAt
+  -- Trainer double with OPPONENT_RIGHT is NOT a lone wild foe
+  local tr = BattleState.newTrainer(gSolo, "OPP_FIX_YOUNGSTER", 1)
+  tr.double = true
+  tr:placeBattler(P.OPPONENT_RIGHT, BattleState.makeBattler(Data, tr.enemyParty[1], false))
+  T.check(not tr:isLoneWildFoe(), "2v2 trainer double does not use lone wild layout")
 end
 
 T.finish("catching together")
