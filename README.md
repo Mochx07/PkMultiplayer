@@ -42,7 +42,7 @@ no fork of the game to download, just this zip.
 
 The **2.0 nightly** builds are test builds on the [releases page](https://github.com/Mochx07/PkMultiplayer/releases)
 (marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.58 or later**.
-Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players must be on nightly.3).
+Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players must be on nightly.3+).
 
 - **Gen 1 co-op parity (Red, Blue and Yellow):** all 8 Kanto gyms, the Pokémon League and Hall of Fame,
   rival 2-vs-2 battles, catchable legendary bosses (Articuno, Zapdos, Moltres, Mewtwo), shared Kanto
@@ -52,9 +52,10 @@ Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players m
   through a single receiver filter while keeping edition-exclusive events safely in their own save.
 - **Official Link Hub (no VPN needed):** `HOST ONLINE` and `JOIN` by code (up to 24 characters, Ctrl+V
   or touch keyboard) link straight through the game's own connection ladder and official Link Hub.
-- **2-vs-1 wild co-op and timed joint catching:** wild co-op battles face a single wild Pokémon (no
-  mirrored twin); both players throwing a Ball on the same turn triggers a shrinking-ring timing
-  bonus (up to ×3 catch rate), followed by **who keeps it** (me / my partner / let fate decide).
+- **2-vs-1 wild co-op and timed joint catching:** wild co-op battles face a single wild Pokémon at full
+  1-vs-1 sprite scale (no mirrored twin); both players throwing a Ball on the same turn triggers a
+  shrinking-ring timing bonus (up to ×3 catch rate), followed by **who keeps it** (me / my partner /
+  let fate decide) with a synchronized **roulette** whenever both players pick conflicting options.
 - **Partner on the Town Map:** your partner's avatar head shows directly on the Gen 1 and Gen 2 Town
   Map, even across different editions.
 - **Mobile touch support:** touch controls across the mod's menus, invites, VS screens, emotes and
@@ -220,7 +221,7 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Mochx07/PkMultiplayer/releases)
 (marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.58
 o posterior**. Desde la **2.0.0-nightly.3** el enlace usa **protocolo 17** (los dos jugadores deben
-usar nightly.3).
+usar nightly.3+).
 
 - **Paridad de Gen 1 (Rojo, Azul y Amarillo):** los 8 gimnasios de Kanto, la Liga Pokémon y el Salón
   de la Fama en 2 contra 2, rival en 2 contra 2, legendarios capturables como jefes (Articuno,
@@ -232,9 +233,10 @@ usar nightly.3).
   su propia partida.
 - **Link Hub oficial sin VPN:** `HOST ONLINE` y `JOIN` por código (hasta 24 caracteres, Ctrl+V o
   teclado táctil) conectan directo a través de la escalera de red y el Link Hub oficial del juego.
-- **Salvajes 2 contra 1 y captura conjunta sincronizada:** los salvajes en pareja son ahora un solo
-  Pokémon frente a los dos jugadores; si ambos lanzan Ball en el mismo turno sale un aro de puntería
-  (hasta ×3 de captura) y luego deciden **quién se lo queda** (yo / para el compañero / a la suerte).
+- **Salvajes 2 contra 1 y captura conjunta sincronizada:** los salvajes en pareja son un solo Pokémon
+  con su sprite completo de 1 contra 1; si ambos lanzan Ball en el mismo turno sale un aro de puntería
+  (hasta ×3 de captura) y luego deciden **quién se lo queda** con una **ruleta** sincronizada cuando
+  eligen opciones distintas.
 - **Compañero en el Mapa:** la cabeza de tu compañero se ve en el Mapa de Gen 1 y Gen 2, incluso
   entre ediciones distintas.
 - **Soporte táctil en móvil:** toque en las pantallas del mod (menús, invitaciones, VS, emotes y

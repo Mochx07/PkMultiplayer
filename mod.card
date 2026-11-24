@@ -14,14 +14,14 @@ return {
     added = {
       "LAN, official Link Hub (no VPN needed) and VPN link (ZeroTier, Tailscale, Radmin, Hamachi, WireGuard; port 7777) with your partner's avatar on the map and Town Map",
       "chat (T), emotes (Y), voice chat (push V / R or open mic, by distance) and touch controls on mobile",
-      "2-vs-1 wild co-op with timed joint catching (up to x3 catch bonus) and who keeps it",
+      "2-vs-1 wild co-op (1-vs-1 wild sprite) with timed joint catching (up to x3 catch bonus) and keeper roulette",
       "Cable Club trades and battles directly over the co-op link, P1 vs P2 VS modes and minigames",
       "items on your partner's Pokemon, warp to partner, shared HMs",
     },
     known = {
       "Gen 1 and Gen 2 games only; on other generations the mod does nothing",
       "emote bubbles are drawn pills: the cartridge's own bubble sheet is not imported by Gen2Recomped",
-      "both players need the same PkMultiplayer version (nightly.3 uses link protocol 17)",
+      "both players need the same PkMultiplayer version (nightly.3+ uses link protocol 17)",
     },
   },
   credits = {

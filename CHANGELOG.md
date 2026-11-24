@@ -3,6 +3,49 @@
 Format: [keep a changelog](https://keepachangelog.com/en/1.1.0/).
 Version headings match `manifest.json`'s `version`.
 
+## 2.0.0-nightly.4
+
+**Nightly** (versión de prueba) con mejoras en captura conjunta, batallas salvajes 2 contra 1,
+entrada de la Meseta Añil y correcciones del modo táctil en PC y móvil. Protocolo 17 (compatible
+con `2.0.0-nightly.3`, aunque ambos jugadores necesitan `2.0.0-nightly.4` para ver la ruleta de
+captura y el sprite 1v1 en salvajes). Necesita Gen2Recomped 0.8.58 o posterior.
+
+### Añadido
+
+- **Ruleta visual en capturas conjuntas con desacuerdo (`CoopCatch`):** cuando los dos atrapan un
+  Pokémon a la vez y eligen opciones distintas (ambos lo quieren, ambos lo ceden o ambos lo dejan
+  a la suerte), aparece una ruleta animada y determinista en las dos pantallas que gira entre los
+  dos jugadores y resalta al ganador; además muestra «Esperando a <compañero>...» mientras el otro
+  decide.
+
+### Cambiado
+
+- **Sprite 1v1 del Pokémon salvaje en 2 contra 1 (`BattleState`):** en combates cooperativos de
+  dos jugadores contra un salvaje, el Pokémon salvaje se dibuja con su sprite completo de 1 contra 1
+  (sin reducir ni desplazar al hueco 2v2), con animaciones, aro de captura y HUDs de P1/P2
+  alineados sin recortarle los pies.
+- **Quitado el botón `CO-OP` flotante de la esquina inferior derecha:** el menú co-op se abre desde
+  `START -> CO-OP`.
+
+### Arreglado
+
+- **Táctil pegado en PC:** usar el ratón en menús del mod ya no deja el modo táctil ni el teclado
+  en pantalla activos para siempre; cualquier pulsación de teclado o mando sale del modo táctil al
+  instante, y hacer clic fuera de un menú para enfocar la ventana ya no activa el táctil ni
+  cancela la pantalla.
+- **Teclado táctil en español (`W` salía como `V` y `L` como `D`):** las teclas y el texto escrito
+  se dibujan de forma literal sin pasar por `Font.localize` (que traducía `W`/`L` de victorias/derrotas),
+  y el cursor ahora es una barra limpia en vez del carácter `_` inexistente.
+- **Entrada antes de los Altos Mandos (Meseta Añil):** al pisar los disparadores del rival antes de
+  los Altos Mandos cuando no tocaba combate, ya no aparece un menú fantasma `CO-OP / SOLO` que no
+  hacía nada y dejaba al compañero colgado en `LEE CON ÉL...`. `CoopStory.findBigBattle` ahora
+  evalúa los guards iniciales antes de ofrecer combate y cancela cualquier invitación no consumida
+  al cerrar el script.
+- **Ajustes visuales táctiles:** los recuadros de filas en menús (`CO-OP / SOLO`, captura, etc.) ya
+  no pisan el borde del marco, el botón `ATRAS` de la espera compacta (`LEE CON ÉL...`) ya no tapa
+  el diálogo inferior, `ATRAS` en invitaciones sale fuera del marco y las etiquetas de teclas y
+  botones van centradas.
+
 ## 2.0.0-nightly.3
 
 **Nightly** (versión de prueba) centrada en Gen 1 (Rojo/Azul/Amarillo), terceras ediciones,
