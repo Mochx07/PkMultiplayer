@@ -41,8 +41,8 @@ no fork of the game to download, just this zip.
 ### New in 2.0 (nightly)
 
 The **2.0 nightly** builds are test builds on the [releases page](https://github.com/Mochx07/PkMultiplayer/releases)
-(marked *Pre-release*); **1.6.17 stays the stable one**. The nightly needs **Gen2Recomped 0.8.60 or later**.
-Starting with **2.0.0-nightly.3**, the link uses **protocol 17** (both players must be on nightly.3+).
+(marked *Pre-release*); **1.6.17 stays the stable one (protocol 16)**. The nightly needs **Gen2Recomped 0.8.60 or later**.
+Starting with **2.0.0-nightly.3**, the 2.0 nightly uses **protocol 17** (not compatible with 1.6.x; both players must be on nightly.3+).
 
 - **Gen 1 co-op parity (Red, Blue and Yellow):** all 8 Kanto gyms, the Pokémon League and Hall of Fame,
   rival 2-vs-2 battles, catchable legendary bosses (Articuno, Zapdos, Moltres, Mewtwo), shared Kanto
@@ -219,8 +219,8 @@ oficial. No hace falta descargar ningún fork del juego, solo este zip.
 ### Novedades de la 2.0 (nightly)
 
 Las **2.0 nightly** son versiones de prueba en [Releases](https://github.com/Mochx07/PkMultiplayer/releases)
-(marcadas *Pre-release*); **la estable sigue siendo la 1.6.17**. La nightly necesita **Gen2Recomped 0.8.60
-o posterior**. Desde la **2.0.0-nightly.3** el enlace usa **protocolo 17** (los dos jugadores deben
+(marcadas *Pre-release*); **la estable sigue siendo la 1.6.17 (protocolo 16)**. La nightly necesita **Gen2Recomped 0.8.60
+o posterior**. Desde la **2.0.0-nightly.3**, la nightly 2.0 usa **protocolo 17** (no es compatible con 1.6.x; los dos jugadores deben
 usar nightly.3+).
 
 - **Paridad de Gen 1 (Rojo, Azul y Amarillo):** los 8 gimnasios de Kanto, la Liga Pokémon y el Salón

@@ -1,4 +1,4 @@
-**Nightly** (test build) of 2.0 refining joint catching, 2-vs-1 wild battles, Elite Four entrance triggers, and desktop/mobile touch UI. The stable release is still 1.6.17. Uses **link protocol 17** (update both players to `2.0.0-nightly.4` so both see the catch roulette and full 1-vs-1 wild layout). Needs Gen2Recomped 0.8.58 or later.
+**Nightly** (test build) of 2.0 refining joint catching, 2-vs-1 wild battles, Elite Four entrance triggers, and desktop/mobile touch UI. The stable release is still `1.6.17` (link protocol 16). **This nightly uses link protocol 17** (not compatible with `1.6.x`; update both players to `2.0.0-nightly.4` so both see the catch roulette and full 1-vs-1 wild layout). Needs Gen2Recomped 0.8.58 or later.
 
 ### New
 - **Joint catch keeper roulette (`CoopCatch`):** when both players catch a wild Pokémon together and pick conflicting options (both want it, both pass it, or both leave it to fate), a synchronized deterministic roulette spins on both screens, decelerates with ticks, and highlights the winner. Selecting first also displays `Waiting for <partner>...` until the other player chooses.
@@ -15,7 +15,7 @@
 
 ## Español
 
-**Nightly** (versión de prueba) de la 2.0 con mejoras en captura conjunta, salvajes 2 contra 1, disparadores de la entrada de los Altos Mandos y correcciones del modo táctil en PC y móvil. La estable sigue siendo la 1.6.17. Usa **protocolo 17** (actualiza ambos jugadores a `2.0.0-nightly.4` para ver la ruleta de captura y el sprite 1v1 en salvajes). Necesita Gen2Recomped 0.8.58 o posterior.
+**Nightly** (versión de prueba) de la 2.0 con mejoras en captura conjunta, salvajes 2 contra 1, disparadores de la entrada de los Altos Mandos y correcciones del modo táctil en PC y móvil. La estable sigue siendo la `1.6.17` (protocolo 16). **Esta nightly usa protocolo 17** (no es compatible con `1.6.x`; actualiza ambos jugadores a `2.0.0-nightly.4` para ver la ruleta de captura y el sprite 1v1 en salvajes). Necesita Gen2Recomped 0.8.58 o posterior.
 
 ### Novedades
 - **Ruleta visual en captura conjunta (`CoopCatch`):** cuando los dos atrapan un Pokémon a la vez y eligen opciones distintas (ambos lo quieren, ambos lo ceden o ambos lo dejan a la suerte), gira una ruleta sincronizada y determinista en ambas pantallas hasta marcar al ganador. Además muestra `Esperando a <compañero>...` mientras el otro elige.

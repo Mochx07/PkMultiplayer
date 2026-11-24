@@ -8,8 +8,9 @@ Version headings match `manifest.json`'s `version`.
 **Nightly** (versión de prueba) con los parches regenerados y verificados contra **Gen2Recomped
 0.8.60** (`886aea62`). Incluye todas las novedades y arreglos de `2.0.0-nightly.4` (ruleta en
 captura conjunta, sprite 1v1 en salvajes 2 contra 1, arreglo de la Meseta Añil, modo táctil en PC
-y teclado `W`/`L` en español). Protocolo 17. **Necesita Gen2Recomped 0.8.60 o posterior** (si aún
-estás en 0.8.58, usa `2.0.0-nightly.4`).
+y teclado `W`/`L` en español). La estable sigue siendo la `1.6.17` (protocolo 16); esta nightly usa
+**protocolo 17** (no es compatible con `1.6.x`). **Necesita Gen2Recomped 0.8.60 o posterior** (si
+aún estás en 0.8.58, usa `2.0.0-nightly.4`).
 
 ### Cambiado
 
@@ -20,9 +21,10 @@ estás en 0.8.58, usa `2.0.0-nightly.4`).
 ## 2.0.0-nightly.4
 
 **Nightly** (versión de prueba) con mejoras en captura conjunta, batallas salvajes 2 contra 1,
-entrada de la Meseta Añil y correcciones del modo táctil en PC y móvil. Protocolo 17 (compatible
-con `2.0.0-nightly.3`, aunque ambos jugadores necesitan `2.0.0-nightly.4` para ver la ruleta de
-captura y el sprite 1v1 en salvajes). Necesita Gen2Recomped 0.8.58 o posterior.
+entrada de la Meseta Añil y correcciones del modo táctil en PC y móvil. La estable sigue siendo la
+`1.6.17` (protocolo 16); esta nightly usa **protocolo 17** (no es compatible con `1.6.x`; ambos
+jugadores necesitan `2.0.0-nightly.4` o superior para ver la ruleta de captura y el sprite 1v1 en
+salvajes). Necesita Gen2Recomped 0.8.58 o posterior.
 
 ### Añadido
 
